@@ -36,6 +36,14 @@ airmonitor probe --port /dev/serial0
 The sensor needs up to two minutes to settle after power-up in clean air. Treat
 early values as warm-up data.
 
+## Deployment convention
+
+Perform repository clone, update, and install steps as your normal administrative
+user, for example `dsd`.
+
+Long-running services should run under the shared `automation` service account,
+matching `bambu-bento` and `printer-mqtt-service`.
+
 ## Safety and interpretation
 
 This is a cross-sensitive TVOC monitor calibrated with isobutylene. It is useful
