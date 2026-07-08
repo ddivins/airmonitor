@@ -12,6 +12,7 @@ The first supported sensor is the Amphenol SGX Sensortech
 src/airmonitor/sensors/       Sensor protocol implementations
 hardware/sgx-ps1-voc-1000-mod/ Wiring, protocol, and reference notes
 hardware/sensirion-sps30/     Wiring, protocol, and reference notes
+hardware/waveshare-ft232-usb-uart-board-type-c/ USB-C FT232 UART interface notes
 cad/enclosure/source/         Editable FreeCAD, OpenSCAD, or other CAD sources
 cad/enclosure/exports/        Generated STL, 3MF, and STEP files
 cad/enclosure/previews/       Rendered images for design review
