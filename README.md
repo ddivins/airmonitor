@@ -11,6 +11,7 @@ The first supported sensor is the Amphenol SGX Sensortech
 ```text
 src/airmonitor/sensors/       Sensor protocol implementations
 hardware/sgx-ps1-voc-1000-mod/ Wiring, protocol, and reference notes
+hardware/sensirion-sps30/     Wiring, protocol, and reference notes
 cad/enclosure/source/         Editable FreeCAD, OpenSCAD, or other CAD sources
 cad/enclosure/exports/        Generated STL, 3MF, and STEP files
 cad/enclosure/previews/       Rendered images for design review
@@ -39,4 +40,3 @@ early values as warm-up data.
 This is a cross-sensitive TVOC monitor calibrated with isobutylene. It is useful
 for trends, ventilation, and filter control, but it is not a compound-selective
 or life-safety instrument.
-
