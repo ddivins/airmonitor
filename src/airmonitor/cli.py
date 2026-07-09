@@ -19,6 +19,7 @@ from airmonitor.database import (
     start_sensor_session,
     upsert_sensor,
 )
+from airmonitor.filament_policy import FilamentPolicy
 from airmonitor.print_tracker import PrintTracker
 from airmonitor.printer_mqtt import PrinterStateCache
 from airmonitor.sensors.sgx_ps1_voc_1000 import (
@@ -30,7 +31,7 @@ from airmonitor.sensors.sgx_ps1_voc_1000 import (
 )
 
 
-APP_VERSION = "0.3.1"
+APP_VERSION = "0.4.0"
 SENSOR_MANUFACTURER = "SGX Sensortech"
 SENSOR_PRODUCT = "PS1-VOC-1000-MOD"
 SENSOR_MODEL = "SGX PS1-VOC-1000-MOD"
@@ -188,6 +189,9 @@ def log_samples(args: argparse.Namespace) -> int:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
 
+    policy = FilamentPolicy.load(args.filament_policy)
+    LOG.info("Loaded filament policy: path=%s version=%s", args.filament_policy, policy.version)
+
     conn = connect(args.database)
     init_db(conn)
     upsert_sensor(
@@ -254,6 +258,7 @@ def log_samples(args: argparse.Namespace) -> int:
                 try:
                     protocol, measurement, response = read_sgx_once(serial_port, args.decimal_places)
                     printer_state = printer_cache.latest_state() if printer_cache else None
+                    printer_state = enrich_with_filament_policy(printer_state, policy)
                     printer_available = printer_cache.availability() if printer_cache else None
                     print_id = print_tracker.update(
                         printer_state=printer_state,
@@ -270,7 +275,7 @@ def log_samples(args: argparse.Namespace) -> int:
                         frame_hex=response.hex(" "),
                     )
                     LOG.info(
-                        "Logged sample: voc=%s ppm temp=%sC rh=%s%% print_id=%s printer_state=%s active=%s file=%s filament=%s",
+                        "Logged sample: voc=%s ppm temp=%sC rh=%s%% print_id=%s printer_state=%s active=%s file=%s filament=%s emission=%s room_filter=%s",
                         measurement.gas_ppm,
                         measurement.temperature_c,
                         measurement.humidity_rh,
@@ -279,6 +284,8 @@ def log_samples(args: argparse.Namespace) -> int:
                         _dict_get(printer_state, "active"),
                         _dict_get(printer_state, "subtask_name"),
                         _dict_get(printer_state, "filament_type"),
+                        _dict_get(printer_state, "filament_emission_class"),
+                        _dict_get(printer_state, "room_filter_recommended"),
                     )
                 except Exception:
                     LOG.warning("Sample failed", exc_info=True)
@@ -292,6 +299,17 @@ def log_samples(args: argparse.Namespace) -> int:
         if printer_cache:
             printer_cache.stop()
         conn.close()
+
+
+def enrich_with_filament_policy(
+    printer_state: dict[str, Any] | None, policy: FilamentPolicy
+) -> dict[str, Any] | None:
+    if not printer_state:
+        return printer_state
+    state = dict(printer_state)
+    decision = policy.classify(state.get("filament_type"))
+    state.update(decision.as_printer_state_fields())
+    return state
 
 
 def _dict_get(value: dict[str, Any] | None, key: str) -> Any:
@@ -342,6 +360,7 @@ def build_parser() -> argparse.ArgumentParser:
     log_parser.add_argument("--sensor-serial", default=None)
     log_parser.add_argument("--sensor-location", default=None)
     log_parser.add_argument("--database", default="/var/lib/airmonitor/airmonitor.sqlite3")
+    log_parser.add_argument("--filament-policy", default="/etc/airmonitor-filament-policy.yaml")
     log_parser.add_argument("--interval", type=float, default=10.0)
     log_parser.add_argument("--post-print-context-seconds", type=int, default=1800)
     log_parser.add_argument("--printer-mqtt", action=argparse.BooleanOptionalAction, default=True)
