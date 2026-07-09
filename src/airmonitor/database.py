@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 DDL = """
@@ -73,6 +73,14 @@ CREATE TABLE IF NOT EXISTS prints (
     filament_vendor TEXT,
     filament_name TEXT,
 
+    policy_version TEXT,
+    filament_policy_material TEXT,
+    filament_emission_class TEXT,
+    filament_odor_class TEXT,
+    filament_particle_class TEXT,
+    bento_recommended INTEGER,
+    room_filter_recommended INTEGER,
+
     nozzle_diameter REAL,
     nozzle_type TEXT,
     nozzle_target_temperature_c REAL,
@@ -102,6 +110,7 @@ CREATE TABLE IF NOT EXISTS sgx_voc_samples (
 CREATE INDEX IF NOT EXISTS idx_sensor_sessions_sensor_time ON sensor_sessions(sensor_id, started_at);
 CREATE INDEX IF NOT EXISTS idx_prints_started_at ON prints(started_at);
 CREATE INDEX IF NOT EXISTS idx_prints_last_state ON prints(last_gcode_state, started_at);
+CREATE INDEX IF NOT EXISTS idx_prints_policy ON prints(filament_emission_class, room_filter_recommended, started_at);
 CREATE INDEX IF NOT EXISTS idx_sgx_samples_sampled_at ON sgx_voc_samples(sampled_at);
 CREATE INDEX IF NOT EXISTS idx_sgx_samples_sensor_time ON sgx_voc_samples(sensor_id, sampled_at);
 CREATE INDEX IF NOT EXISTS idx_sgx_samples_print_time ON sgx_voc_samples(print_id, sampled_at);
@@ -142,6 +151,13 @@ PRINT_COLUMN_MIGRATIONS = {
     "filament_ams_slot": "INTEGER",
     "filament_profile": "TEXT",
     "filament_sub_brand": "TEXT",
+    "policy_version": "TEXT",
+    "filament_policy_material": "TEXT",
+    "filament_emission_class": "TEXT",
+    "filament_odor_class": "TEXT",
+    "filament_particle_class": "TEXT",
+    "bento_recommended": "INTEGER",
+    "room_filter_recommended": "INTEGER",
     "nozzle_diameter": "REAL",
     "nozzle_type": "TEXT",
     "nozzle_target_temperature_c": "REAL",
@@ -256,9 +272,11 @@ def start_or_update_print(
                 layer_num, total_layer_num, subtask_name, print_error, print_type,
                 filament_tray_id, filament_ams_slot, filament_type, filament_color,
                 filament_profile, filament_sub_brand, filament_vendor, filament_name,
-                nozzle_diameter, nozzle_type, nozzle_target_temperature_c,
-                bed_target_temperature_c, printer_state_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                policy_version, filament_policy_material, filament_emission_class,
+                filament_odor_class, filament_particle_class, bento_recommended,
+                room_filter_recommended, nozzle_diameter, nozzle_type,
+                nozzle_target_temperature_c, bed_target_temperature_c, printer_state_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             _print_values(printer_state, printer_available, started_state, started_state),
         )
@@ -287,6 +305,13 @@ def start_or_update_print(
             filament_sub_brand = COALESCE(?, filament_sub_brand),
             filament_vendor = COALESCE(?, filament_vendor),
             filament_name = COALESCE(?, filament_name),
+            policy_version = COALESCE(?, policy_version),
+            filament_policy_material = COALESCE(?, filament_policy_material),
+            filament_emission_class = COALESCE(?, filament_emission_class),
+            filament_odor_class = COALESCE(?, filament_odor_class),
+            filament_particle_class = COALESCE(?, filament_particle_class),
+            bento_recommended = COALESCE(?, bento_recommended),
+            room_filter_recommended = COALESCE(?, room_filter_recommended),
             nozzle_diameter = COALESCE(?, nozzle_diameter),
             nozzle_type = COALESCE(?, nozzle_type),
             nozzle_target_temperature_c = COALESCE(?, nozzle_target_temperature_c),
@@ -332,6 +357,13 @@ def finish_print(
             filament_sub_brand = COALESCE(?, filament_sub_brand),
             filament_vendor = COALESCE(?, filament_vendor),
             filament_name = COALESCE(?, filament_name),
+            policy_version = COALESCE(?, policy_version),
+            filament_policy_material = COALESCE(?, filament_policy_material),
+            filament_emission_class = COALESCE(?, filament_emission_class),
+            filament_odor_class = COALESCE(?, filament_odor_class),
+            filament_particle_class = COALESCE(?, filament_particle_class),
+            bento_recommended = COALESCE(?, bento_recommended),
+            room_filter_recommended = COALESCE(?, room_filter_recommended),
             nozzle_diameter = COALESCE(?, nozzle_diameter),
             nozzle_type = COALESCE(?, nozzle_type),
             nozzle_target_temperature_c = COALESCE(?, nozzle_target_temperature_c),
@@ -397,15 +429,22 @@ def _print_values(
         printer_state.get("subtask_name"),
         printer_state.get("print_error"),
         printer_state.get("print_type"),
-        printer_state.get("filament_tray_id"),
-        printer_state.get("filament_ams_slot"),
+        _state_first(printer_state, "filament_tray_id", "ams_tray_id"),
+        _state_first(printer_state, "filament_ams_slot", "ams_slot"),
         printer_state.get("filament_type"),
         printer_state.get("filament_color"),
         printer_state.get("filament_profile"),
         printer_state.get("filament_sub_brand"),
         printer_state.get("filament_vendor"),
         printer_state.get("filament_name"),
-        printer_state.get("nozzle_diameter"),
+        printer_state.get("policy_version"),
+        printer_state.get("filament_policy_material"),
+        printer_state.get("filament_emission_class"),
+        printer_state.get("filament_odor_class"),
+        printer_state.get("filament_particle_class"),
+        _bool_to_int(printer_state.get("bento_recommended")),
+        _bool_to_int(printer_state.get("room_filter_recommended")),
+        _state_first(printer_state, "nozzle_diameter", "nozzle_diameter_mm"),
         printer_state.get("nozzle_type"),
         printer_state.get("nozzle_target_temperature_c"),
         printer_state.get("bed_target_temperature_c"),
@@ -427,15 +466,22 @@ def _print_update_values(
         printer_state.get("subtask_name"),
         printer_state.get("print_error"),
         printer_state.get("print_type"),
-        printer_state.get("filament_tray_id"),
-        printer_state.get("filament_ams_slot"),
+        _state_first(printer_state, "filament_tray_id", "ams_tray_id"),
+        _state_first(printer_state, "filament_ams_slot", "ams_slot"),
         printer_state.get("filament_type"),
         printer_state.get("filament_color"),
         printer_state.get("filament_profile"),
         printer_state.get("filament_sub_brand"),
         printer_state.get("filament_vendor"),
         printer_state.get("filament_name"),
-        printer_state.get("nozzle_diameter"),
+        printer_state.get("policy_version"),
+        printer_state.get("filament_policy_material"),
+        printer_state.get("filament_emission_class"),
+        printer_state.get("filament_odor_class"),
+        printer_state.get("filament_particle_class"),
+        _bool_to_int(printer_state.get("bento_recommended")),
+        _bool_to_int(printer_state.get("room_filter_recommended")),
+        _state_first(printer_state, "nozzle_diameter", "nozzle_diameter_mm"),
         printer_state.get("nozzle_type"),
         printer_state.get("nozzle_target_temperature_c"),
         printer_state.get("bed_target_temperature_c"),
@@ -460,15 +506,22 @@ def _print_finish_values(
         printer_state.get("subtask_name"),
         printer_state.get("print_error"),
         printer_state.get("print_type"),
-        printer_state.get("filament_tray_id"),
-        printer_state.get("filament_ams_slot"),
+        _state_first(printer_state, "filament_tray_id", "ams_tray_id"),
+        _state_first(printer_state, "filament_ams_slot", "ams_slot"),
         printer_state.get("filament_type"),
         printer_state.get("filament_color"),
         printer_state.get("filament_profile"),
         printer_state.get("filament_sub_brand"),
         printer_state.get("filament_vendor"),
         printer_state.get("filament_name"),
-        printer_state.get("nozzle_diameter"),
+        printer_state.get("policy_version"),
+        printer_state.get("filament_policy_material"),
+        printer_state.get("filament_emission_class"),
+        printer_state.get("filament_odor_class"),
+        printer_state.get("filament_particle_class"),
+        _bool_to_int(printer_state.get("bento_recommended")),
+        _bool_to_int(printer_state.get("room_filter_recommended")),
+        _state_first(printer_state, "nozzle_diameter", "nozzle_diameter_mm"),
         printer_state.get("nozzle_type"),
         printer_state.get("nozzle_target_temperature_c"),
         printer_state.get("bed_target_temperature_c"),
@@ -482,6 +535,14 @@ def _value(obj: Any, name: str, default: Any = None) -> Any:
     if isinstance(obj, Mapping):
         return obj.get(name, default)
     return getattr(obj, name, default)
+
+
+def _state_first(state: Mapping[str, Any], *keys: str) -> Any:
+    for key in keys:
+        value = state.get(key)
+        if value is not None:
+            return value
+    return None
 
 
 def _state_json(state: Mapping[str, Any] | None) -> str | None:
