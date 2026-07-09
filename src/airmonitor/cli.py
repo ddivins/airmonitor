@@ -10,7 +10,15 @@ import sys
 import time
 from typing import Any
 
-from airmonitor.database import connect, init_db, insert_air_sample
+from airmonitor.database import (
+    connect,
+    end_sensor_session,
+    init_db,
+    insert_sgx_voc_sample,
+    start_sensor_session,
+    upsert_sensor,
+)
+from airmonitor.print_tracker import PrintTracker
 from airmonitor.printer_mqtt import PrinterStateCache
 from airmonitor.sensors.sgx_ps1_voc_1000 import (
     BAUD_RATE,
@@ -21,6 +29,9 @@ from airmonitor.sensors.sgx_ps1_voc_1000 import (
 )
 
 
+APP_VERSION = "0.3.0"
+SENSOR_MANUFACTURER = "SGX Sensortech"
+SENSOR_PRODUCT = "PS1-VOC-1000-MOD"
 SENSOR_MODEL = "SGX PS1-VOC-1000-MOD"
 LOG = logging.getLogger("airmonitor")
 
@@ -104,6 +115,29 @@ def log_samples(args: argparse.Namespace) -> int:
 
     conn = connect(args.database)
     init_db(conn)
+    upsert_sensor(
+        conn,
+        sensor_id=args.sensor_id,
+        manufacturer=SENSOR_MANUFACTURER,
+        product=SENSOR_PRODUCT,
+        model=SENSOR_MODEL,
+        transport=args.sensor_transport,
+        port=args.port,
+        serial=args.sensor_serial,
+        location=args.sensor_location,
+    )
+
+    session_id = start_sensor_session(
+        conn,
+        sensor_id=args.sensor_id,
+        software_version=APP_VERSION,
+        sensor_protocol=None,
+        sensor_port=args.port,
+    )
+    print_tracker = PrintTracker(
+        conn,
+        post_print_context_seconds=args.post_print_context_seconds,
+    )
     printer_cache = None
 
     if args.printer_mqtt:
@@ -120,12 +154,14 @@ def log_samples(args: argparse.Namespace) -> int:
         printer_cache.start()
 
     LOG.info(
-        "Starting sensor logger: sensor_id=%s port=%s database=%s interval=%ss printer_mqtt=%s",
+        "Starting sensor logger: version=%s sensor_id=%s port=%s database=%s interval=%ss printer_mqtt=%s session_id=%s",
+        APP_VERSION,
         args.sensor_id,
         args.port,
         args.database,
         args.interval,
         args.printer_mqtt,
+        session_id,
     )
 
     try:
@@ -144,22 +180,26 @@ def log_samples(args: argparse.Namespace) -> int:
                     protocol, measurement, response = read_sgx_once(serial_port, args.decimal_places)
                     printer_state = printer_cache.latest_state() if printer_cache else None
                     printer_available = printer_cache.availability() if printer_cache else None
-                    insert_air_sample(
+                    print_id = print_tracker.update(
+                        printer_state=printer_state,
+                        printer_available=printer_available,
+                    )
+                    insert_sgx_voc_sample(
                         conn,
                         sensor_id=args.sensor_id,
-                        sensor_model=SENSOR_MODEL,
+                        session_id=session_id,
+                        print_id=print_id,
                         sensor_protocol=protocol,
                         sensor_port=args.port,
                         measurement=measurement,
                         frame_hex=response.hex(" "),
-                        printer_state=printer_state,
-                        printer_available=printer_available,
                     )
                     LOG.info(
-                        "Logged sample: voc=%s ppm temp=%sC rh=%s%% printer_state=%s active=%s file=%s filament=%s",
+                        "Logged sample: voc=%s ppm temp=%sC rh=%s%% print_id=%s printer_state=%s active=%s file=%s filament=%s",
                         measurement.gas_ppm,
                         measurement.temperature_c,
                         measurement.humidity_rh,
+                        print_id,
                         _dict_get(printer_state, "gcode_state"),
                         _dict_get(printer_state, "active"),
                         _dict_get(printer_state, "subtask_name"),
@@ -173,6 +213,7 @@ def log_samples(args: argparse.Namespace) -> int:
         LOG.info("Stopping sensor logger")
         return 0
     finally:
+        end_sensor_session(conn, session_id=session_id)
         if printer_cache:
             printer_cache.stop()
         conn.close()
@@ -202,8 +243,12 @@ def build_parser() -> argparse.ArgumentParser:
     log_parser.add_argument("--timeout", type=float, default=1.0)
     log_parser.add_argument("--decimal-places", type=int, default=1)
     log_parser.add_argument("--sensor-id", default="sgx-voc-01")
+    log_parser.add_argument("--sensor-transport", default="gpio-uart")
+    log_parser.add_argument("--sensor-serial", default=None)
+    log_parser.add_argument("--sensor-location", default=None)
     log_parser.add_argument("--database", default="/var/lib/airmonitor/airmonitor.sqlite3")
     log_parser.add_argument("--interval", type=float, default=10.0)
+    log_parser.add_argument("--post-print-context-seconds", type=int, default=1800)
     log_parser.add_argument("--printer-mqtt", action=argparse.BooleanOptionalAction, default=True)
     log_parser.add_argument("--local-mqtt-host", default="localhost")
     log_parser.add_argument("--local-mqtt-port", type=int, default=1883)
