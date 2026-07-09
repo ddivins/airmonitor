@@ -15,6 +15,7 @@ ExecStart=/opt/airmonitor/venv/bin/airmonitor log \
   --sensor-serial ${AIRMONITOR_SENSOR_SERIAL} \
   --sensor-location ${AIRMONITOR_SENSOR_LOCATION} \
   --database ${AIRMONITOR_DATABASE} \
+  --filament-policy ${AIRMONITOR_FILAMENT_POLICY} \
   --interval ${AIRMONITOR_INTERVAL} \
   --post-print-context-seconds ${AIRMONITOR_POST_PRINT_CONTEXT_SECONDS} \
   --local-mqtt-host ${AIRMONITOR_LOCAL_MQTT_HOST} \
