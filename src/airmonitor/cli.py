@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import asdict
+from datetime import datetime, timezone
 import json
 import logging
 import sys
@@ -29,11 +30,15 @@ from airmonitor.sensors.sgx_ps1_voc_1000 import (
 )
 
 
-APP_VERSION = "0.3.0"
+APP_VERSION = "0.3.1"
 SENSOR_MANUFACTURER = "SGX Sensortech"
 SENSOR_PRODUCT = "PS1-VOC-1000-MOD"
 SENSOR_MODEL = "SGX PS1-VOC-1000-MOD"
 LOG = logging.getLogger("airmonitor")
+
+
+def utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def _read_frame(serial_port) -> bytes:
@@ -98,6 +103,76 @@ def probe(port: str, timeout: float, decimal_places: int) -> int:
     output = asdict(measurement)
     output.update(protocol=protocol, frame_hex=response.hex(" "))
     print(json.dumps(output, indent=2, sort_keys=True))
+    return 0
+
+
+def raw_serial(args: argparse.Namespace) -> int:
+    """Print raw SGX UART request/response frames as JSON lines."""
+    try:
+        import serial
+    except ImportError:
+        print("pyserial is required; install the project with `pip install -e .`", file=sys.stderr)
+        return 2
+
+    candidates = dict(combined_read_candidates())
+    if args.protocol == "all":
+        requests = list(combined_read_candidates())
+    else:
+        requests = [(args.protocol, candidates[args.protocol])]
+
+    try:
+        with serial.Serial(
+            port=args.port,
+            baudrate=BAUD_RATE,
+            bytesize=serial.EIGHTBITS,
+            parity=serial.PARITY_NONE,
+            stopbits=serial.STOPBITS_ONE,
+            timeout=args.timeout,
+            write_timeout=args.timeout,
+            exclusive=True,
+        ) as serial_port:
+            count = 0
+            while args.count == 0 or count < args.count:
+                for protocol, request in requests:
+                    serial_port.reset_input_buffer()
+                    serial_port.write(request)
+                    serial_port.flush()
+                    response = _read_frame(serial_port)
+
+                    event: dict[str, Any] = {
+                        "timestamp": utc_now(),
+                        "port": args.port,
+                        "baud": BAUD_RATE,
+                        "protocol": protocol,
+                        "tx_hex": request.hex(" "),
+                        "rx_hex": response.hex(" ") if response else None,
+                        "rx_len": len(response),
+                    }
+
+                    if response:
+                        try:
+                            measurement = parse_combined_response(
+                                response, decimal_places=args.decimal_places
+                            )
+                            event["parsed"] = asdict(measurement)
+                            event["parse_ok"] = True
+                        except Exception as exc:
+                            event["parse_ok"] = False
+                            event["parse_error"] = str(exc)
+                    else:
+                        event["parse_ok"] = False
+                        event["parse_error"] = "no response"
+
+                    print(json.dumps(event, sort_keys=True), flush=True)
+                    count += 1
+                    if args.count and count >= args.count:
+                        break
+
+                if args.count == 0 or count < args.count:
+                    time.sleep(args.interval)
+    except KeyboardInterrupt:
+        return 0
+
     return 0
 
 
@@ -236,6 +311,26 @@ def build_parser() -> argparse.ArgumentParser:
     probe_parser.add_argument("--timeout", type=float, default=1.0)
     probe_parser.add_argument("--decimal-places", type=int, default=1)
 
+    raw_parser = subparsers.add_parser(
+        "raw", help="stream raw SGX serial request/response frames as JSON lines"
+    )
+    raw_parser.add_argument("--port", default="/dev/serial0")
+    raw_parser.add_argument("--timeout", type=float, default=1.0)
+    raw_parser.add_argument("--decimal-places", type=int, default=1)
+    raw_parser.add_argument("--interval", type=float, default=1.0)
+    raw_parser.add_argument(
+        "--count",
+        type=int,
+        default=0,
+        help="number of frames to read; 0 means run until Ctrl-C",
+    )
+    raw_parser.add_argument(
+        "--protocol",
+        choices=["2023", "2022-legacy", "all"],
+        default="2023",
+        help="which combined-read request to send",
+    )
+
     log_parser = subparsers.add_parser(
         "log", help="continuously log SGX samples to SQLite"
     )
@@ -266,6 +361,8 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.command == "probe":
         return probe(args.port, args.timeout, args.decimal_places)
+    if args.command == "raw":
+        return raw_serial(args)
     if args.command == "log":
         return log_samples(args)
     raise AssertionError(f"unhandled command: {args.command}")
