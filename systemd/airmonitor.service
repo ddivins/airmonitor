@@ -15,9 +15,9 @@ ExecStart=/opt/airmonitor/venv/bin/airmonitor log \
   --sensor-serial ${AIRMONITOR_SENSOR_SERIAL} \
   --sensor-location ${AIRMONITOR_SENSOR_LOCATION} \
   --database ${AIRMONITOR_DATABASE} \
-  --filament-policy ${AIRMONITOR_FILAMENT_POLICY} \
   --interval ${AIRMONITOR_INTERVAL} \
   --post-print-context-seconds ${AIRMONITOR_POST_PRINT_CONTEXT_SECONDS} \
+  --filament-policy ${AIRMONITOR_FILAMENT_POLICY} \
   --local-mqtt-host ${AIRMONITOR_LOCAL_MQTT_HOST} \
   --local-mqtt-port ${AIRMONITOR_LOCAL_MQTT_PORT} \
   --local-mqtt-topic ${AIRMONITOR_LOCAL_MQTT_TOPIC} \
@@ -30,7 +30,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=full
 ProtectHome=true
-ReadWritePaths=/var/lib/airmonitor
+ReadWritePaths=/var/lib/airmonitor /etc/airmonitor
 
 [Install]
 WantedBy=multi-user.target
