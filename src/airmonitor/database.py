@@ -110,7 +110,6 @@ CREATE TABLE IF NOT EXISTS sgx_voc_samples (
 CREATE INDEX IF NOT EXISTS idx_sensor_sessions_sensor_time ON sensor_sessions(sensor_id, started_at);
 CREATE INDEX IF NOT EXISTS idx_prints_started_at ON prints(started_at);
 CREATE INDEX IF NOT EXISTS idx_prints_last_state ON prints(last_gcode_state, started_at);
-CREATE INDEX IF NOT EXISTS idx_prints_policy ON prints(filament_emission_class, room_filter_recommended, started_at);
 CREATE INDEX IF NOT EXISTS idx_sgx_samples_sampled_at ON sgx_voc_samples(sampled_at);
 CREATE INDEX IF NOT EXISTS idx_sgx_samples_sensor_time ON sgx_voc_samples(sensor_id, sampled_at);
 CREATE INDEX IF NOT EXISTS idx_sgx_samples_print_time ON sgx_voc_samples(print_id, sampled_at);
@@ -164,6 +163,11 @@ PRINT_COLUMN_MIGRATIONS = {
     "bed_target_temperature_c": "REAL",
 }
 
+POST_MIGRATION_DDL = """
+CREATE INDEX IF NOT EXISTS idx_prints_policy
+ON prints(filament_emission_class, room_filter_recommended, started_at);
+"""
+
 
 def connect(path: str | Path) -> sqlite3.Connection:
     db_path = Path(path)
@@ -178,6 +182,7 @@ def connect(path: str | Path) -> sqlite3.Connection:
 def init_db(conn: sqlite3.Connection) -> None:
     conn.executescript(DDL)
     ensure_columns(conn, "prints", PRINT_COLUMN_MIGRATIONS)
+    conn.executescript(POST_MIGRATION_DDL)
     conn.execute(
         "INSERT OR IGNORE INTO schema_version(version) VALUES (?)",
         (SCHEMA_VERSION,),
