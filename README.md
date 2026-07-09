@@ -64,6 +64,23 @@ printer JSON is also stored with each sample.
 The sensor needs up to two minutes to settle after power-up in clean air. Treat
 early values as warm-up data.
 
+## SQLite storage
+
+AirMonitor uses SQLite as an embedded database. There is no separate database
+server, database user, password, grant, or manual schema load.
+
+The database is a regular file, normally:
+
+```text
+/var/lib/airmonitor/airmonitor.sqlite3
+```
+
+The `automation` service account owns the directory and writes the database
+file. AirMonitor creates and migrates its tables on startup.
+
+Install the `sqlite3` package for command-line inspection and troubleshooting.
+Python's SQLite library is included with Python itself.
+
 ## SQLite schema
 
 The initial database is intentionally simple. The main table is `air_samples`.
@@ -112,14 +129,14 @@ service account name.
 If your system uses a different service account, update the relevant systemd
 unit before installing it.
 
-Example install:
+Example install using SSH cloning:
 
 ```bash
 sudo apt update
-sudo apt install -y git python3 python3-venv
+sudo apt install -y git python3 python3-venv sqlite3
 id automation || sudo useradd --system --no-create-home --shell /usr/sbin/nologin automation
 
-git clone https://github.com/ddivins/airmonitor.git
+git clone git@github.com:ddivins/airmonitor.git
 cd airmonitor
 
 sudo install -d -o root -g root -m 0755 /opt/airmonitor
