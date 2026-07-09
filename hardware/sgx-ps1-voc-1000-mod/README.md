@@ -2,7 +2,11 @@
 
 ## Connector and cable
 
-The SGX `PS1-VOC-1000-MOD` uses a 4-pin JST ZH-style sensor connector and is supplied with a factory wire-ended cable. Air Monitor uses this factory harness directly; no sensor-side crimping is required.
+The SGX `PS1-VOC-1000-MOD` uses a 4-pin, 1.0 mm pitch sensor connector. Based on physical measurement of the four positions spanning approximately 4 mm and successful fit of the supplied mating cable, the connector appears to be JST-SH rather than JST-ZH.
+
+The vendor documents used so far do not explicitly name the connector series, so this should be treated as a measured/observed identification rather than a vendor-confirmed part number.
+
+Air Monitor uses the factory wire-ended harness directly; no sensor-side crimping is required.
 
 Spare cable:
 
@@ -12,13 +16,13 @@ Spare cable:
 | Manufacturer part | `MOD-4PIN-Cable` |
 | Description | Module 4-pin wire-ended cable |
 
-The spare `MOD-4PIN-Cable` is the same style of JST-to-wire-end harness supplied with the module and is useful as a replacement or for additional builds.
+The spare `MOD-4PIN-Cable` appears to be the same style of 4-pin, 1.0 mm pitch JST-SH-to-wire-end harness supplied with the module and is useful as a replacement or for additional builds.
 
 ## Connector orientation
 
 The vendor documentation numbers the connector from the bottom or connector side of the module.
 
-When viewing the sensor from the top or component side, pin 1 is on the right-hand side of the connector. Pin 1 corresponds to the red VCC wire.
+In the vendor bottom-view drawing, pin 1 / red VCC is on the left side of the connector. When viewing the sensor from the top or component side, pin 1 appears on the right-hand side of the connector. Pin 1 corresponds to the red VCC wire.
 
 ## Raspberry Pi 4B GPIO UART wiring
 
@@ -91,6 +95,7 @@ Verified:
 - Default power-up mode is question-and-answer
 - No upload-mode configuration required for normal reads
 - Read-only probe command successfully returned VOC, temperature, and humidity
+- Connector appears to be 4-pin JST-SH, 1.0 mm pitch, based on physical measurement and supplied cable fit
 
 Example successful probe output:
 
