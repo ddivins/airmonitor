@@ -4,6 +4,8 @@ set -euo pipefail
 SERVICE="${SERVICE:-airmonitor.service}"
 APP_DIR="${APP_DIR:-/opt/airmonitor}"
 ENV_FILE="${ENV_FILE:-/etc/airmonitor.env}"
+POLICY_SRC="${POLICY_SRC:-config/filament-policy.yaml}"
+POLICY_DST="${POLICY_DST:-/etc/airmonitor-filament-policy.yaml}"
 UNIT_SRC="${UNIT_SRC:-systemd/airmonitor.service}"
 UNIT_DST="${UNIT_DST:-/etc/systemd/system/$SERVICE}"
 DATA_DIR="${DATA_DIR:-/var/lib/airmonitor}"
@@ -34,6 +36,7 @@ command -v systemctl >/dev/null || fail "systemctl is not available"
 [[ -d "$REPO_DIR/.git" ]] || fail "not a Git repository: $REPO_DIR"
 [[ -f "$REPO_DIR/pyproject.toml" ]] || fail "missing pyproject.toml in $REPO_DIR"
 [[ -f "$REPO_DIR/$UNIT_SRC" ]] || fail "missing systemd unit: $REPO_DIR/$UNIT_SRC"
+[[ -f "$REPO_DIR/$POLICY_SRC" ]] || fail "missing filament policy: $REPO_DIR/$POLICY_SRC"
 [[ -x "$PIP_BIN" ]] || fail "missing virtualenv pip: $PIP_BIN"
 [[ -f "$ENV_FILE" ]] || fail "missing env file: $ENV_FILE"
 id "$SERVICE_USER" >/dev/null 2>&1 || fail "missing service user: $SERVICE_USER"
@@ -48,6 +51,20 @@ sudo "$PIP_BIN" install --upgrade .
 
 log "Ensuring data directory exists"
 sudo install -d -o "$SERVICE_USER" -g "$SERVICE_GROUP" -m 0755 "$DATA_DIR"
+
+log "Installing filament policy"
+if [[ ! -f "$POLICY_DST" ]]; then
+  sudo install -o root -g root -m 0644 "$POLICY_SRC" "$POLICY_DST"
+else
+  sudo install -o root -g root -m 0644 "$POLICY_SRC" "$POLICY_DST.new"
+  if ! cmp -s "$POLICY_DST" "$POLICY_DST.new"; then
+    sudo mv "$POLICY_DST" "$POLICY_DST.bak.$(date +%Y%m%d-%H%M%S)"
+    sudo mv "$POLICY_DST.new" "$POLICY_DST"
+    echo "Updated $POLICY_DST and saved previous copy as .bak timestamp"
+  else
+    sudo rm "$POLICY_DST.new"
+  fi
+fi
 
 log "Installing systemd unit"
 sudo install -o root -g root -m 0644 "$UNIT_SRC" "$UNIT_DST"
