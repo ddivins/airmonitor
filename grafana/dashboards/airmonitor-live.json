@@ -1,169 +1,89 @@
 {
-  "annotations": {
-    "list": [
-      {
-        "builtIn": 1,
-        "datasource": {
-          "type": "grafana",
-          "uid": "-- Grafana --"
-        },
-        "enable": true,
-        "hide": true,
-        "iconColor": "rgba(0, 211, 255, 1)",
-        "name": "Annotations & Alerts",
-        "type": "dashboard"
-      }
-    ]
-  },
-  "editable": true,
-  "fiscalYearStartMonth": 0,
-  "graphTooltip": 1,
-  "id": null,
-  "links": [],
-  "liveNow": false,
-  "panels": [
-    {
-      "datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"},
-      "fieldConfig": {
-        "defaults": {
-          "color": {"mode": "thresholds"},
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {"color": "green", "value": null},
-              {"color": "yellow", "value": 1},
-              {"color": "orange", "value": 3},
-              {"color": "red", "value": 10}
-            ]
-          },
-          "unit": "ppm"
-        },
-        "overrides": []
-      },
-      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
-      "id": 1,
-      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto", "wideLayout": true},
-      "pluginVersion": "11.0.0",
-      "targets": [
-        {"datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"}, "queryText": "SELECT sampled_at AS time, gas_ppm FROM air_samples ORDER BY sampled_at;", "refId": "A"}
-      ],
-      "title": "Current VOC",
-      "type": "stat"
-    },
-    {
-      "datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"},
-      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "celsius"}, "overrides": []},
-      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
-      "id": 2,
-      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto", "wideLayout": true},
-      "pluginVersion": "11.0.0",
-      "targets": [{"datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"}, "queryText": "SELECT sampled_at AS time, temperature_c FROM air_samples ORDER BY sampled_at;", "refId": "A"}],
-      "title": "Current Temperature",
-      "type": "stat"
-    },
-    {
-      "datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"},
-      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "humidity"}, "overrides": []},
-      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
-      "id": 3,
-      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto", "wideLayout": true},
-      "pluginVersion": "11.0.0",
-      "targets": [{"datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"}, "queryText": "SELECT sampled_at AS time, humidity_rh FROM air_samples ORDER BY sampled_at;", "refId": "A"}],
-      "title": "Current Humidity",
-      "type": "stat"
-    },
-    {
-      "datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"},
-      "fieldConfig": {"defaults": {"custom": {"align": "auto", "cellOptions": {"type": "auto"}, "inspect": false}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}}, "overrides": []},
-      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
-      "id": 4,
-      "options": {"cellHeight": "sm", "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false}, "showHeader": true},
-      "pluginVersion": "11.0.0",
-      "targets": [{"datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"}, "queryText": "SELECT printer_gcode_state AS state, printer_filament_type AS filament, printer_subtask_name AS file FROM air_samples ORDER BY sampled_at DESC LIMIT 1;", "refId": "A"}],
-      "title": "Printer",
-      "type": "table"
-    },
-    {
-      "datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"},
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "ppm",
-            "axisPlacement": "auto",
-            "axisSoftMin": 0,
-            "axisSoftMax": 5,
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 12,
-            "gradientMode": "opacity",
-            "hideFrom": {"legend": false, "tooltip": false, "viz": false},
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineWidth": 3,
-            "pointSize": 5,
-            "scaleDistribution": {"type": "linear"},
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {"group": "A", "mode": "none"},
-            "thresholdsStyle": {"mode": "off"}
-          },
-          "mappings": [],
-          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "orange", "value": 3}, {"color": "red", "value": 10}]},
-          "unit": "ppm"
-        },
-        "overrides": []
-      },
-      "gridPos": {"h": 9, "w": 24, "x": 0, "y": 4},
-      "id": 5,
-      "options": {"legend": {"calcs": ["lastNotNull", "max"], "displayMode": "list", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "single", "sort": "none"}},
-      "pluginVersion": "11.0.0",
-      "targets": [{"datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"}, "queryText": "SELECT sampled_at AS time, gas_ppm AS voc_ppm FROM air_samples ORDER BY sampled_at;", "refId": "A"}],
-      "title": "VOC History",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"},
-      "fieldConfig": {
-        "defaults": {"custom": {"axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 5, "gradientMode": "none", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "insertNulls": false, "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 5, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}, "thresholdsStyle": {"mode": "off"}}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}},
-        "overrides": [
-          {"matcher": {"id": "byName", "options": "temperature_c"}, "properties": [{"id": "unit", "value": "celsius"}, {"id": "custom.axisLabel", "value": "°C"}]},
-          {"matcher": {"id": "byName", "options": "humidity_rh"}, "properties": [{"id": "unit", "value": "humidity"}, {"id": "custom.axisLabel", "value": "%RH"}, {"id": "custom.axisPlacement", "value": "right"}]}
-        ]
-      },
-      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 13},
-      "id": 6,
-      "options": {"legend": {"calcs": ["lastNotNull"], "displayMode": "list", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "none"}},
-      "pluginVersion": "11.0.0",
-      "targets": [{"datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"}, "queryText": "SELECT sampled_at AS time, temperature_c, humidity_rh FROM air_samples ORDER BY sampled_at;", "refId": "A"}],
-      "title": "Temperature / Humidity",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"},
-      "fieldConfig": {"defaults": {"custom": {"align": "auto", "cellOptions": {"type": "auto"}, "inspect": false}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}}, "overrides": []},
-      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 21},
-      "id": 7,
-      "options": {"cellHeight": "sm", "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false}, "showHeader": true},
-      "pluginVersion": "11.0.0",
-      "targets": [{"datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"}, "queryText": "SELECT sampled_at, gas_ppm, temperature_c, humidity_rh, printer_gcode_state, printer_filament_type, printer_subtask_name FROM air_samples ORDER BY sampled_at DESC LIMIT 10;", "refId": "A"}],
-      "title": "Latest Samples",
-      "type": "table"
-    }
-  ],
-  "refresh": "10s",
-  "schemaVersion": 39,
+  "uid": "airmonitor-live",
+  "title": "AirMonitor Live",
   "style": "light",
   "tags": ["airmonitor", "environment"],
-  "templating": {"list": []},
+  "timezone": "browser",
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "version": 3,
   "time": {"from": "now-6h", "to": "now"},
   "timepicker": {"refresh_intervals": ["10s", "30s", "1m", "5m"]},
-  "timezone": "browser",
-  "title": "AirMonitor Live",
-  "uid": "airmonitor-live",
-  "version": 1,
-  "weekStart": ""
+  "editable": true,
+  "graphTooltip": 1,
+  "annotations": {"list": []},
+  "templating": {"list": []},
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Current VOC",
+      "datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"},
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "targets": [{"refId": "A", "datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"}, "queryText": "SELECT sampled_at AS time, gas_ppm AS voc_ppm FROM sgx_voc_samples ORDER BY sampled_at;"}],
+      "fieldConfig": {"defaults": {"unit": "ppm", "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "orange", "value": 3}, {"color": "red", "value": 10}]}, "mappings": []}, "overrides": []},
+      "options": {"reduceOptions": {"values": false, "fields": "voc_ppm", "calcs": ["lastNotNull"]}, "orientation": "auto", "textMode": "auto", "colorMode": "value", "graphMode": "area", "justifyMode": "auto"}
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Current Temperature",
+      "datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"},
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "targets": [{"refId": "A", "datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"}, "queryText": "SELECT sampled_at AS time, temperature_c FROM sgx_voc_samples ORDER BY sampled_at;"}],
+      "fieldConfig": {"defaults": {"unit": "celsius", "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}}, "overrides": []},
+      "options": {"reduceOptions": {"values": false, "fields": "temperature_c", "calcs": ["lastNotNull"]}, "orientation": "auto", "textMode": "auto", "colorMode": "value", "graphMode": "area", "justifyMode": "auto"}
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Current Humidity",
+      "datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"},
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+      "targets": [{"refId": "A", "datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"}, "queryText": "SELECT sampled_at AS time, humidity_rh FROM sgx_voc_samples ORDER BY sampled_at;"}],
+      "fieldConfig": {"defaults": {"unit": "humidity", "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}}, "overrides": []},
+      "options": {"reduceOptions": {"values": false, "fields": "humidity_rh", "calcs": ["lastNotNull"]}, "orientation": "auto", "textMode": "auto", "colorMode": "value", "graphMode": "area", "justifyMode": "auto"}
+    },
+    {
+      "id": 4,
+      "type": "table",
+      "title": "Printer",
+      "datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"},
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "targets": [{"refId": "A", "datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"}, "queryText": "SELECT COALESCE(last_gcode_state, ended_gcode_state, started_gcode_state) AS state, filament_type AS filament, subtask_name AS file, filament_emission_class AS emissions, room_filter_recommended AS room_filter FROM prints ORDER BY last_seen_at DESC LIMIT 1;"}],
+      "fieldConfig": {"defaults": {"custom": {"align": "auto", "cellOptions": {"type": "auto"}, "inspect": false}, "mappings": []}, "overrides": []},
+      "options": {"showHeader": true, "cellHeight": "sm", "footer": {"show": false}}
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "VOC History",
+      "datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"},
+      "gridPos": {"h": 9, "w": 24, "x": 0, "y": 4},
+      "targets": [{"refId": "A", "datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"}, "queryText": "SELECT sampled_at AS time, gas_ppm AS voc_ppm FROM sgx_voc_samples ORDER BY sampled_at;"}],
+      "fieldConfig": {"defaults": {"unit": "ppm", "custom": {"axisLabel": "ppm", "axisSoftMin": 0, "axisSoftMax": 5, "drawStyle": "line", "lineWidth": 3, "fillOpacity": 12, "gradientMode": "opacity", "showPoints": "never", "lineInterpolation": "smooth"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "orange", "value": 3}, {"color": "red", "value": 10}]}, "mappings": []}, "overrides": []},
+      "options": {"legend": {"showLegend": true, "placement": "bottom", "displayMode": "list", "calcs": ["lastNotNull", "max"]}, "tooltip": {"mode": "single", "sort": "none"}}
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Temperature / Humidity",
+      "datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"},
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 13},
+      "targets": [{"refId": "A", "datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"}, "queryText": "SELECT sampled_at AS time, temperature_c, humidity_rh FROM sgx_voc_samples ORDER BY sampled_at;"}],
+      "fieldConfig": {"defaults": {"custom": {"drawStyle": "line", "lineWidth": 2, "fillOpacity": 5, "showPoints": "never", "lineInterpolation": "smooth"}, "mappings": []}, "overrides": [{"matcher": {"id": "byName", "options": "temperature_c"}, "properties": [{"id": "unit", "value": "celsius"}, {"id": "custom.axisLabel", "value": "°C"}]}, {"matcher": {"id": "byName", "options": "humidity_rh"}, "properties": [{"id": "unit", "value": "humidity"}, {"id": "custom.axisLabel", "value": "%RH"}, {"id": "custom.axisPlacement", "value": "right"}]}]},
+      "options": {"legend": {"showLegend": true, "placement": "bottom", "displayMode": "list", "calcs": ["lastNotNull"]}, "tooltip": {"mode": "multi", "sort": "none"}}
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Latest Samples",
+      "datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"},
+      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 21},
+      "targets": [{"refId": "A", "datasource": {"type": "frser-sqlite-datasource", "uid": "airmonitor-sqlite"}, "queryText": "SELECT s.sampled_at, s.gas_ppm, s.temperature_c, s.humidity_rh, p.last_gcode_state AS printer_state, p.filament_type, p.subtask_name FROM sgx_voc_samples s LEFT JOIN prints p ON p.id = s.print_id ORDER BY s.sampled_at DESC LIMIT 10;"}],
+      "fieldConfig": {"defaults": {"custom": {"align": "auto", "cellOptions": {"type": "auto"}, "inspect": false}, "mappings": []}, "overrides": []},
+      "options": {"showHeader": true, "cellHeight": "sm", "footer": {"show": false}}
+    }
+  ]
 }
