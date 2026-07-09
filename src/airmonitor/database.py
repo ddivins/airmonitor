@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 DDL = """
@@ -62,11 +62,21 @@ CREATE TABLE IF NOT EXISTS prints (
     total_layer_num INTEGER,
     subtask_name TEXT,
     print_error INTEGER,
+    print_type TEXT,
 
+    filament_tray_id INTEGER,
+    filament_ams_slot INTEGER,
     filament_type TEXT,
     filament_color TEXT,
+    filament_profile TEXT,
+    filament_sub_brand TEXT,
     filament_vendor TEXT,
     filament_name TEXT,
+
+    nozzle_diameter REAL,
+    nozzle_type TEXT,
+    nozzle_target_temperature_c REAL,
+    bed_target_temperature_c REAL,
 
     printer_state_json TEXT
 );
@@ -126,6 +136,18 @@ CREATE TABLE IF NOT EXISTS air_samples (
 );
 """
 
+PRINT_COLUMN_MIGRATIONS = {
+    "print_type": "TEXT",
+    "filament_tray_id": "INTEGER",
+    "filament_ams_slot": "INTEGER",
+    "filament_profile": "TEXT",
+    "filament_sub_brand": "TEXT",
+    "nozzle_diameter": "REAL",
+    "nozzle_type": "TEXT",
+    "nozzle_target_temperature_c": "REAL",
+    "bed_target_temperature_c": "REAL",
+}
+
 
 def connect(path: str | Path) -> sqlite3.Connection:
     db_path = Path(path)
@@ -139,11 +161,19 @@ def connect(path: str | Path) -> sqlite3.Connection:
 
 def init_db(conn: sqlite3.Connection) -> None:
     conn.executescript(DDL)
+    ensure_columns(conn, "prints", PRINT_COLUMN_MIGRATIONS)
     conn.execute(
         "INSERT OR IGNORE INTO schema_version(version) VALUES (?)",
         (SCHEMA_VERSION,),
     )
     conn.commit()
+
+
+def ensure_columns(conn: sqlite3.Connection, table: str, migrations: Mapping[str, str]) -> None:
+    existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+    for column, column_type in migrations.items():
+        if column not in existing:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {column_type}")
 
 
 def upsert_sensor(
@@ -223,10 +253,12 @@ def start_or_update_print(
             INSERT INTO prints (
                 printer_available, printer_connected, printer_active,
                 started_gcode_state, last_gcode_state, progress_percent,
-                layer_num, total_layer_num, subtask_name, print_error,
-                filament_type, filament_color, filament_vendor, filament_name,
-                printer_state_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                layer_num, total_layer_num, subtask_name, print_error, print_type,
+                filament_tray_id, filament_ams_slot, filament_type, filament_color,
+                filament_profile, filament_sub_brand, filament_vendor, filament_name,
+                nozzle_diameter, nozzle_type, nozzle_target_temperature_c,
+                bed_target_temperature_c, printer_state_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             _print_values(printer_state, printer_available, started_state, started_state),
         )
@@ -246,10 +278,19 @@ def start_or_update_print(
             total_layer_num = ?,
             subtask_name = COALESCE(?, subtask_name),
             print_error = ?,
+            print_type = COALESCE(?, print_type),
+            filament_tray_id = COALESCE(?, filament_tray_id),
+            filament_ams_slot = COALESCE(?, filament_ams_slot),
             filament_type = COALESCE(?, filament_type),
             filament_color = COALESCE(?, filament_color),
+            filament_profile = COALESCE(?, filament_profile),
+            filament_sub_brand = COALESCE(?, filament_sub_brand),
             filament_vendor = COALESCE(?, filament_vendor),
             filament_name = COALESCE(?, filament_name),
+            nozzle_diameter = COALESCE(?, nozzle_diameter),
+            nozzle_type = COALESCE(?, nozzle_type),
+            nozzle_target_temperature_c = COALESCE(?, nozzle_target_temperature_c),
+            bed_target_temperature_c = COALESCE(?, bed_target_temperature_c),
             printer_state_json = ?
         WHERE id = ?
         """,
@@ -282,10 +323,19 @@ def finish_print(
             total_layer_num = ?,
             subtask_name = COALESCE(?, subtask_name),
             print_error = ?,
+            print_type = COALESCE(?, print_type),
+            filament_tray_id = COALESCE(?, filament_tray_id),
+            filament_ams_slot = COALESCE(?, filament_ams_slot),
             filament_type = COALESCE(?, filament_type),
             filament_color = COALESCE(?, filament_color),
+            filament_profile = COALESCE(?, filament_profile),
+            filament_sub_brand = COALESCE(?, filament_sub_brand),
             filament_vendor = COALESCE(?, filament_vendor),
             filament_name = COALESCE(?, filament_name),
+            nozzle_diameter = COALESCE(?, nozzle_diameter),
+            nozzle_type = COALESCE(?, nozzle_type),
+            nozzle_target_temperature_c = COALESCE(?, nozzle_target_temperature_c),
+            bed_target_temperature_c = COALESCE(?, bed_target_temperature_c),
             printer_state_json = ?
         WHERE id = ?
         """,
@@ -346,10 +396,19 @@ def _print_values(
         printer_state.get("total_layer_num"),
         printer_state.get("subtask_name"),
         printer_state.get("print_error"),
+        printer_state.get("print_type"),
+        printer_state.get("filament_tray_id"),
+        printer_state.get("filament_ams_slot"),
         printer_state.get("filament_type"),
         printer_state.get("filament_color"),
+        printer_state.get("filament_profile"),
+        printer_state.get("filament_sub_brand"),
         printer_state.get("filament_vendor"),
         printer_state.get("filament_name"),
+        printer_state.get("nozzle_diameter"),
+        printer_state.get("nozzle_type"),
+        printer_state.get("nozzle_target_temperature_c"),
+        printer_state.get("bed_target_temperature_c"),
         _state_json(printer_state),
     )
 
@@ -367,10 +426,19 @@ def _print_update_values(
         printer_state.get("total_layer_num"),
         printer_state.get("subtask_name"),
         printer_state.get("print_error"),
+        printer_state.get("print_type"),
+        printer_state.get("filament_tray_id"),
+        printer_state.get("filament_ams_slot"),
         printer_state.get("filament_type"),
         printer_state.get("filament_color"),
+        printer_state.get("filament_profile"),
+        printer_state.get("filament_sub_brand"),
         printer_state.get("filament_vendor"),
         printer_state.get("filament_name"),
+        printer_state.get("nozzle_diameter"),
+        printer_state.get("nozzle_type"),
+        printer_state.get("nozzle_target_temperature_c"),
+        printer_state.get("bed_target_temperature_c"),
         _state_json(printer_state),
     )
 
@@ -391,10 +459,19 @@ def _print_finish_values(
         printer_state.get("total_layer_num"),
         printer_state.get("subtask_name"),
         printer_state.get("print_error"),
+        printer_state.get("print_type"),
+        printer_state.get("filament_tray_id"),
+        printer_state.get("filament_ams_slot"),
         printer_state.get("filament_type"),
         printer_state.get("filament_color"),
+        printer_state.get("filament_profile"),
+        printer_state.get("filament_sub_brand"),
         printer_state.get("filament_vendor"),
         printer_state.get("filament_name"),
+        printer_state.get("nozzle_diameter"),
+        printer_state.get("nozzle_type"),
+        printer_state.get("nozzle_target_temperature_c"),
+        printer_state.get("bed_target_temperature_c"),
         _state_json(printer_state),
     )
 
