@@ -5,7 +5,7 @@ SERVICE="${SERVICE:-airmonitor.service}"
 APP_DIR="${APP_DIR:-/opt/airmonitor}"
 ENV_FILE="${ENV_FILE:-/etc/airmonitor.env}"
 POLICY_SRC="${POLICY_SRC:-config/filament-policy.yaml}"
-POLICY_DST="${POLICY_DST:-/etc/airmonitor-filament-policy.yaml}"
+POLICY_DST="${POLICY_DST:-/etc/airmonitor/filament-policy.yaml}"
 UNIT_SRC="${UNIT_SRC:-systemd/airmonitor.service}"
 UNIT_DST="${UNIT_DST:-/etc/systemd/system/$SERVICE}"
 DATA_DIR="${DATA_DIR:-/var/lib/airmonitor}"
@@ -53,6 +53,7 @@ log "Ensuring data directory exists"
 sudo install -d -o "$SERVICE_USER" -g "$SERVICE_GROUP" -m 0755 "$DATA_DIR"
 
 log "Installing filament policy"
+sudo install -d -o root -g root -m 0755 "$(dirname "$POLICY_DST")"
 if [[ ! -f "$POLICY_DST" ]]; then
   sudo install -o root -g root -m 0644 "$POLICY_SRC" "$POLICY_DST"
 else
