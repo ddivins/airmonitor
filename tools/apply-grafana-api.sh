@@ -3,7 +3,7 @@ set -euo pipefail
 
 REPO_DIR="${REPO_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 GRAFANA_URL="${GRAFANA_URL:-http://127.0.0.1:3000}"
-DASHBOARD_SRC="${DASHBOARD_SRC:-grafana/dashboards/airmonitor-live.json}"
+DASHBOARD_GENERATOR="${DASHBOARD_GENERATOR:-tools/generate-grafana-dashboard.py}"
 DASHBOARD_UID="${DASHBOARD_UID:-airmonitor-live}"
 DASHBOARD_FOLDER="${DASHBOARD_FOLDER:-AirMonitor}"
 DASHBOARD_FOLDER_UID="${DASHBOARD_FOLDER_UID:-airmonitor}"
@@ -24,7 +24,7 @@ fail() {
 
 command -v curl >/dev/null || fail "curl is required"
 command -v python3 >/dev/null || fail "python3 is required"
-[[ -f "$REPO_DIR/$DASHBOARD_SRC" ]] || fail "missing dashboard source: $REPO_DIR/$DASHBOARD_SRC"
+[[ -f "$REPO_DIR/$DASHBOARD_GENERATOR" ]] || fail "missing dashboard generator: $REPO_DIR/$DASHBOARD_GENERATOR"
 
 if [[ -z "${GRAFANA_USER:-}" ]]; then
   read -rp "Grafana username [admin]: " GRAFANA_USER
@@ -85,9 +85,13 @@ PY
 api POST /api/folders "$tmp_folder" >/dev/null 2>&1 || true
 rm -f "$tmp_folder"
 
+log "Generating dashboard"
+tmp_generated="$(mktemp)"
+python3 "$REPO_DIR/$DASHBOARD_GENERATOR" "$tmp_generated"
+
 log "Importing dashboard via API: $DASHBOARD_UID"
 tmp_dash="$(mktemp)"
-python3 - "$REPO_DIR/$DASHBOARD_SRC" "$tmp_dash" "$DASHBOARD_FOLDER_UID" <<'PY'
+python3 - "$tmp_generated" "$tmp_dash" "$DASHBOARD_FOLDER_UID" <<'PY'
 import json, sys
 src, out, folder_uid = sys.argv[1:]
 dash = json.load(open(src))
@@ -101,7 +105,7 @@ payload = {
 open(out, "w").write(json.dumps(payload))
 PY
 api POST /api/dashboards/db "$tmp_dash" >/dev/null
-rm -f "$tmp_dash"
+rm -f "$tmp_dash" "$tmp_generated"
 
 log "Done"
 echo "$GRAFANA_URL/d/$DASHBOARD_UID/airmonitor-live"
