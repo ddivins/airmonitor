@@ -7,6 +7,7 @@ from dataclasses import asdict
 from datetime import datetime, timezone
 import json
 import logging
+from pathlib import Path
 import sys
 import time
 from typing import Any
@@ -65,9 +66,7 @@ def read_sgx_once(serial_port, decimal_places: int) -> tuple[str, Any, bytes]:
             continue
 
         try:
-            measurement = parse_combined_response(
-                response, decimal_places=decimal_places
-            )
+            measurement = parse_combined_response(response, decimal_places=decimal_places)
         except ProtocolError as exc:
             errors.append(f"{protocol}: {exc}; raw={response.hex(' ')}")
             continue
@@ -116,10 +115,7 @@ def raw_serial(args: argparse.Namespace) -> int:
         return 2
 
     candidates = dict(combined_read_candidates())
-    if args.protocol == "all":
-        requests = list(combined_read_candidates())
-    else:
-        requests = [(args.protocol, candidates[args.protocol])]
+    requests = list(combined_read_candidates()) if args.protocol == "all" else [(args.protocol, candidates[args.protocol])]
 
     try:
         with serial.Serial(
@@ -152,9 +148,7 @@ def raw_serial(args: argparse.Namespace) -> int:
 
                     if response:
                         try:
-                            measurement = parse_combined_response(
-                                response, decimal_places=args.decimal_places
-                            )
+                            measurement = parse_combined_response(response, decimal_places=args.decimal_places)
                             event["parsed"] = asdict(measurement)
                             event["parse_ok"] = True
                         except Exception as exc:
@@ -177,6 +171,14 @@ def raw_serial(args: argparse.Namespace) -> int:
     return 0
 
 
+def show_policy(args: argparse.Namespace) -> int:
+    policy = FilamentPolicy.load(args.filament_policy)
+    for material in args.materials:
+        decision = policy.classify(material)
+        print(json.dumps(asdict(decision), sort_keys=True))
+    return 0
+
+
 def log_samples(args: argparse.Namespace) -> int:
     try:
         import serial
@@ -189,8 +191,10 @@ def log_samples(args: argparse.Namespace) -> int:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
 
-    policy = FilamentPolicy.load(args.filament_policy)
-    LOG.info("Loaded filament policy: path=%s version=%s", args.filament_policy, policy.version)
+    policy = None
+    if args.filament_policy:
+        policy = FilamentPolicy.load(args.filament_policy)
+        LOG.info("Loaded filament policy: path=%s version=%s", args.filament_policy, policy.version)
 
     conn = connect(args.database)
     init_db(conn)
@@ -213,10 +217,7 @@ def log_samples(args: argparse.Namespace) -> int:
         sensor_protocol=None,
         sensor_port=args.port,
     )
-    print_tracker = PrintTracker(
-        conn,
-        post_print_context_seconds=args.post_print_context_seconds,
-    )
+    print_tracker = PrintTracker(conn, post_print_context_seconds=args.post_print_context_seconds)
     printer_cache = None
 
     if args.printer_mqtt:
@@ -258,12 +259,9 @@ def log_samples(args: argparse.Namespace) -> int:
                 try:
                     protocol, measurement, response = read_sgx_once(serial_port, args.decimal_places)
                     printer_state = printer_cache.latest_state() if printer_cache else None
-                    printer_state = enrich_with_filament_policy(printer_state, policy)
+                    printer_state = enrich_printer_state_with_policy(printer_state, policy)
                     printer_available = printer_cache.availability() if printer_cache else None
-                    print_id = print_tracker.update(
-                        printer_state=printer_state,
-                        printer_available=printer_available,
-                    )
+                    print_id = print_tracker.update(printer_state=printer_state, printer_available=printer_available)
                     insert_sgx_voc_sample(
                         conn,
                         sensor_id=args.sensor_id,
@@ -301,15 +299,13 @@ def log_samples(args: argparse.Namespace) -> int:
         conn.close()
 
 
-def enrich_with_filament_policy(
-    printer_state: dict[str, Any] | None, policy: FilamentPolicy
-) -> dict[str, Any] | None:
-    if not printer_state:
+def enrich_printer_state_with_policy(printer_state: dict[str, Any] | None, policy: FilamentPolicy | None) -> dict[str, Any] | None:
+    if printer_state is None or policy is None:
         return printer_state
-    state = dict(printer_state)
-    decision = policy.classify(state.get("filament_type"))
-    state.update(decision.as_printer_state_fields())
-    return state
+    enriched = dict(printer_state)
+    decision = policy.classify(enriched.get("filament_type"))
+    enriched.update(decision.as_printer_state_fields())
+    return enriched
 
 
 def _dict_get(value: dict[str, Any] | None, key: str) -> Any:
@@ -318,40 +314,40 @@ def _dict_get(value: dict[str, Any] | None, key: str) -> Any:
     return value.get(key)
 
 
+def default_policy_path() -> str:
+    candidates = [
+        Path("/etc/airmonitor/filament-policy.yaml"),
+        Path("/etc/airmonitor-filament-policy.yaml"),
+        Path(__file__).resolve().parents[2] / "config" / "filament-policy.yaml",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return str(candidate)
+    return str(candidates[0])
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="airmonitor")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    probe_parser = subparsers.add_parser(
-        "probe", help="perform one read-only SGX sensor query"
-    )
+    probe_parser = subparsers.add_parser("probe", help="perform one read-only SGX sensor query")
     probe_parser.add_argument("--port", default="/dev/serial0")
     probe_parser.add_argument("--timeout", type=float, default=1.0)
     probe_parser.add_argument("--decimal-places", type=int, default=1)
 
-    raw_parser = subparsers.add_parser(
-        "raw", help="stream raw SGX serial request/response frames as JSON lines"
-    )
+    raw_parser = subparsers.add_parser("raw", help="stream raw SGX serial request/response frames as JSON lines")
     raw_parser.add_argument("--port", default="/dev/serial0")
     raw_parser.add_argument("--timeout", type=float, default=1.0)
     raw_parser.add_argument("--decimal-places", type=int, default=1)
     raw_parser.add_argument("--interval", type=float, default=1.0)
-    raw_parser.add_argument(
-        "--count",
-        type=int,
-        default=0,
-        help="number of frames to read; 0 means run until Ctrl-C",
-    )
-    raw_parser.add_argument(
-        "--protocol",
-        choices=["2023", "2022-legacy", "all"],
-        default="2023",
-        help="which combined-read request to send",
-    )
+    raw_parser.add_argument("--count", type=int, default=0, help="number of frames to read; 0 means run until Ctrl-C")
+    raw_parser.add_argument("--protocol", choices=["2023", "2022-legacy", "all"], default="2023")
 
-    log_parser = subparsers.add_parser(
-        "log", help="continuously log SGX samples to SQLite"
-    )
+    policy_parser = subparsers.add_parser("policy", help="classify filament materials using the configured policy")
+    policy_parser.add_argument("materials", nargs="+", help="filament material names to classify")
+    policy_parser.add_argument("--filament-policy", default=default_policy_path())
+
+    log_parser = subparsers.add_parser("log", help="continuously log SGX samples to SQLite")
     log_parser.add_argument("--port", default="/dev/serial0")
     log_parser.add_argument("--timeout", type=float, default=1.0)
     log_parser.add_argument("--decimal-places", type=int, default=1)
@@ -360,9 +356,9 @@ def build_parser() -> argparse.ArgumentParser:
     log_parser.add_argument("--sensor-serial", default=None)
     log_parser.add_argument("--sensor-location", default=None)
     log_parser.add_argument("--database", default="/var/lib/airmonitor/airmonitor.sqlite3")
-    log_parser.add_argument("--filament-policy", default="/etc/airmonitor-filament-policy.yaml")
     log_parser.add_argument("--interval", type=float, default=10.0)
     log_parser.add_argument("--post-print-context-seconds", type=int, default=1800)
+    log_parser.add_argument("--filament-policy", default=default_policy_path())
     log_parser.add_argument("--printer-mqtt", action=argparse.BooleanOptionalAction, default=True)
     log_parser.add_argument("--local-mqtt-host", default="localhost")
     log_parser.add_argument("--local-mqtt-port", type=int, default=1883)
@@ -382,6 +378,8 @@ def main(argv: list[str] | None = None) -> int:
         return probe(args.port, args.timeout, args.decimal_places)
     if args.command == "raw":
         return raw_serial(args)
+    if args.command == "policy":
+        return show_policy(args)
     if args.command == "log":
         return log_samples(args)
     raise AssertionError(f"unhandled command: {args.command}")
