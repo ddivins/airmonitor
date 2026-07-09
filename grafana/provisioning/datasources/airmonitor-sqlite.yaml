@@ -1,0 +1,11 @@
+apiVersion: 1
+
+datasources:
+  - name: AirMonitor SQLite
+    uid: airmonitor-sqlite
+    type: frser-sqlite-datasource
+    access: proxy
+    isDefault: true
+    editable: true
+    jsonData:
+      path: /var/lib/airmonitor/airmonitor.sqlite3
