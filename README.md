@@ -38,11 +38,22 @@ early values as warm-up data.
 
 ## Deployment convention
 
-Perform repository clone, update, and install steps as your normal administrative
-user, for example `dsd`.
+Perform repository clone, update, and install steps as your normal local
+administrative user. Do not clone or maintain the repository as the service
+account.
 
-Long-running services should run under the shared `automation` service account,
-matching `bambu-bento` and `printer-mqtt-service`.
+Long-running services should run under a low-privilege service account. The
+example systemd units in this project family use `automation` as the shared
+service account name.
+
+If your system uses a different service account, update the relevant systemd
+unit before installing it.
+
+## Public repository notes
+
+Do not commit populated environment files, printer serial numbers, printer
+access codes, device IP addresses, private hostnames, logs containing secrets,
+or local-only credentials.
 
 ## Safety and interpretation
 
