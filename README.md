@@ -56,10 +56,11 @@ printer/state
 printer/available
 ```
 
-Each sensor sample is stored with the latest printer context, including print
-state, active flag, progress, layer, filename, print error, and best-effort
-filament fields when present in the Bambu AMS payload. The full normalized
-printer JSON is also stored with each sample.
+AirMonitor creates a print record when the printer enters an active state such as
+`PREPARE`, `RUNNING`, or `PAUSE`. SGX samples reference the active `print_id`.
+When the print reaches a terminal state, the print is closed, but samples keep
+referencing that print for a configurable post-print context window so VOC decay
+can be associated with the completed print.
 
 The sensor needs up to two minutes to settle after power-up in clean air. Treat
 early values as warm-up data.
@@ -83,38 +84,22 @@ Python's SQLite library is included with Python itself.
 
 ## SQLite schema
 
-The initial database is intentionally simple. The main table is `air_samples`.
-Each row represents one sensor sample plus the latest known printer state at the
-time of that sample.
+The schema separates relatively stable metadata from high-rate sensor samples.
 
-Important columns include:
+Main tables:
 
 ```text
-sampled_at
-sensor_id
-sensor_model
-sensor_protocol
-sensor_port
-gas_ppm
-gas_mass
-full_scale
-temperature_c
-humidity_rh
-printer_available
-printer_active
-printer_gcode_state
-printer_progress_percent
-printer_layer_num
-printer_total_layer_num
-printer_subtask_name
-printer_print_error
-printer_filament_type
-printer_filament_color
-printer_state_json
+sensors              physical sensor inventory
+sensor_sessions      logger runtime sessions
+prints               print jobs detected from normalized printer MQTT state
+sgx_voc_samples      SGX VOC, temperature, and humidity samples
 ```
 
-This keeps time-series queries easy while still preserving the full printer
-payload for later schema evolution.
+The legacy `air_samples` table is retained for existing installations, but new
+code writes to the normalized tables.
+
+`sgx_voc_samples.print_id` is nullable. It is set while a print is active and for
+the post-print context window after a print completes.
 
 ## Systemd deployment
 
@@ -153,12 +138,28 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now airmonitor.service
 ```
 
-Verify:
+Verify recent samples:
 
 ```bash
 systemctl status airmonitor.service
 journalctl -u airmonitor.service -f
-sqlite3 /var/lib/airmonitor/airmonitor.sqlite3 'select sampled_at, gas_ppm, temperature_c, humidity_rh, printer_gcode_state, printer_subtask_name from air_samples order by id desc limit 5;'
+sqlite3 /var/lib/airmonitor/airmonitor.sqlite3 '
+select s.sampled_at, s.gas_ppm, s.temperature_c, s.humidity_rh,
+       p.id as print_id, p.last_gcode_state, p.subtask_name, p.filament_type
+from sgx_voc_samples s
+left join prints p on p.id = s.print_id
+order by s.id desc
+limit 5;'
+```
+
+Verify detected prints:
+
+```bash
+sqlite3 /var/lib/airmonitor/airmonitor.sqlite3 '
+select id, started_at, ended_at, last_gcode_state, subtask_name, filament_type, filament_color
+from prints
+order by id desc
+limit 5;'
 ```
 
 ## Public repository notes
