@@ -1,0 +1,86 @@
+policy_version: "2026-07-09.1"
+
+# Material-level environmental policy.
+# Services should consume classification fields and make their own decisions.
+# For example, Bento may run for all prints, while a room purifier may run only
+# for medium/high emission materials.
+
+defaults:
+  emission_class: unknown
+  odor_class: unknown
+  particle_class: unknown
+  bento_recommended: true
+  room_filter_recommended: false
+
+materials:
+  PLA:
+    aliases: [PLA+, PLA PRO, PLA MATTE, MATTE PLA, TOUGH PLA]
+    emission_class: low
+    odor_class: low
+    particle_class: medium
+    bento_recommended: true
+    room_filter_recommended: false
+
+  PETG:
+    aliases: [PETG BASIC, PETG HF, PETG-CF]
+    emission_class: low
+    odor_class: low
+    particle_class: medium
+    bento_recommended: true
+    room_filter_recommended: false
+
+  ABS:
+    aliases: [ABS-GF, ABS-CF]
+    emission_class: high
+    odor_class: high
+    particle_class: high
+    bento_recommended: true
+    room_filter_recommended: true
+
+  ASA:
+    aliases: [ASA-CF]
+    emission_class: high
+    odor_class: high
+    particle_class: high
+    bento_recommended: true
+    room_filter_recommended: true
+
+  PC:
+    aliases: [POLYCARBONATE, PC-CF]
+    emission_class: high
+    odor_class: high
+    particle_class: high
+    bento_recommended: true
+    room_filter_recommended: true
+
+  PA:
+    aliases: [NYLON, PA6, PA12, PA-CF, PAHT-CF]
+    emission_class: medium
+    odor_class: medium
+    particle_class: high
+    bento_recommended: true
+    room_filter_recommended: true
+
+  TPU:
+    aliases: [TPE, FLEX]
+    emission_class: medium
+    odor_class: medium
+    particle_class: medium
+    bento_recommended: true
+    room_filter_recommended: false
+
+  HIPS:
+    aliases: []
+    emission_class: high
+    odor_class: high
+    particle_class: high
+    bento_recommended: true
+    room_filter_recommended: true
+
+  PVA:
+    aliases: []
+    emission_class: low
+    odor_class: low
+    particle_class: medium
+    bento_recommended: true
+    room_filter_recommended: false
