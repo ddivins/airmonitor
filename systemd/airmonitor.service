@@ -1,0 +1,31 @@
+[Unit]
+Description=AirMonitor sensor logger
+After=network-online.target printer-mqtt-service.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=automation
+Group=automation
+EnvironmentFile=/etc/airmonitor.env
+ExecStart=/opt/airmonitor/venv/bin/airmonitor log \
+  --port ${AIRMONITOR_PORT} \
+  --sensor-id ${AIRMONITOR_SENSOR_ID} \
+  --database ${AIRMONITOR_DATABASE} \
+  --interval ${AIRMONITOR_INTERVAL} \
+  --local-mqtt-host ${AIRMONITOR_LOCAL_MQTT_HOST} \
+  --local-mqtt-port ${AIRMONITOR_LOCAL_MQTT_PORT} \
+  --local-mqtt-topic ${AIRMONITOR_LOCAL_MQTT_TOPIC} \
+  --local-mqtt-availability-topic ${AIRMONITOR_LOCAL_MQTT_AVAILABILITY_TOPIC} \
+  --local-mqtt-client-id ${AIRMONITOR_LOCAL_MQTT_CLIENT_ID} \
+  --log-level ${AIRMONITOR_LOG_LEVEL}
+Restart=always
+RestartSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/lib/airmonitor
+
+[Install]
+WantedBy=multi-user.target
