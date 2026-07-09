@@ -1,15 +1,16 @@
-"""SQLite storage for Air Monitor samples."""
+"""SQLite storage for AirMonitor."""
 
 from __future__ import annotations
 
 from dataclasses import asdict, is_dataclass
 import json
+import platform
 import sqlite3
 from pathlib import Path
 from typing import Any, Mapping
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 DDL = """
@@ -18,22 +19,98 @@ CREATE TABLE IF NOT EXISTS schema_version (
     applied_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
-CREATE TABLE IF NOT EXISTS air_samples (
+CREATE TABLE IF NOT EXISTS sensors (
+    sensor_id TEXT PRIMARY KEY,
+    manufacturer TEXT,
+    product TEXT,
+    model TEXT,
+    transport TEXT,
+    port TEXT,
+    serial TEXT,
+    location TEXT,
+    installed_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    removed_at TEXT,
+    notes TEXT
+);
+
+CREATE TABLE IF NOT EXISTS sensor_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sensor_id TEXT NOT NULL REFERENCES sensors(sensor_id),
+    started_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    ended_at TEXT,
+    software_version TEXT,
+    hostname TEXT,
+    sensor_protocol TEXT,
+    sensor_port TEXT
+);
+
+CREATE TABLE IF NOT EXISTS prints (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    started_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    ended_at TEXT,
+    last_seen_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+
+    printer_available TEXT,
+    printer_connected INTEGER,
+    printer_active INTEGER,
+    started_gcode_state TEXT,
+    last_gcode_state TEXT,
+    ended_gcode_state TEXT,
+
+    progress_percent INTEGER,
+    layer_num INTEGER,
+    total_layer_num INTEGER,
+    subtask_name TEXT,
+    print_error INTEGER,
+
+    filament_type TEXT,
+    filament_color TEXT,
+    filament_vendor TEXT,
+    filament_name TEXT,
+
+    printer_state_json TEXT
+);
+
+CREATE TABLE IF NOT EXISTS sgx_voc_samples (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     sampled_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
 
+    sensor_id TEXT NOT NULL REFERENCES sensors(sensor_id),
+    session_id INTEGER REFERENCES sensor_sessions(id),
+    print_id INTEGER REFERENCES prints(id),
+
+    sensor_protocol TEXT,
+    sensor_port TEXT,
+    gas_ppm REAL,
+    gas_mass REAL,
+    full_scale INTEGER,
+    temperature_c REAL,
+    humidity_rh REAL,
+    frame_hex TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_sensor_sessions_sensor_time ON sensor_sessions(sensor_id, started_at);
+CREATE INDEX IF NOT EXISTS idx_prints_started_at ON prints(started_at);
+CREATE INDEX IF NOT EXISTS idx_prints_last_state ON prints(last_gcode_state, started_at);
+CREATE INDEX IF NOT EXISTS idx_sgx_samples_sampled_at ON sgx_voc_samples(sampled_at);
+CREATE INDEX IF NOT EXISTS idx_sgx_samples_sensor_time ON sgx_voc_samples(sensor_id, sampled_at);
+CREATE INDEX IF NOT EXISTS idx_sgx_samples_print_time ON sgx_voc_samples(print_id, sampled_at);
+
+-- Legacy v1 table retained for existing installations. New code writes to the
+-- normalized tables above.
+CREATE TABLE IF NOT EXISTS air_samples (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sampled_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     sensor_id TEXT NOT NULL,
     sensor_model TEXT NOT NULL,
     sensor_protocol TEXT,
     sensor_port TEXT,
-
     gas_ppm REAL,
     gas_mass REAL,
     full_scale INTEGER,
     temperature_c REAL,
     humidity_rh REAL,
     frame_hex TEXT,
-
     printer_available TEXT,
     printer_connected INTEGER,
     printer_active INTEGER,
@@ -47,10 +124,6 @@ CREATE TABLE IF NOT EXISTS air_samples (
     printer_filament_color TEXT,
     printer_state_json TEXT
 );
-
-CREATE INDEX IF NOT EXISTS idx_air_samples_sampled_at ON air_samples(sampled_at);
-CREATE INDEX IF NOT EXISTS idx_air_samples_sensor_time ON air_samples(sensor_id, sampled_at);
-CREATE INDEX IF NOT EXISTS idx_air_samples_printer_state ON air_samples(printer_gcode_state, sampled_at);
 """
 
 
@@ -73,47 +146,176 @@ def init_db(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
-def _value(obj: Any, name: str, default: Any = None) -> Any:
-    if obj is None:
-        return default
-    if isinstance(obj, Mapping):
-        return obj.get(name, default)
-    return getattr(obj, name, default)
-
-
-def _json_default(obj: Any) -> Any:
-    if is_dataclass(obj):
-        return asdict(obj)
-    raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
-
-
-def insert_air_sample(
+def upsert_sensor(
     conn: sqlite3.Connection,
     *,
     sensor_id: str,
-    sensor_model: str,
+    manufacturer: str,
+    product: str,
+    model: str,
+    transport: str,
+    port: str | None,
+    serial: str | None = None,
+    location: str | None = None,
+) -> None:
+    conn.execute(
+        """
+        INSERT INTO sensors (
+            sensor_id, manufacturer, product, model, transport, port, serial, location
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(sensor_id) DO UPDATE SET
+            manufacturer=excluded.manufacturer,
+            product=excluded.product,
+            model=excluded.model,
+            transport=excluded.transport,
+            port=excluded.port,
+            serial=COALESCE(excluded.serial, sensors.serial),
+            location=COALESCE(excluded.location, sensors.location)
+        """,
+        (sensor_id, manufacturer, product, model, transport, port, serial, location),
+    )
+    conn.commit()
+
+
+def start_sensor_session(
+    conn: sqlite3.Connection,
+    *,
+    sensor_id: str,
+    software_version: str,
+    sensor_protocol: str | None,
+    sensor_port: str | None,
+) -> int:
+    cur = conn.execute(
+        """
+        INSERT INTO sensor_sessions (
+            sensor_id, software_version, hostname, sensor_protocol, sensor_port
+        ) VALUES (?, ?, ?, ?, ?)
+        """,
+        (sensor_id, software_version, platform.node(), sensor_protocol, sensor_port),
+    )
+    conn.commit()
+    return int(cur.lastrowid)
+
+
+def end_sensor_session(conn: sqlite3.Connection, *, session_id: int) -> None:
+    conn.execute(
+        """
+        UPDATE sensor_sessions
+        SET ended_at = COALESCE(ended_at, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+        WHERE id = ?
+        """,
+        (session_id,),
+    )
+    conn.commit()
+
+
+def start_or_update_print(
+    conn: sqlite3.Connection,
+    *,
+    print_id: int | None,
+    printer_state: Mapping[str, Any],
+    printer_available: str | None,
+    started_state: str | None,
+) -> int:
+    if print_id is None:
+        cur = conn.execute(
+            """
+            INSERT INTO prints (
+                printer_available, printer_connected, printer_active,
+                started_gcode_state, last_gcode_state, progress_percent,
+                layer_num, total_layer_num, subtask_name, print_error,
+                filament_type, filament_color, filament_vendor, filament_name,
+                printer_state_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            _print_values(printer_state, printer_available, started_state, started_state),
+        )
+        conn.commit()
+        return int(cur.lastrowid)
+
+    conn.execute(
+        """
+        UPDATE prints
+        SET last_seen_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+            printer_available = ?,
+            printer_connected = ?,
+            printer_active = ?,
+            last_gcode_state = ?,
+            progress_percent = ?,
+            layer_num = ?,
+            total_layer_num = ?,
+            subtask_name = COALESCE(?, subtask_name),
+            print_error = ?,
+            filament_type = COALESCE(?, filament_type),
+            filament_color = COALESCE(?, filament_color),
+            filament_vendor = COALESCE(?, filament_vendor),
+            filament_name = COALESCE(?, filament_name),
+            printer_state_json = ?
+        WHERE id = ?
+        """,
+        _print_update_values(printer_state, printer_available) + (print_id,),
+    )
+    conn.commit()
+    return print_id
+
+
+def finish_print(
+    conn: sqlite3.Connection,
+    *,
+    print_id: int,
+    printer_state: Mapping[str, Any],
+    printer_available: str | None,
+    ended_state: str | None,
+) -> None:
+    conn.execute(
+        """
+        UPDATE prints
+        SET ended_at = COALESCE(ended_at, strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+            last_seen_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+            printer_available = ?,
+            printer_connected = ?,
+            printer_active = ?,
+            last_gcode_state = ?,
+            ended_gcode_state = ?,
+            progress_percent = ?,
+            layer_num = ?,
+            total_layer_num = ?,
+            subtask_name = COALESCE(?, subtask_name),
+            print_error = ?,
+            filament_type = COALESCE(?, filament_type),
+            filament_color = COALESCE(?, filament_color),
+            filament_vendor = COALESCE(?, filament_vendor),
+            filament_name = COALESCE(?, filament_name),
+            printer_state_json = ?
+        WHERE id = ?
+        """,
+        _print_finish_values(printer_state, printer_available, ended_state) + (print_id,),
+    )
+    conn.commit()
+
+
+def insert_sgx_voc_sample(
+    conn: sqlite3.Connection,
+    *,
+    sensor_id: str,
+    session_id: int | None,
+    print_id: int | None,
     sensor_protocol: str | None,
     sensor_port: str | None,
     measurement: Any,
     frame_hex: str | None,
-    printer_state: Mapping[str, Any] | None,
-    printer_available: str | None,
 ) -> None:
-    printer_state = printer_state or {}
     conn.execute(
         """
-        INSERT INTO air_samples (
-            sensor_id, sensor_model, sensor_protocol, sensor_port,
-            gas_ppm, gas_mass, full_scale, temperature_c, humidity_rh, frame_hex,
-            printer_available, printer_connected, printer_active, printer_gcode_state,
-            printer_progress_percent, printer_layer_num, printer_total_layer_num,
-            printer_subtask_name, printer_print_error, printer_filament_type,
-            printer_filament_color, printer_state_json
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO sgx_voc_samples (
+            sensor_id, session_id, print_id, sensor_protocol, sensor_port,
+            gas_ppm, gas_mass, full_scale, temperature_c, humidity_rh, frame_hex
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             sensor_id,
-            sensor_model,
+            session_id,
+            print_id,
             sensor_protocol,
             sensor_port,
             _value(measurement, "gas_ppm"),
@@ -122,21 +324,99 @@ def insert_air_sample(
             _value(measurement, "temperature_c"),
             _value(measurement, "humidity_rh"),
             frame_hex,
-            printer_available,
-            _bool_to_int(printer_state.get("connected")),
-            _bool_to_int(printer_state.get("active")),
-            printer_state.get("gcode_state"),
-            printer_state.get("progress_percent"),
-            printer_state.get("layer_num"),
-            printer_state.get("total_layer_num"),
-            printer_state.get("subtask_name"),
-            printer_state.get("print_error"),
-            printer_state.get("filament_type"),
-            printer_state.get("filament_color"),
-            json.dumps(printer_state, sort_keys=True, default=_json_default) if printer_state else None,
         ),
     )
     conn.commit()
+
+
+def _print_values(
+    printer_state: Mapping[str, Any],
+    printer_available: str | None,
+    started_state: str | None,
+    last_state: str | None,
+) -> tuple[Any, ...]:
+    return (
+        printer_available,
+        _bool_to_int(printer_state.get("connected")),
+        _bool_to_int(printer_state.get("active")),
+        started_state,
+        last_state,
+        printer_state.get("progress_percent"),
+        printer_state.get("layer_num"),
+        printer_state.get("total_layer_num"),
+        printer_state.get("subtask_name"),
+        printer_state.get("print_error"),
+        printer_state.get("filament_type"),
+        printer_state.get("filament_color"),
+        printer_state.get("filament_vendor"),
+        printer_state.get("filament_name"),
+        _state_json(printer_state),
+    )
+
+
+def _print_update_values(
+    printer_state: Mapping[str, Any], printer_available: str | None
+) -> tuple[Any, ...]:
+    return (
+        printer_available,
+        _bool_to_int(printer_state.get("connected")),
+        _bool_to_int(printer_state.get("active")),
+        printer_state.get("gcode_state"),
+        printer_state.get("progress_percent"),
+        printer_state.get("layer_num"),
+        printer_state.get("total_layer_num"),
+        printer_state.get("subtask_name"),
+        printer_state.get("print_error"),
+        printer_state.get("filament_type"),
+        printer_state.get("filament_color"),
+        printer_state.get("filament_vendor"),
+        printer_state.get("filament_name"),
+        _state_json(printer_state),
+    )
+
+
+def _print_finish_values(
+    printer_state: Mapping[str, Any],
+    printer_available: str | None,
+    ended_state: str | None,
+) -> tuple[Any, ...]:
+    return (
+        printer_available,
+        _bool_to_int(printer_state.get("connected")),
+        _bool_to_int(printer_state.get("active")),
+        printer_state.get("gcode_state"),
+        ended_state,
+        printer_state.get("progress_percent"),
+        printer_state.get("layer_num"),
+        printer_state.get("total_layer_num"),
+        printer_state.get("subtask_name"),
+        printer_state.get("print_error"),
+        printer_state.get("filament_type"),
+        printer_state.get("filament_color"),
+        printer_state.get("filament_vendor"),
+        printer_state.get("filament_name"),
+        _state_json(printer_state),
+    )
+
+
+def _value(obj: Any, name: str, default: Any = None) -> Any:
+    if obj is None:
+        return default
+    if isinstance(obj, Mapping):
+        return obj.get(name, default)
+    return getattr(obj, name, default)
+
+
+def _state_json(state: Mapping[str, Any] | None) -> str | None:
+    if not state:
+        return None
+    return json.dumps(state, sort_keys=True, default=_json_default)
+
+
+def _json_default(obj: Any) -> Any:
+    if is_dataclass(obj):
+        return asdict(obj)
+    raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 
 
 def _bool_to_int(value: Any) -> int | None:
