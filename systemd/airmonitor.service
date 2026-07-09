@@ -12,6 +12,8 @@ ExecStart=/opt/airmonitor/venv/bin/airmonitor log \
   --port ${AIRMONITOR_PORT} \
   --sensor-id ${AIRMONITOR_SENSOR_ID} \
   --sensor-transport ${AIRMONITOR_SENSOR_TRANSPORT} \
+  --sensor-serial ${AIRMONITOR_SENSOR_SERIAL} \
+  --sensor-location ${AIRMONITOR_SENSOR_LOCATION} \
   --database ${AIRMONITOR_DATABASE} \
   --interval ${AIRMONITOR_INTERVAL} \
   --post-print-context-seconds ${AIRMONITOR_POST_PRINT_CONTEXT_SECONDS} \
