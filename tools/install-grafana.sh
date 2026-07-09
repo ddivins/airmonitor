@@ -26,6 +26,7 @@ fail() {
 log "Validating inputs"
 command -v grafana >/dev/null || fail "grafana command not found; install Grafana first"
 command -v systemctl >/dev/null || fail "systemctl not found"
+command -v curl >/dev/null || fail "curl not found"
 [[ -d "$REPO_DIR/.git" ]] || fail "not a Git repository: $REPO_DIR"
 [[ -f "$REPO_DIR/$DATASOURCE_SRC" ]] || fail "missing $DATASOURCE_SRC"
 [[ -f "$REPO_DIR/$DASHBOARD_PROVIDER_SRC" ]] || fail "missing $DASHBOARD_PROVIDER_SRC"
@@ -52,7 +53,7 @@ EOF
 log "Installing datasource provisioning"
 sudo install -o root -g grafana -m 0640 "$DATASOURCE_SRC" /etc/grafana/provisioning/datasources/airmonitor-sqlite.yaml
 
-log "Installing dashboard provisioning"
+log "Installing dashboard provisioning files"
 sudo install -o root -g grafana -m 0640 "$DASHBOARD_PROVIDER_SRC" /etc/grafana/provisioning/dashboards/airmonitor.yaml
 sudo install -d -o grafana -g grafana -m 0755 "$DASHBOARD_DIR"
 sudo install -o grafana -g grafana -m 0644 "$DASHBOARD_SRC" "$DASHBOARD_DIR/airmonitor-live.json"
@@ -78,6 +79,9 @@ log "Restarting Grafana"
 sudo systemctl restart "$GRAFANA_SERVICE"
 sleep 3
 systemctl --no-pager --full status "$GRAFANA_SERVICE"
+
+log "Applying dashboard through Grafana API"
+bash tools/apply-grafana-api.sh
 
 log "Provisioned dashboard"
 echo "$GRAFANA_ROOT_URL/d/airmonitor-live/airmonitor-live"
