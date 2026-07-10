@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SERVICE="${SERVICE:-airmonitor.service}"
+SERVICE_LIST="${SERVICE_LIST:-airmonitor-printer-mqtt.service airmonitor.service airmonitor-bento.service airmonitor-levoit.service}"
 APP_DIR="${APP_DIR:-/opt/airmonitor}"
 ENV_FILE="${ENV_FILE:-/etc/airmonitor.env}"
 POLICY_SRC="${POLICY_SRC:-config/filament-policy.yaml}"
 POLICY_DST="${POLICY_DST:-/etc/airmonitor/filament-policy.yaml}"
-UNIT_SRC="${UNIT_SRC:-systemd/airmonitor.service}"
-UNIT_DST="${UNIT_DST:-/etc/systemd/system/$SERVICE}"
+UNIT_DIR="${UNIT_DIR:-systemd}"
 DATA_DIR="${DATA_DIR:-/var/lib/airmonitor}"
 SERVICE_USER="${SERVICE_USER:-automation}"
 SERVICE_GROUP="${SERVICE_GROUP:-automation}"
@@ -24,8 +23,9 @@ fail() {
 }
 
 show_failure_logs() {
-  printf '\n==> %s failed to start cleanly; recent journal follows\n' "$SERVICE" >&2
-  sudo journalctl -u "$SERVICE" -n 60 --no-pager >&2 || true
+  local service="$1"
+  printf '\n==> %s failed to start cleanly; recent journal follows\n' "$service" >&2
+  sudo journalctl -u "$service" -n 60 --no-pager >&2 || true
 }
 
 trap 'rc=$?; if [[ $rc -ne 0 ]]; then printf "\nUpdate failed with exit code %s\n" "$rc" >&2; fi' EXIT
@@ -35,11 +35,13 @@ command -v git >/dev/null || fail "git is not installed"
 command -v systemctl >/dev/null || fail "systemctl is not available"
 [[ -d "$REPO_DIR/.git" ]] || fail "not a Git repository: $REPO_DIR"
 [[ -f "$REPO_DIR/pyproject.toml" ]] || fail "missing pyproject.toml in $REPO_DIR"
-[[ -f "$REPO_DIR/$UNIT_SRC" ]] || fail "missing systemd unit: $REPO_DIR/$UNIT_SRC"
 [[ -f "$REPO_DIR/$POLICY_SRC" ]] || fail "missing filament policy: $REPO_DIR/$POLICY_SRC"
 [[ -x "$PIP_BIN" ]] || fail "missing virtualenv pip: $PIP_BIN"
 [[ -f "$ENV_FILE" ]] || fail "missing env file: $ENV_FILE"
 id "$SERVICE_USER" >/dev/null 2>&1 || fail "missing service user: $SERVICE_USER"
+for service in $SERVICE_LIST; do
+  [[ -f "$REPO_DIR/$UNIT_DIR/$service" ]] || fail "missing systemd unit: $REPO_DIR/$UNIT_DIR/$service"
+done
 
 cd "$REPO_DIR"
 
@@ -67,22 +69,30 @@ else
   fi
 fi
 
-log "Installing systemd unit"
-sudo install -o root -g root -m 0644 "$UNIT_SRC" "$UNIT_DST"
+log "Installing systemd units"
+for service in $SERVICE_LIST; do
+  sudo install -o root -g root -m 0644 "$UNIT_DIR/$service" "/etc/systemd/system/$service"
+done
 sudo systemctl daemon-reload
 
-log "Restarting $SERVICE"
-sudo systemctl restart "$SERVICE"
+log "Restarting services"
+for service in $SERVICE_LIST; do
+  sudo systemctl restart "$service"
+done
 
 log "Waiting for service health"
 sleep 2
-if ! systemctl is-active --quiet "$SERVICE"; then
-  show_failure_logs
-  exit 1
-fi
+for service in $SERVICE_LIST; do
+  if ! systemctl is-active --quiet "$service"; then
+    show_failure_logs "$service"
+    exit 1
+  fi
+done
 
 log "Service status"
-systemctl --no-pager --full status "$SERVICE"
+systemctl --no-pager --full status $SERVICE_LIST
 
 log "Recent journal"
-sudo journalctl -u "$SERVICE" -n 20 --no-pager
+for service in $SERVICE_LIST; do
+  sudo journalctl -u "$service" -n 20 --no-pager
+done

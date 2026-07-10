@@ -1,0 +1,20 @@
+[Unit]
+Description=AirMonitor Bambu printer MQTT normalization service
+After=network-online.target mosquitto.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=automation
+Group=automation
+EnvironmentFile=/etc/printer-mqtt-service.env
+ExecStart=/opt/airmonitor/venv/bin/airmonitor-printer-mqtt
+Restart=always
+RestartSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

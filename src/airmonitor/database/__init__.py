@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 
 DDL = """
@@ -105,6 +105,16 @@ CREATE TABLE IF NOT EXISTS sgx_voc_samples (
     temperature_c REAL,
     humidity_rh REAL,
     frame_hex TEXT
+);
+
+CREATE TABLE IF NOT EXISTS filter_control_state (
+    filter_id TEXT PRIMARY KEY,
+    manual_mode TEXT NOT NULL DEFAULT 'auto',
+    automation_request TEXT NOT NULL DEFAULT 'unknown',
+    actual_state TEXT NOT NULL DEFAULT 'unknown',
+    effective_state TEXT NOT NULL DEFAULT 'unknown',
+    reason TEXT,
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_sensor_sessions_sensor_time ON sensor_sessions(sensor_id, started_at);
@@ -414,6 +424,76 @@ def insert_sgx_voc_sample(
         ),
     )
     conn.commit()
+
+
+def get_filter_control_state(conn: sqlite3.Connection, *, filter_id: str) -> sqlite3.Row:
+    """Return persisted filter state, creating an auto/unknown row if needed."""
+
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO filter_control_state (
+            filter_id, manual_mode, automation_request, actual_state, effective_state, reason
+        ) VALUES (?, 'auto', 'unknown', 'unknown', 'unknown', 'initialized')
+        """,
+        (filter_id,),
+    )
+    conn.commit()
+    row = conn.execute(
+        "SELECT * FROM filter_control_state WHERE filter_id = ?",
+        (filter_id,),
+    ).fetchone()
+    if row is None:
+        raise RuntimeError(f"filter state missing after initialization: {filter_id}")
+    return row
+
+
+def set_filter_manual_mode(conn: sqlite3.Connection, *, filter_id: str, manual_mode: str) -> sqlite3.Row:
+    """Persist a user-selected filter mode."""
+
+    if manual_mode not in {"auto", "on", "off"}:
+        raise ValueError("manual_mode must be auto, on, or off")
+    get_filter_control_state(conn, filter_id=filter_id)
+    conn.execute(
+        """
+        UPDATE filter_control_state
+        SET manual_mode = ?,
+            updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+        WHERE filter_id = ?
+        """,
+        (manual_mode, filter_id),
+    )
+    conn.commit()
+    return get_filter_control_state(conn, filter_id=filter_id)
+
+
+def update_filter_control_state(
+    conn: sqlite3.Connection,
+    *,
+    filter_id: str,
+    manual_mode: str | None = None,
+    automation_request: str | None = None,
+    actual_state: str | None = None,
+    effective_state: str | None = None,
+    reason: str | None = None,
+) -> sqlite3.Row:
+    """Update observed or resolved filter state while preserving unspecified fields."""
+
+    get_filter_control_state(conn, filter_id=filter_id)
+    conn.execute(
+        """
+        UPDATE filter_control_state
+        SET manual_mode = COALESCE(?, manual_mode),
+            automation_request = COALESCE(?, automation_request),
+            actual_state = COALESCE(?, actual_state),
+            effective_state = COALESCE(?, effective_state),
+            reason = COALESCE(?, reason),
+            updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+        WHERE filter_id = ?
+        """,
+        (manual_mode, automation_request, actual_state, effective_state, reason, filter_id),
+    )
+    conn.commit()
+    return get_filter_control_state(conn, filter_id=filter_id)
 
 
 def _print_values(

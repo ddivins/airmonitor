@@ -1,0 +1,1 @@
+"""SGX Sensortech sensor integrations."""

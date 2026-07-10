@@ -1,0 +1,20 @@
+[Unit]
+Description=AirMonitor Levoit room filter automation
+After=network-online.target airmonitor-printer-mqtt.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=automation
+Group=automation
+EnvironmentFile=/etc/levoit-filter.env
+ExecStart=/opt/airmonitor/venv/bin/levoit-filter run
+Restart=always
+RestartSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
