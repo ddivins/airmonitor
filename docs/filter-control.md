@@ -68,6 +68,9 @@ Desired commands:
 
 ```bash
 airmonitor filter status
+airmonitor filter all status
+airmonitor filter bento status
+airmonitor filter levoit status
 
 airmonitor filter bento auto
 airmonitor filter bento on
