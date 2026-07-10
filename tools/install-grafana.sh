@@ -105,7 +105,7 @@ sleep 3
 systemctl --no-pager --full status "$GRAFANA_SERVICE"
 
 log "Provisioned dashboard"
-echo "$GRAFANA_ROOT_URL/d/airmonitor-live/airmonitor-live"
+echo "${GRAFANA_ROOT_URL%/}/d/airmonitor-live/airmonitor-live"
 
 echo
 printf 'If your user was just added to %s, log out/in or run: newgrp %s\n' "$DATA_GROUP" "$DATA_GROUP"
