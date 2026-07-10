@@ -1,6 +1,6 @@
 """AirMonitor appliance health checks.
 
-This module intentionally avoids printing secret values.  It can be used from
+This module intentionally avoids printing secret values. It can be used from
 systemd, cron, support scripts, or directly as ``airmonitor-doctor``.
 """
 
@@ -19,9 +19,10 @@ import sys
 from typing import Iterable
 
 from airmonitor.database import SCHEMA_VERSION, connect, init_db
+from airmonitor.hardware import DEFAULT_HARDWARE_ID, DEFAULT_REGISTRY, resolve_device
 
 DEFAULT_DATABASE = "/var/lib/airmonitor/airmonitor.sqlite3"
-DEFAULT_SERIAL = "/dev/serial0"
+DEFAULT_SERIAL = "auto"
 DEFAULT_GRAFANA_HOST = "127.0.0.1"
 DEFAULT_GRAFANA_PORT = 3000
 DEFAULT_MQTT_HOST = "127.0.0.1"
@@ -59,18 +60,30 @@ def _package_version() -> str:
         return "development"
 
 
-def check_path(path: str, *, required: bool, readable: bool = True, writable: bool = False) -> Check:
+def check_path(path: str, *, required: bool, readable: bool = True, writable: bool = False, name: str | None = None) -> Check:
     item = Path(path)
+    check_name = name or path
     if not item.exists():
-        return Check(path, "fail" if required else "warn", "missing", required)
+        return Check(check_name, "fail" if required else "warn", f"missing: {path}", required)
     problems: list[str] = []
     if readable and not os.access(item, os.R_OK):
         problems.append("not readable")
     if writable and not os.access(item, os.W_OK):
         problems.append("not writable")
     if problems:
-        return Check(path, "fail" if required else "warn", ", ".join(problems), required)
-    return Check(path, "ok", "present", required)
+        return Check(check_name, "fail" if required else "warn", f"{path}: {', '.join(problems)}", required)
+    return Check(check_name, "ok", path, required)
+
+
+def check_sensor_hardware(serial_device: str, hardware_id: str, registry: str) -> Check:
+    try:
+        resolved = serial_device if serial_device.lower() != "auto" else resolve_device(hardware_id, registry_path=registry)
+    except Exception as exc:
+        return Check("sensor_hardware", "fail", str(exc), True)
+    result = check_path(resolved, required=True, readable=True, writable=True, name="sensor_hardware")
+    if result.ok:
+        return Check("sensor_hardware", "ok", f"{hardware_id} -> {resolved}", True)
+    return result
 
 
 def check_tcp(name: str, host: str, port: int, *, required: bool = False, timeout: float = 1.0) -> Check:
@@ -127,6 +140,8 @@ def run_checks(
     *,
     database: str = DEFAULT_DATABASE,
     serial_device: str = DEFAULT_SERIAL,
+    hardware_id: str = DEFAULT_HARDWARE_ID,
+    hardware_registry: str = DEFAULT_REGISTRY,
     mqtt_host: str = DEFAULT_MQTT_HOST,
     mqtt_port: int = DEFAULT_MQTT_PORT,
     grafana_host: str = DEFAULT_GRAFANA_HOST,
@@ -136,7 +151,7 @@ def run_checks(
     checks: list[Check] = [
         Check("python", "ok", sys.version.split()[0], True),
         Check("airmonitor_version", "ok", _package_version(), True),
-        check_path(serial_device, required=False, readable=True, writable=True),
+        check_sensor_hardware(serial_device, hardware_id, hardware_registry),
     ]
     checks.extend(check_path(path, required=False, readable=True) for path in ENV_FILES)
     checks.extend(check_database(database))
@@ -161,7 +176,9 @@ def run_checks(
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="airmonitor-doctor", description="Run AirMonitor appliance health checks")
     parser.add_argument("--database", default=DEFAULT_DATABASE)
-    parser.add_argument("--serial-device", default=DEFAULT_SERIAL)
+    parser.add_argument("--serial-device", default=DEFAULT_SERIAL, help="explicit serial path or 'auto' for hardware registry resolution")
+    parser.add_argument("--hardware-id", default=DEFAULT_HARDWARE_ID)
+    parser.add_argument("--hardware-registry", default=DEFAULT_REGISTRY)
     parser.add_argument("--mqtt-host", default=DEFAULT_MQTT_HOST)
     parser.add_argument("--mqtt-port", type=int, default=DEFAULT_MQTT_PORT)
     parser.add_argument("--grafana-host", default=DEFAULT_GRAFANA_HOST)
@@ -175,6 +192,8 @@ def main(argv: Iterable[str] | None = None) -> int:
     report = run_checks(
         database=args.database,
         serial_device=args.serial_device,
+        hardware_id=args.hardware_id,
+        hardware_registry=args.hardware_registry,
         mqtt_host=args.mqtt_host,
         mqtt_port=args.mqtt_port,
         grafana_host=args.grafana_host,
