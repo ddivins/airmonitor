@@ -1,0 +1,24 @@
+version: 1
+
+devices:
+  # Preferred: match a dedicated USB-UART adapter using its EEPROM identity.
+  sgx-voc-01:
+    driver: airmonitor.sensors.sgx.ps1_voc
+    transport: usb-uart
+    match:
+      vendor: DSD
+      product: AirMonitor
+      serial: SGX-VOC-1000-01
+    fallback_device: /dev/airmonitor-sgx
+
+  # Manual-path example for an adapter with an unhelpful/unwritable EEPROM.
+  # sgx-voc-generic-usb:
+  #   driver: airmonitor.sensors.sgx.ps1_voc
+  #   transport: usb-uart
+  #   device: /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_ABC123-if00-port0
+
+  # True Raspberry Pi UART example.
+  # sgx-voc-gpio:
+  #   driver: airmonitor.sensors.sgx.ps1_voc
+  #   transport: gpio-uart
+  #   device: /dev/serial0
