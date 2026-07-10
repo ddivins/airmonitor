@@ -6,6 +6,8 @@ APP_DIR="${APP_DIR:-/opt/airmonitor}"
 ENV_FILE="${ENV_FILE:-/etc/airmonitor.env}"
 POLICY_SRC="${POLICY_SRC:-config/filament-policy.yaml}"
 POLICY_DST="${POLICY_DST:-/etc/airmonitor/filament-policy.yaml}"
+HARDWARE_SRC="${HARDWARE_SRC:-config/hardware.yaml.example}"
+HARDWARE_DST="${HARDWARE_DST:-/etc/airmonitor/hardware.yaml}"
 UNIT_DIR="${UNIT_DIR:-systemd}"
 DATA_DIR="${DATA_DIR:-/var/lib/airmonitor}"
 SERVICE_USER="${SERVICE_USER:-automation}"
@@ -13,6 +15,7 @@ SERVICE_GROUP="${SERVICE_GROUP:-automation}"
 REPO_DIR="${REPO_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 INSTALL_GRAFANA="${INSTALL_GRAFANA:-auto}"
 PIP_BIN="$APP_DIR/venv/bin/pip"
+DOCTOR_BIN="$APP_DIR/venv/bin/airmonitor-doctor"
 
 log() {
   printf '\n==> %s\n' "$*"
@@ -37,6 +40,7 @@ command -v systemctl >/dev/null || fail "systemctl is not available"
 [[ -d "$REPO_DIR/.git" ]] || fail "not a Git repository: $REPO_DIR"
 [[ -f "$REPO_DIR/pyproject.toml" ]] || fail "missing pyproject.toml in $REPO_DIR"
 [[ -f "$REPO_DIR/$POLICY_SRC" ]] || fail "missing filament policy: $REPO_DIR/$POLICY_SRC"
+[[ -f "$REPO_DIR/$HARDWARE_SRC" ]] || fail "missing hardware registry template: $REPO_DIR/$HARDWARE_SRC"
 [[ -x "$PIP_BIN" ]] || fail "missing virtualenv pip: $PIP_BIN"
 [[ -f "$ENV_FILE" ]] || fail "missing env file: $ENV_FILE"
 id "$SERVICE_USER" >/dev/null 2>&1 || fail "missing service user: $SERVICE_USER"
@@ -68,6 +72,15 @@ else
   else
     sudo rm "$POLICY_DST.new"
   fi
+fi
+
+log "Ensuring hardware registry exists"
+sudo install -d -o root -g root -m 0755 "$(dirname "$HARDWARE_DST")"
+if [[ ! -f "$HARDWARE_DST" ]]; then
+  sudo install -o root -g root -m 0644 "$HARDWARE_SRC" "$HARDWARE_DST"
+  echo "Installed initial hardware registry: $HARDWARE_DST"
+else
+  echo "Preserving existing hardware registry: $HARDWARE_DST"
 fi
 
 log "Installing systemd units"
@@ -102,3 +115,8 @@ log "Recent journal"
 for service in $SERVICE_LIST; do
   sudo journalctl -u "$service" -n 20 --no-pager
 done
+
+if [[ -x "$DOCTOR_BIN" ]]; then
+  log "Running AirMonitor health check"
+  sudo "$DOCTOR_BIN"
+fi
