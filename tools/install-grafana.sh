@@ -8,11 +8,14 @@ DASHBOARD_DIR="${DASHBOARD_DIR:-/var/lib/grafana/dashboards/airmonitor}"
 DATASOURCE_SRC="${DATASOURCE_SRC:-grafana/provisioning/datasources/airmonitor-sqlite.yaml}"
 DASHBOARD_PROVIDER_SRC="${DASHBOARD_PROVIDER_SRC:-grafana/provisioning/dashboards/airmonitor.yaml}"
 DASHBOARD_SRC="${DASHBOARD_SRC:-grafana/dashboards/airmonitor-live.json}"
+DASHBOARD_GENERATOR="${DASHBOARD_GENERATOR:-tools/generate-grafana-dashboard.py}"
 DB_DIR="${DB_DIR:-/var/lib/airmonitor}"
 DB_FILE="${DB_FILE:-/var/lib/airmonitor/airmonitor.sqlite3}"
 DATA_GROUP="${DATA_GROUP:-airmonitor-data}"
 GRAFANA_DOMAIN="${GRAFANA_DOMAIN:-airmonitor.example.com}"
 GRAFANA_ROOT_URL="${GRAFANA_ROOT_URL:-https://airmonitor.example.com/}"
+GRAFANA_DB="${GRAFANA_DB:-/var/lib/grafana/grafana.db}"
+FRESH_AIRMONITOR_GRAFANA="${FRESH_AIRMONITOR_GRAFANA:-1}"
 
 log() {
   printf '\n==> %s\n' "$*"
@@ -26,11 +29,11 @@ fail() {
 log "Validating inputs"
 command -v grafana >/dev/null || fail "grafana command not found; install Grafana first"
 command -v systemctl >/dev/null || fail "systemctl not found"
-command -v curl >/dev/null || fail "curl not found"
+command -v python3 >/dev/null || fail "python3 is required"
 [[ -d "$REPO_DIR/.git" ]] || fail "not a Git repository: $REPO_DIR"
 [[ -f "$REPO_DIR/$DATASOURCE_SRC" ]] || fail "missing $DATASOURCE_SRC"
 [[ -f "$REPO_DIR/$DASHBOARD_PROVIDER_SRC" ]] || fail "missing $DASHBOARD_PROVIDER_SRC"
-[[ -f "$REPO_DIR/$DASHBOARD_SRC" ]] || fail "missing $DASHBOARD_SRC"
+[[ -f "$REPO_DIR/$DASHBOARD_GENERATOR" ]] || fail "missing dashboard generator: $REPO_DIR/$DASHBOARD_GENERATOR"
 
 cd "$REPO_DIR"
 
@@ -50,10 +53,25 @@ root_url = $GRAFANA_ROOT_URL
 default_theme = light
 EOF
 
+if [[ -f "$DB_FILE" ]]; then
+  log "Validating dashboard SQL against $DB_FILE"
+  python3 "$DASHBOARD_GENERATOR" --validate-db "$DB_FILE"
+fi
+
+log "Generating dashboard artifact"
+python3 "$DASHBOARD_GENERATOR" "$DASHBOARD_SRC"
+
 log "Installing datasource provisioning"
+if [[ "$FRESH_AIRMONITOR_GRAFANA" == "1" ]]; then
+  sudo rm -f /etc/grafana/provisioning/datasources/airmonitor*.yaml
+fi
 sudo install -o root -g grafana -m 0640 "$DATASOURCE_SRC" /etc/grafana/provisioning/datasources/airmonitor-sqlite.yaml
 
 log "Installing dashboard provisioning files"
+if [[ "$FRESH_AIRMONITOR_GRAFANA" == "1" ]]; then
+  sudo rm -f /etc/grafana/provisioning/dashboards/airmonitor*.yaml
+  sudo rm -rf "$DASHBOARD_DIR"
+fi
 sudo install -o root -g grafana -m 0640 "$DASHBOARD_PROVIDER_SRC" /etc/grafana/provisioning/dashboards/airmonitor.yaml
 sudo install -d -o grafana -g grafana -m 0755 "$DASHBOARD_DIR"
 sudo install -o grafana -g grafana -m 0644 "$DASHBOARD_SRC" "$DASHBOARD_DIR/airmonitor-live.json"
@@ -75,16 +93,19 @@ if [[ -f "$DB_FILE" ]]; then
   sudo chmod 640 "$DB_FILE"
 fi
 
+if [[ "$FRESH_AIRMONITOR_GRAFANA" == "1" && -f "$GRAFANA_DB" ]]; then
+  log "Backing up Grafana DB before provisioning refresh"
+  sudo install -d -o grafana -g grafana -m 0750 /var/lib/grafana/backups
+  sudo cp -a "$GRAFANA_DB" "/var/lib/grafana/backups/grafana.db.airmonitor.$(date +%Y%m%d-%H%M%S)"
+fi
+
 log "Restarting Grafana"
 sudo systemctl restart "$GRAFANA_SERVICE"
 sleep 3
 systemctl --no-pager --full status "$GRAFANA_SERVICE"
 
-log "Applying dashboard through Grafana API"
-bash tools/apply-grafana-api.sh
-
 log "Provisioned dashboard"
-echo "$GRAFANA_ROOT_URL/d/airmonitor-live/airmonitor-live"
+echo "${GRAFANA_ROOT_URL%/}/d/airmonitor-live/airmonitor-live"
 
 echo
 printf 'If your user was just added to %s, log out/in or run: newgrp %s\n' "$DATA_GROUP" "$DATA_GROUP"

@@ -22,6 +22,13 @@ tests/                        Offline protocol tests
 
 ## Current status
 
+AirMonitor is the umbrella repository for the air-quality appliance. It now
+contains the SGX logger, the Bambu printer MQTT normalizer, Bento Box outlet
+automation, and Levoit/Core room-filter automation.
+
+The older standalone repositories are migration sources only. New work and host
+installs should use `ddivins/airmonitor`.
+
 AirMonitor can perform a one-shot read-only hardware probe and can continuously
 log SGX VOC, temperature, humidity, and current printer context to SQLite.
 
@@ -137,6 +144,44 @@ sudo install -o root -g root -m 0644 systemd/airmonitor.service /etc/systemd/sys
 sudo systemctl daemon-reload
 sudo systemctl enable --now airmonitor.service
 ```
+
+The umbrella install also provides compatibility console scripts for the
+migrated services:
+
+```text
+airmonitor-printer-mqtt
+bambu-bento
+levoit-filter
+```
+
+Umbrella-owned units are in `systemd/`:
+
+```text
+airmonitor.service
+airmonitor-printer-mqtt.service
+airmonitor-bento.service
+airmonitor-levoit.service
+```
+
+Preserve existing secret env files during reinstall:
+
+```text
+/etc/airmonitor.env
+/etc/bambu-bento.env
+/etc/levoit-filter.env
+/etc/printer-mqtt-service.env
+```
+
+Filter manual override state is persisted in SQLite and can be changed with:
+
+```bash
+airmonitor filter bento auto
+airmonitor filter bento on
+airmonitor filter bento off
+airmonitor filter levoit status
+```
+
+Manual `on` or `off` always wins over automation until set back to `auto`.
 
 Verify recent samples:
 

@@ -1,6 +1,8 @@
 # AirMonitor architecture
 
 AirMonitor is the umbrella application for the printer air-quality appliance.
+The active repository is `ddivins/airmonitor`; older standalone repositories
+are backup/reference sources after migration.
 
 The long-term model is one repository, one Python package, one shared database, one shared configuration model, and multiple optional integrations.
 
@@ -56,10 +58,10 @@ Filters:
 The code lives in one package, but services may remain separate so failures are isolated:
 
 ```text
-airmonitor.service
-airmonitor-printer-mqtt.service
-airmonitor-bento.service
-airmonitor-levoit.service
+airmonitor.service                 SGX logger and SQLite writer
+airmonitor-printer-mqtt.service    Bambu local MQTT normalizer
+airmonitor-bento.service           Kasa-powered Bento Box control
+airmonitor-levoit.service          VeSync/Levoit room purifier control
 ```
 
 ## Configuration
@@ -70,6 +72,7 @@ Keep local environment files outside the repo and preserve them across reinstall
 /etc/airmonitor.env
 /etc/bambu-bento.env
 /etc/levoit-filter.env
+/etc/printer-mqtt-service.env
 ```
 
 Future consolidated config:
@@ -87,7 +90,10 @@ SQLite remains the default local database:
 /var/lib/airmonitor/airmonitor.sqlite3
 ```
 
-The app should manage schema migrations and expose normalized tables or views for Grafana.
+The app should manage schema migrations and expose normalized tables or views
+for Grafana. SQL should live behind repository helpers where practical. Filter
+manual override state is persisted in `filter_control_state` and accessed
+through `FilterControlRepository`.
 
 ## Grafana
 

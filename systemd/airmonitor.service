@@ -1,6 +1,6 @@
 [Unit]
 Description=AirMonitor sensor logger
-After=network-online.target printer-mqtt-service.service
+After=network-online.target airmonitor-printer-mqtt.service
 Wants=network-online.target
 
 [Service]
