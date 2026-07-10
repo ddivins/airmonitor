@@ -11,6 +11,7 @@ DATA_DIR="${DATA_DIR:-/var/lib/airmonitor}"
 SERVICE_USER="${SERVICE_USER:-automation}"
 SERVICE_GROUP="${SERVICE_GROUP:-automation}"
 REPO_DIR="${REPO_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+INSTALL_GRAFANA="${INSTALL_GRAFANA:-auto}"
 PIP_BIN="$APP_DIR/venv/bin/pip"
 
 log() {
@@ -74,6 +75,11 @@ for service in $SERVICE_LIST; do
   sudo install -o root -g root -m 0644 "$UNIT_DIR/$service" "/etc/systemd/system/$service"
 done
 sudo systemctl daemon-reload
+
+if [[ "$INSTALL_GRAFANA" == "1" ]] || { [[ "$INSTALL_GRAFANA" == "auto" ]] && command -v grafana >/dev/null && systemctl list-unit-files grafana-server.service >/dev/null 2>&1; }; then
+  log "Installing Grafana datasource and dashboards"
+  bash tools/install-grafana.sh
+fi
 
 log "Restarting services"
 for service in $SERVICE_LIST; do
