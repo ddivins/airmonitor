@@ -28,6 +28,23 @@ class GrafanaDashboardTests(unittest.TestCase):
         for panel in dashboard["panels"]:
             self.assertEqual(panel["datasource"]["uid"], "airmonitor-sqlite")
 
+    def test_dashboard_uses_explicit_sqlite_plugin_query_model(self):
+        dashboard = self.generator.build()
+
+        self.assertEqual(dashboard["panels"][0]["type"], "timeseries")
+        self.assertNotIn("stat", {panel["type"] for panel in dashboard["panels"]})
+        for panel in dashboard["panels"]:
+            for target in panel["targets"]:
+                self.assertEqual(target["queryText"], target["rawQueryText"])
+                self.assertNotIn("SELECT 4", target["queryText"].upper())
+                self.assertIn(target["queryType"], {"table", "time series"})
+                if panel["type"] == "timeseries":
+                    self.assertEqual(target["queryType"], "time series")
+                    self.assertEqual(target["timeColumns"], ["time"])
+                else:
+                    self.assertEqual(target["queryType"], "table")
+                    self.assertEqual(target["timeColumns"], [])
+
     def test_all_panel_queries_match_schema(self):
         conn = sqlite3.connect(":memory:")
         try:

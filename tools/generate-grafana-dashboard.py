@@ -95,11 +95,16 @@ def compact_sql(sql: str) -> str:
     return " ".join(line.strip() for line in sql.strip().splitlines())
 
 
-def target(sql_key: str, ref_id: str = "A") -> dict[str, Any]:
+def target(sql_key: str, ref_id: str = "A", query_type: str = "table") -> dict[str, Any]:
+    query_text = compact_sql(SQL[sql_key])
+    time_columns = ["time"] if query_type == "time series" else []
     return {
         "refId": ref_id,
         "datasource": DS,
-        "queryText": compact_sql(SQL[sql_key]),
+        "queryText": query_text,
+        "rawQueryText": query_text,
+        "queryType": query_type,
+        "timeColumns": time_columns,
         "format": "table",
     }
 
@@ -200,7 +205,7 @@ def timeseries(
         "title": title,
         "datasource": DS,
         "gridPos": {"h": h, "w": w, "x": x, "y": y},
-        "targets": [target(sql_key)],
+        "targets": [target(sql_key, query_type="time series")],
         "fieldConfig": {"defaults": defaults, "overrides": []},
         "options": {
             "legend": {
@@ -216,15 +221,14 @@ def timeseries(
 
 def build() -> dict[str, Any]:
     panels = [
-        stat(1, "Current VOC", 0, 0, 4, "voc", "voc_ppm", "ppm", 2),
-        stat(2, "Temperature", 4, 0, 4, "temperature", "temperature_c", "celsius", 1),
-        stat(3, "Humidity", 8, 0, 4, "humidity", "humidity_rh", "humidity", 1),
-        table(4, "Latest Sample", 12, 0, 12, 4, "latest_sample"),
-        timeseries(5, "VOC History", 0, 4, 24, 8, "voc", "ppm", 5),
-        timeseries(6, "Temperature / Humidity", 0, 12, 24, 8, "temperature_humidity"),
-        table(7, "Filter Control", 0, 20, 24, 5, "filters"),
-        table(8, "Recent Prints", 0, 25, 24, 7, "recent_prints"),
-        table(9, "Latest Samples", 0, 32, 24, 7, "latest_samples"),
+        timeseries(1, "VOC History", 0, 0, 24, 8, "voc", "ppm", 5),
+        timeseries(2, "Temperature", 0, 8, 12, 8, "temperature", "celsius"),
+        timeseries(3, "Humidity", 12, 8, 12, 8, "humidity", "humidity"),
+        timeseries(4, "Temperature / Humidity", 0, 16, 24, 8, "temperature_humidity"),
+        table(5, "Latest Sample", 0, 24, 24, 4, "latest_sample"),
+        table(6, "Filter Control", 0, 28, 24, 5, "filters"),
+        table(7, "Recent Prints", 0, 33, 24, 7, "recent_prints"),
+        table(8, "Latest Samples", 0, 40, 24, 7, "latest_samples"),
     ]
     return {
         "uid": "airmonitor-live",

@@ -34,259 +34,6 @@
   "panels": [
     {
       "id": 1,
-      "type": "stat",
-      "title": "Current VOC",
-      "datasource": {
-        "type": "frser-sqlite-datasource",
-        "uid": "airmonitor-sqlite"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 0,
-        "y": 0
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "frser-sqlite-datasource",
-            "uid": "airmonitor-sqlite"
-          },
-          "queryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, gas_ppm AS voc_ppm FROM sgx_voc_samples ORDER BY sampled_at",
-          "format": "table"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 1
-              },
-              {
-                "color": "orange",
-                "value": 3
-              },
-              {
-                "color": "red",
-                "value": 10
-              }
-            ]
-          },
-          "unit": "ppm",
-          "decimals": 2
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "values": false,
-          "fields": "voc_ppm",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "orientation": "auto",
-        "textMode": "auto",
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto"
-      }
-    },
-    {
-      "id": 2,
-      "type": "stat",
-      "title": "Temperature",
-      "datasource": {
-        "type": "frser-sqlite-datasource",
-        "uid": "airmonitor-sqlite"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 4,
-        "y": 0
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "frser-sqlite-datasource",
-            "uid": "airmonitor-sqlite"
-          },
-          "queryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, temperature_c FROM sgx_voc_samples ORDER BY sampled_at",
-          "format": "table"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 1
-              },
-              {
-                "color": "orange",
-                "value": 3
-              },
-              {
-                "color": "red",
-                "value": 10
-              }
-            ]
-          },
-          "unit": "celsius",
-          "decimals": 1
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "values": false,
-          "fields": "temperature_c",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "orientation": "auto",
-        "textMode": "auto",
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto"
-      }
-    },
-    {
-      "id": 3,
-      "type": "stat",
-      "title": "Humidity",
-      "datasource": {
-        "type": "frser-sqlite-datasource",
-        "uid": "airmonitor-sqlite"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 8,
-        "y": 0
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "frser-sqlite-datasource",
-            "uid": "airmonitor-sqlite"
-          },
-          "queryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, humidity_rh FROM sgx_voc_samples ORDER BY sampled_at",
-          "format": "table"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 1
-              },
-              {
-                "color": "orange",
-                "value": 3
-              },
-              {
-                "color": "red",
-                "value": 10
-              }
-            ]
-          },
-          "unit": "humidity",
-          "decimals": 1
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "values": false,
-          "fields": "humidity_rh",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "orientation": "auto",
-        "textMode": "auto",
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto"
-      }
-    },
-    {
-      "id": 4,
-      "type": "table",
-      "title": "Latest Sample",
-      "datasource": {
-        "type": "frser-sqlite-datasource",
-        "uid": "airmonitor-sqlite"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 12,
-        "x": 12,
-        "y": 0
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "frser-sqlite-datasource",
-            "uid": "airmonitor-sqlite"
-          },
-          "queryText": "SELECT sampled_at, printf('%.2f', gas_ppm) AS voc_ppm, printf('%.1f C', temperature_c) AS temperature, printf('%.1f %%', humidity_rh) AS humidity FROM sgx_voc_samples ORDER BY id DESC LIMIT 1",
-          "format": "table"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "inspect": false
-          },
-          "mappings": []
-        },
-        "overrides": []
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm",
-        "footer": {
-          "show": false
-        }
-      }
-    },
-    {
-      "id": 5,
       "type": "timeseries",
       "title": "VOC History",
       "datasource": {
@@ -297,7 +44,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 4
+        "y": 0
       },
       "targets": [
         {
@@ -307,6 +54,11 @@
             "uid": "airmonitor-sqlite"
           },
           "queryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, gas_ppm AS voc_ppm FROM sgx_voc_samples ORDER BY sampled_at",
+          "rawQueryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, gas_ppm AS voc_ppm FROM sgx_voc_samples ORDER BY sampled_at",
+          "queryType": "time series",
+          "timeColumns": [
+            "time"
+          ],
           "format": "table"
         }
       ],
@@ -344,7 +96,131 @@
       }
     },
     {
-      "id": 6,
+      "id": 2,
+      "type": "timeseries",
+      "title": "Temperature",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "airmonitor-sqlite"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "airmonitor-sqlite"
+          },
+          "queryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, temperature_c FROM sgx_voc_samples ORDER BY sampled_at",
+          "rawQueryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, temperature_c FROM sgx_voc_samples ORDER BY sampled_at",
+          "queryType": "time series",
+          "timeColumns": [
+            "time"
+          ],
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "axisSoftMin": 0
+          },
+          "mappings": [],
+          "unit": "celsius"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "placement": "bottom",
+          "displayMode": "list",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Humidity",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "airmonitor-sqlite"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "airmonitor-sqlite"
+          },
+          "queryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, humidity_rh FROM sgx_voc_samples ORDER BY sampled_at",
+          "rawQueryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, humidity_rh FROM sgx_voc_samples ORDER BY sampled_at",
+          "queryType": "time series",
+          "timeColumns": [
+            "time"
+          ],
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "axisSoftMin": 0
+          },
+          "mappings": [],
+          "unit": "humidity"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "placement": "bottom",
+          "displayMode": "list",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 4,
       "type": "timeseries",
       "title": "Temperature / Humidity",
       "datasource": {
@@ -355,7 +231,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 12
+        "y": 16
       },
       "targets": [
         {
@@ -365,6 +241,11 @@
             "uid": "airmonitor-sqlite"
           },
           "queryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, temperature_c, humidity_rh FROM sgx_voc_samples ORDER BY sampled_at",
+          "rawQueryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, temperature_c, humidity_rh FROM sgx_voc_samples ORDER BY sampled_at",
+          "queryType": "time series",
+          "timeColumns": [
+            "time"
+          ],
           "format": "table"
         }
       ],
@@ -400,7 +281,56 @@
       }
     },
     {
-      "id": 7,
+      "id": 5,
+      "type": "table",
+      "title": "Latest Sample",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "airmonitor-sqlite"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "airmonitor-sqlite"
+          },
+          "queryText": "SELECT sampled_at, printf('%.2f', gas_ppm) AS voc_ppm, printf('%.1f C', temperature_c) AS temperature, printf('%.1f %%', humidity_rh) AS humidity FROM sgx_voc_samples ORDER BY id DESC LIMIT 1",
+          "rawQueryText": "SELECT sampled_at, printf('%.2f', gas_ppm) AS voc_ppm, printf('%.1f C', temperature_c) AS temperature, printf('%.1f %%', humidity_rh) AS humidity FROM sgx_voc_samples ORDER BY id DESC LIMIT 1",
+          "queryType": "table",
+          "timeColumns": [],
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 6,
       "type": "table",
       "title": "Filter Control",
       "datasource": {
@@ -411,7 +341,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 20
+        "y": 28
       },
       "targets": [
         {
@@ -421,6 +351,58 @@
             "uid": "airmonitor-sqlite"
           },
           "queryText": "SELECT filter_id, manual_mode, automation_request, actual_state, effective_state, COALESCE(reason, '') AS reason, updated_at FROM filter_control_state ORDER BY filter_id",
+          "rawQueryText": "SELECT filter_id, manual_mode, automation_request, actual_state, effective_state, COALESCE(reason, '') AS reason, updated_at FROM filter_control_state ORDER BY filter_id",
+          "queryType": "table",
+          "timeColumns": [],
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Recent Prints",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "airmonitor-sqlite"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 33
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "airmonitor-sqlite"
+          },
+          "queryText": "SELECT started_at, COALESCE(ended_at, '') AS ended_at, COALESCE(last_gcode_state, ended_gcode_state, started_gcode_state, '') AS state, COALESCE(subtask_name, '') AS file, COALESCE(filament_type, '') AS filament, COALESCE(filament_emission_class, '') AS emissions, CASE room_filter_recommended WHEN 1 THEN 'yes' WHEN 0 THEN 'no' ELSE '' END AS room_filter FROM prints ORDER BY COALESCE(last_seen_at, started_at) DESC LIMIT 20",
+          "rawQueryText": "SELECT started_at, COALESCE(ended_at, '') AS ended_at, COALESCE(last_gcode_state, ended_gcode_state, started_gcode_state, '') AS state, COALESCE(subtask_name, '') AS file, COALESCE(filament_type, '') AS filament, COALESCE(filament_emission_class, '') AS emissions, CASE room_filter_recommended WHEN 1 THEN 'yes' WHEN 0 THEN 'no' ELSE '' END AS room_filter FROM prints ORDER BY COALESCE(last_seen_at, started_at) DESC LIMIT 20",
+          "queryType": "table",
+          "timeColumns": [],
           "format": "table"
         }
       ],
@@ -448,52 +430,6 @@
     {
       "id": 8,
       "type": "table",
-      "title": "Recent Prints",
-      "datasource": {
-        "type": "frser-sqlite-datasource",
-        "uid": "airmonitor-sqlite"
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 24,
-        "x": 0,
-        "y": 25
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "frser-sqlite-datasource",
-            "uid": "airmonitor-sqlite"
-          },
-          "queryText": "SELECT started_at, COALESCE(ended_at, '') AS ended_at, COALESCE(last_gcode_state, ended_gcode_state, started_gcode_state, '') AS state, COALESCE(subtask_name, '') AS file, COALESCE(filament_type, '') AS filament, COALESCE(filament_emission_class, '') AS emissions, CASE room_filter_recommended WHEN 1 THEN 'yes' WHEN 0 THEN 'no' ELSE '' END AS room_filter FROM prints ORDER BY COALESCE(last_seen_at, started_at) DESC LIMIT 20",
-          "format": "table"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "inspect": false
-          },
-          "mappings": []
-        },
-        "overrides": []
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm",
-        "footer": {
-          "show": false
-        }
-      }
-    },
-    {
-      "id": 9,
-      "type": "table",
       "title": "Latest Samples",
       "datasource": {
         "type": "frser-sqlite-datasource",
@@ -503,7 +439,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 32
+        "y": 40
       },
       "targets": [
         {
@@ -513,6 +449,9 @@
             "uid": "airmonitor-sqlite"
           },
           "queryText": "SELECT s.sampled_at, s.gas_ppm, s.temperature_c, s.humidity_rh, p.last_gcode_state AS printer_state, p.filament_type, p.subtask_name FROM sgx_voc_samples s LEFT JOIN prints p ON p.id = s.print_id ORDER BY s.id DESC LIMIT 20",
+          "rawQueryText": "SELECT s.sampled_at, s.gas_ppm, s.temperature_c, s.humidity_rh, p.last_gcode_state AS printer_state, p.filament_type, p.subtask_name FROM sgx_voc_samples s LEFT JOIN prints p ON p.id = s.print_id ORDER BY s.id DESC LIMIT 20",
+          "queryType": "table",
+          "timeColumns": [],
           "format": "table"
         }
       ],
