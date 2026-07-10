@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "airmonitor"
-version = "0.4.0"
-description = "Raspberry Pi air-quality monitoring with pluggable sensor drivers"
+version = "0.5.0"
+description = "Raspberry Pi air-quality monitoring and printer filter automation appliance"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -18,6 +18,7 @@ dependencies = [
 
 [project.scripts]
 airmonitor = "airmonitor.cli:main"
+airmonitor-doctor = "airmonitor.health:main"
 airmonitor-printer-mqtt = "airmonitor.cli:run_printer_mqtt_service"
 bambu-bento = "airmonitor.cli:run_bento_service"
 levoit-filter = "airmonitor.cli:run_levoit_service"
