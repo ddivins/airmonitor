@@ -32,8 +32,9 @@ Serial:       SGX-VOC-1000-01
 ## Register an EEPROM-identified USB adapter
 
 ```bash
-sudo /opt/airmonitor/venv/bin/airmonitor-hardware add sgx-voc-01 \
+sudo /opt/airmonitor/venv/bin/airmonitor-hardware \
   --registry /etc/airmonitor/hardware.yaml \
+  add sgx-voc-01 \
   --driver airmonitor.sensors.sgx.ps1_voc \
   --transport usb-uart \
   --usb-vendor DSD \
@@ -46,8 +47,8 @@ sudo /opt/airmonitor/venv/bin/airmonitor-hardware add sgx-voc-01 \
 Verify:
 
 ```bash
-sudo /opt/airmonitor/venv/bin/airmonitor-hardware list
-sudo /opt/airmonitor/venv/bin/airmonitor-hardware resolve sgx-voc-01
+sudo /opt/airmonitor/venv/bin/airmonitor-hardware --registry /etc/airmonitor/hardware.yaml list
+sudo /opt/airmonitor/venv/bin/airmonitor-hardware --registry /etc/airmonitor/hardware.yaml resolve sgx-voc-01
 ```
 
 ## Manually register a device path
@@ -63,8 +64,9 @@ Use this for:
 True UART example:
 
 ```bash
-sudo /opt/airmonitor/venv/bin/airmonitor-hardware add sgx-voc-01 \
+sudo /opt/airmonitor/venv/bin/airmonitor-hardware \
   --registry /etc/airmonitor/hardware.yaml \
+  add sgx-voc-01 \
   --driver airmonitor.sensors.sgx.ps1_voc \
   --transport gpio-uart \
   --device /dev/serial0 \
@@ -74,8 +76,9 @@ sudo /opt/airmonitor/venv/bin/airmonitor-hardware add sgx-voc-01 \
 Generic USB example:
 
 ```bash
-sudo /opt/airmonitor/venv/bin/airmonitor-hardware add sgx-voc-01 \
+sudo /opt/airmonitor/venv/bin/airmonitor-hardware \
   --registry /etc/airmonitor/hardware.yaml \
+  add sgx-voc-01 \
   --transport usb-uart \
   --device /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_ABC123-if00-port0 \
   --force
