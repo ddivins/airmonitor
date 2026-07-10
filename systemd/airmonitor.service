@@ -8,28 +8,14 @@ Type=simple
 User=automation
 Group=automation
 EnvironmentFile=/etc/airmonitor.env
-ExecStart=/opt/airmonitor/venv/bin/airmonitor log \
-  --port ${AIRMONITOR_PORT} \
-  --sensor-id ${AIRMONITOR_SENSOR_ID} \
-  --sensor-transport ${AIRMONITOR_SENSOR_TRANSPORT} \
-  --sensor-serial ${AIRMONITOR_SENSOR_SERIAL} \
-  --sensor-location ${AIRMONITOR_SENSOR_LOCATION} \
-  --database ${AIRMONITOR_DATABASE} \
-  --interval ${AIRMONITOR_INTERVAL} \
-  --post-print-context-seconds ${AIRMONITOR_POST_PRINT_CONTEXT_SECONDS} \
-  --filament-policy ${AIRMONITOR_FILAMENT_POLICY} \
-  --local-mqtt-host ${AIRMONITOR_LOCAL_MQTT_HOST} \
-  --local-mqtt-port ${AIRMONITOR_LOCAL_MQTT_PORT} \
-  --local-mqtt-topic ${AIRMONITOR_LOCAL_MQTT_TOPIC} \
-  --local-mqtt-availability-topic ${AIRMONITOR_LOCAL_MQTT_AVAILABILITY_TOPIC} \
-  --local-mqtt-client-id ${AIRMONITOR_LOCAL_MQTT_CLIENT_ID} \
-  --log-level ${AIRMONITOR_LOG_LEVEL}
+ExecStart=/opt/airmonitor/venv/bin/airmonitor-sensor-service
 Restart=always
 RestartSec=10
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=full
 ProtectHome=true
+ReadOnlyPaths=/etc/airmonitor.env /etc/airmonitor/hardware.yaml
 ReadWritePaths=/var/lib/airmonitor /etc/airmonitor
 
 [Install]
