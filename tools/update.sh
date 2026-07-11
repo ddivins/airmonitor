@@ -10,6 +10,7 @@ HARDWARE_SRC="${HARDWARE_SRC:-config/hardware.yaml.example}"
 HARDWARE_DST="${HARDWARE_DST:-/etc/airmonitor/hardware.yaml}"
 UNIT_DIR="${UNIT_DIR:-systemd}"
 DATA_DIR="${DATA_DIR:-/var/lib/airmonitor}"
+STATE_DIR="${STATE_DIR:-$DATA_DIR/update-state}"
 SERVICE_USER="${SERVICE_USER:-automation}"
 SERVICE_GROUP="${SERVICE_GROUP:-automation}"
 REPO_DIR="${REPO_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
@@ -32,7 +33,7 @@ show_failure_logs() {
   sudo journalctl -u "$service" -n 60 --no-pager >&2 || true
 }
 
-trap 'rc=$?; if [[ $rc -ne 0 ]]; then printf "\nUpdate failed with exit code %s\n" "$rc" >&2; fi' EXIT
+trap 'rc=$?; if [[ $rc -ne 0 ]]; then printf "\nUpdate failed with exit code %s\n" "$rc" >&2; printf "Rollback with: cd %s && bash tools/rollback.sh\n" "$REPO_DIR" >&2; fi' EXIT
 
 log "Validating environment"
 command -v git >/dev/null || fail "git is not installed"
@@ -50,8 +51,20 @@ done
 
 cd "$REPO_DIR"
 
+PREVIOUS_COMMIT="$(git rev-parse HEAD)"
+PREVIOUS_VERSION="$($APP_DIR/venv/bin/python -c 'import importlib.metadata; print(importlib.metadata.version("airmonitor"))' 2>/dev/null || echo unknown)"
+UPDATE_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+log "Recording rollback state"
+sudo install -d -o root -g root -m 0755 "$STATE_DIR"
+printf '%s\n' "$PREVIOUS_COMMIT" | sudo tee "$STATE_DIR/previous-commit" >/dev/null
+printf '%s\n' "$PREVIOUS_VERSION" | sudo tee "$STATE_DIR/previous-version" >/dev/null
+printf '%s\n' "$UPDATE_TIME" | sudo tee "$STATE_DIR/last-update-started" >/dev/null
+
 log "Updating repository: $REPO_DIR"
 git pull --ff-only
+NEW_COMMIT="$(git rev-parse HEAD)"
+printf '%s\n' "$NEW_COMMIT" | sudo tee "$STATE_DIR/target-commit" >/dev/null
 
 log "Installing package into $APP_DIR/venv"
 sudo "$PIP_BIN" install --upgrade .
@@ -120,3 +133,11 @@ if [[ -x "$DOCTOR_BIN" ]]; then
   log "Running AirMonitor health check"
   sudo "$DOCTOR_BIN"
 fi
+
+printf '%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" | sudo tee "$STATE_DIR/last-update-succeeded" >/dev/null
+printf '%s\n' "$NEW_COMMIT" | sudo tee "$STATE_DIR/installed-commit" >/dev/null
+
+log "Update complete"
+printf 'Previous commit: %s\n' "$PREVIOUS_COMMIT"
+printf 'Installed commit: %s\n' "$NEW_COMMIT"
+printf 'Rollback command: cd %s && bash tools/rollback.sh\n' "$REPO_DIR"
