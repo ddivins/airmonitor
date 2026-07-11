@@ -75,6 +75,26 @@ def configured_port(args: argparse.Namespace) -> str:
     return resolve_device(args.hardware_id, registry_path=args.registry)
 
 
+def prepare_measurement(sensor: SPS30, warmup_seconds: float) -> None:
+    """Put the SPS30 into a known measurement state.
+
+    A service restart can leave the sensor measuring even though the old process
+    has exited. Starting measurement again then returns state 0x43. Stop first,
+    tolerate an already-stopped sensor, and then start a fresh measurement run.
+    """
+
+    try:
+        sensor.stop_measurement()
+        LOG.info("Stopped existing SPS30 measurement session")
+        time.sleep(0.2)
+    except SPS30Error as exc:
+        LOG.debug("SPS30 was not in a stoppable measurement state: %s", exc)
+
+    sensor.start_measurement()
+    LOG.info("Started SPS30 measurement; warming up for %.1fs", warmup_seconds)
+    time.sleep(warmup_seconds)
+
+
 def run(args: argparse.Namespace) -> int:
     try:
         import serial
@@ -82,10 +102,14 @@ def run(args: argparse.Namespace) -> int:
         print("pyserial is required", file=sys.stderr)
         return 2
 
-    logging.basicConfig(level=getattr(logging, args.log_level.upper(), logging.INFO), format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    logging.basicConfig(
+        level=getattr(logging, args.log_level.upper(), logging.INFO),
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
     conn = connect(args.database)
     ensure_schema(conn)
     session_id: int | None = None
+    sensor: SPS30 | None = None
 
     while True:
         try:
@@ -115,15 +139,26 @@ def run(args: argparse.Namespace) -> int:
                     serial=args.sensor_serial,
                     location=args.sensor_location,
                 )
-                session_id = start_sensor_session(conn, sensor_id=args.sensor_id, software_version="0.5.0", sensor_protocol="SHDLC", sensor_port=port)
-                sensor.start_measurement()
+                session_id = start_sensor_session(
+                    conn,
+                    sensor_id=args.sensor_id,
+                    software_version="0.5.0",
+                    sensor_protocol="SHDLC",
+                    sensor_port=port,
+                )
+                prepare_measurement(sensor, args.warmup_seconds)
                 LOG.info("SPS30 connected: port=%s product_type=%s session_id=%s", port, product_type, session_id)
-                time.sleep(1.0)
+
                 while Path(port).exists():
                     try:
-                        sensor.wait_until_ready(timeout=max(2.0, args.interval))
                         measurement = sensor.read_measurement()
-                        insert_sample(conn, sensor_id=args.sensor_id, session_id=session_id, port=port, measurement=measurement)
+                        insert_sample(
+                            conn,
+                            sensor_id=args.sensor_id,
+                            session_id=session_id,
+                            port=port,
+                            measurement=measurement,
+                        )
                         LOG.info(
                             "Logged SPS30 sample: PM1=%0.2f PM2.5=%0.2f PM4=%0.2f PM10=%0.2f ug/m3 size=%0.3f um",
                             measurement.mass_pm1_0,
@@ -132,8 +167,10 @@ def run(args: argparse.Namespace) -> int:
                             measurement.mass_pm10,
                             measurement.typical_particle_size,
                         )
-                    except SPS30Error:
-                        LOG.warning("SPS30 sample failed", exc_info=True)
+                    except SPS30Error as exc:
+                        # Immediately after start the sensor can reject reads until
+                        # the first sample is ready. Keep the connection and retry.
+                        LOG.warning("SPS30 sample not ready or invalid: %s", exc)
                     time.sleep(args.interval)
         except KeyboardInterrupt:
             return 0
@@ -141,6 +178,12 @@ def run(args: argparse.Namespace) -> int:
             LOG.warning("SPS30 unavailable: %s; retrying in %ss", exc, args.retry_seconds)
             time.sleep(args.retry_seconds)
         finally:
+            if sensor is not None:
+                try:
+                    sensor.stop_measurement()
+                except Exception:
+                    LOG.debug("Unable to stop SPS30 measurement during cleanup", exc_info=True)
+                sensor = None
             if session_id is not None:
                 try:
                     end_sensor_session(conn, session_id=session_id)
@@ -160,6 +203,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--database", default=os.environ.get("AIRMONITOR_DATABASE", "/var/lib/airmonitor/airmonitor.sqlite3"))
     parser.add_argument("--interval", type=float, default=float(os.environ.get("AIRMONITOR_SPS30_INTERVAL", "10")))
     parser.add_argument("--timeout", type=float, default=float(os.environ.get("AIRMONITOR_SPS30_TIMEOUT", "2")))
+    parser.add_argument("--warmup-seconds", type=float, default=float(os.environ.get("AIRMONITOR_SPS30_WARMUP_SECONDS", "2")))
     parser.add_argument("--retry-seconds", type=float, default=float(os.environ.get("AIRMONITOR_SPS30_RETRY_SECONDS", "5")))
     parser.add_argument("--log-level", default=os.environ.get("AIRMONITOR_LOG_LEVEL", "INFO"))
     return parser
