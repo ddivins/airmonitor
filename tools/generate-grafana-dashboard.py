@@ -291,17 +291,17 @@ def timeseries(
 
 def build() -> dict[str, Any]:
     panels = [
-        timeseries(1, "SPS30 PM Mass", 0, 0, 24, 8, "sps30_mass", "ug/m3"),
-        timeseries(2, "VOC History", 0, 8, 12, 8, "voc", "ppm", 5),
-        timeseries(3, "Temperature / Humidity", 12, 8, 12, 8, "temperature_humidity"),
-        timeseries(4, "SPS30 Particle Count", 0, 16, 24, 8, "sps30_counts", "#/cm3"),
-        timeseries(5, "SPS30 Typical Particle Size", 0, 24, 24, 6, "sps30_particle_size", "um"),
-        table(6, "Latest SPS30 Sample", 0, 30, 24, 4, "latest_sps30_sample"),
-        table(7, "Latest SGX Sample", 0, 34, 24, 4, "latest_sample"),
-        table(8, "Filter Control", 0, 38, 24, 5, "filters"),
-        table(9, "Recent Prints", 0, 43, 24, 7, "recent_prints"),
-        table(10, "Latest SPS30 Samples", 0, 50, 24, 7, "latest_sps30_samples"),
-        table(11, "Latest SGX Samples", 0, 57, 24, 7, "latest_samples"),
+        timeseries(1, "SGX VOC History", 0, 0, 12, 8, "voc", "ppm", 5),
+        timeseries(2, "SGX Temperature / Humidity", 12, 0, 12, 8, "temperature_humidity"),
+        timeseries(3, "SPS30 PM Mass", 0, 8, 24, 8, "sps30_mass", "ug/m3"),
+        timeseries(4, "SPS30 Particle Count", 0, 16, 12, 8, "sps30_counts", "#/cm3"),
+        timeseries(5, "SPS30 Typical Particle Size", 12, 16, 12, 8, "sps30_particle_size", "um"),
+        table(6, "Latest SGX Sample", 0, 24, 24, 4, "latest_sample"),
+        table(7, "Latest SGX Samples", 0, 28, 24, 7, "latest_samples"),
+        table(8, "Latest SPS30 Sample", 0, 35, 24, 4, "latest_sps30_sample"),
+        table(9, "Latest SPS30 Samples", 0, 39, 24, 7, "latest_sps30_samples"),
+        table(10, "Filter Control", 0, 46, 24, 5, "filters"),
+        table(11, "Recent Prints", 0, 51, 24, 7, "recent_prints"),
     ]
     return {
         "uid": "airmonitor-live",
