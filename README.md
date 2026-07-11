@@ -1,178 +1,78 @@
-# Air Monitor
+# AirMonitor
 
-Raspberry Pi air-quality monitoring with pluggable sensor drivers and room for
-the enclosure CAD that turns the electronics into a finished object.
+AirMonitor is a Raspberry Pi air-quality appliance for 3D-printing spaces. It
+logs gas and particulate readings, tracks Bambu printer state, drives room
+filter automation, and provisions a light-mode Grafana dashboard from this
+repository.
 
-The first supported sensor is the Amphenol SGX Sensortech
-`PS1-VOC-1000-MOD`, connected to a Raspberry Pi 4B over its 3.3 V UART.
+The current appliance uses USB-attached sensors:
 
-## Repository layout
+- Amphenol SGX Sensortech `PS1-VOC-1000-MOD` for TVOC, temperature, and
+  humidity
+- Sensirion `SPS30` for particulate matter mass, particle counts, and typical
+  particle size
+
+The old standalone `bento-box`, `levoit-filter`, and `printer-mqtt-service`
+repositories have been consolidated here. New development, host installs, and
+dashboard changes should happen in `ddivins/airmonitor`.
+
+## What Runs
+
+The umbrella install provides one Python package with separate systemd services:
 
 ```text
-src/airmonitor/sensors/       Sensor protocol implementations
-hardware/sgx-ps1-voc-1000-mod/ Wiring, protocol, and reference notes
-hardware/sensirion-sps30/     Wiring, protocol, and reference notes
-hardware/waveshare-ft232-usb-uart-board-type-c/ USB-C FT232 UART interface notes
-cad/enclosure/source/         Editable FreeCAD, OpenSCAD, or other CAD sources
-cad/enclosure/exports/        Generated STL, 3MF, and STEP files
-cad/enclosure/previews/       Rendered images for design review
-docs/                         Software architecture and operating notes
-tests/                        Offline protocol tests
+airmonitor.service              SGX VOC / temperature / humidity logger
+airmonitor-sps30.service        SPS30 particulate logger
+airmonitor-printer-mqtt.service Bambu MQTT normalizer
+airmonitor-bento.service        Bento Box outlet automation
+airmonitor-levoit.service       Levoit/Core room-filter automation
+mosquitto.service               Local MQTT broker
+grafana-server.service          Grafana dashboard
 ```
 
-## Current status
+The compatibility console scripts remain available:
 
-AirMonitor is the umbrella repository for the air-quality appliance. It now
-contains the SGX logger, the Bambu printer MQTT normalizer, Bento Box outlet
-automation, and Levoit/Core room-filter automation.
-
-The older standalone repositories are migration sources only. New work and host
-installs should use `ddivins/airmonitor`.
-
-AirMonitor can perform a one-shot read-only hardware probe and can continuously
-log SGX VOC, temperature, humidity, and current printer context to SQLite.
-
-The SGX command tries the July 2023 combined-read request first and falls back to
-the legacy February 2022 request. It does not change upload mode, sleep state,
-calibration, or indicator lights.
-
-One-shot probe:
-
-```bash
-python3 -m venv .venv
-. .venv/bin/activate
-python -m pip install -e .
-airmonitor probe --port /dev/serial0
+```text
+airmonitor
+airmonitor-sps30
+airmonitor-printer-mqtt
+bambu-bento
+levoit-filter
 ```
 
-Continuous logger:
+## Repository Layout
 
-```bash
-airmonitor log \
-  --port /dev/serial0 \
-  --sensor-id sgx-voc-01 \
-  --database /var/lib/airmonitor/airmonitor.sqlite3 \
-  --interval 10
+```text
+src/airmonitor/sensors/sgx/ps1_voc/       SGX protocol implementation
+src/airmonitor/sensors/sensirion/sps30/   SPS30 SHDLC UART driver
+src/airmonitor/printers/bambu/            Bambu printer MQTT support
+src/airmonitor/filters/bento/             Kasa/Bento filter automation
+src/airmonitor/filters/levoit/            Levoit room-filter automation
+src/airmonitor/database/                  SQLite schema and repositories
+grafana/                                  Provisioned datasource and dashboard
+systemd/                                  Service units
+config/                                   Example environment and hardware files
+hardware/                                 Wiring and USB-UART notes
+docs/                                     Architecture and operating notes
+tests/                                    Offline protocol and dashboard tests
 ```
 
-The logger subscribes to normalized printer state from `printer-mqtt-service` by
-default:
+## Data Flow
+
+The printer MQTT normalizer publishes local state to Mosquitto:
 
 ```text
 printer/state
 printer/available
 ```
 
-AirMonitor creates a print record when the printer enters an active state such as
-`PREPARE`, `RUNNING`, or `PAUSE`. SGX samples reference the active `print_id`.
-When the print reaches a terminal state, the print is closed, but samples keep
-referencing that print for a configurable post-print context window so VOC decay
-can be associated with the completed print.
+The SGX logger records VOC samples and associates samples with the active print
+and a configurable post-print context window. The SPS30 logger records
+particulate samples independently. Filter services use printer state, filament
+policy, sensor state, and manual override state to decide whether the Bento or
+Levoit filter should run.
 
-The sensor needs up to two minutes to settle after power-up in clean air. Treat
-early values as warm-up data.
-
-## SQLite storage
-
-AirMonitor uses SQLite as an embedded database. There is no separate database
-server, database user, password, grant, or manual schema load.
-
-The database is a regular file, normally:
-
-```text
-/var/lib/airmonitor/airmonitor.sqlite3
-```
-
-The `automation` service account owns the directory and writes the database
-file. AirMonitor creates and migrates its tables on startup.
-
-Install the `sqlite3` package for command-line inspection and troubleshooting.
-Python's SQLite library is included with Python itself.
-
-## SQLite schema
-
-The schema separates relatively stable metadata from high-rate sensor samples.
-
-Main tables:
-
-```text
-sensors              physical sensor inventory
-sensor_sessions      logger runtime sessions
-prints               print jobs detected from normalized printer MQTT state
-sgx_voc_samples      SGX VOC, temperature, and humidity samples
-```
-
-The legacy `air_samples` table is retained for existing installations, but new
-code writes to the normalized tables.
-
-`sgx_voc_samples.print_id` is nullable. It is set while a print is active and for
-the post-print context window after a print completes.
-
-## Systemd deployment
-
-Perform repository clone, update, and install steps as your normal local
-administrative user. Do not clone or maintain the repository as the service
-account.
-
-Long-running services should run under a low-privilege service account. The
-example systemd units in this project family use `automation` as the shared
-service account name.
-
-If your system uses a different service account, update the relevant systemd
-unit before installing it.
-
-Example install using SSH cloning:
-
-```bash
-sudo apt update
-sudo apt install -y git python3 python3-venv sqlite3
-id automation || sudo useradd --system --no-create-home --shell /usr/sbin/nologin automation
-
-git clone git@github.com:ddivins/airmonitor.git
-cd airmonitor
-
-sudo install -d -o root -g root -m 0755 /opt/airmonitor
-sudo install -d -o automation -g automation -m 0755 /var/lib/airmonitor
-sudo python3 -m venv /opt/airmonitor/venv
-sudo /opt/airmonitor/venv/bin/pip install --upgrade pip
-sudo /opt/airmonitor/venv/bin/pip install .
-
-sudo install -o root -g root -m 0644 config/airmonitor.env.example /etc/airmonitor.env
-sudo editor /etc/airmonitor.env
-
-sudo install -o root -g root -m 0644 systemd/airmonitor.service /etc/systemd/system/airmonitor.service
-sudo systemctl daemon-reload
-sudo systemctl enable --now airmonitor.service
-```
-
-The umbrella install also provides compatibility console scripts for the
-migrated services:
-
-```text
-airmonitor-printer-mqtt
-bambu-bento
-levoit-filter
-```
-
-Umbrella-owned units are in `systemd/`:
-
-```text
-airmonitor.service
-airmonitor-printer-mqtt.service
-airmonitor-bento.service
-airmonitor-levoit.service
-```
-
-Preserve existing secret env files during reinstall:
-
-```text
-/etc/airmonitor.env
-/etc/bambu-bento.env
-/etc/levoit-filter.env
-/etc/printer-mqtt-service.env
-```
-
-Filter manual override state is persisted in SQLite and can be changed with:
+Manual filter override state is persisted in SQLite:
 
 ```bash
 airmonitor filter bento auto
@@ -181,40 +81,190 @@ airmonitor filter bento off
 airmonitor filter levoit status
 ```
 
-Manual `on` or `off` always wins over automation until set back to `auto`.
+Manual `on` or `off` wins over automation until set back to `auto`.
 
-Verify recent samples:
+## SQLite Storage
 
-```bash
-systemctl status airmonitor.service
-journalctl -u airmonitor.service -f
-sqlite3 /var/lib/airmonitor/airmonitor.sqlite3 '
-select s.sampled_at, s.gas_ppm, s.temperature_c, s.humidity_rh,
-       p.id as print_id, p.last_gcode_state, p.subtask_name, p.filament_type
-from sgx_voc_samples s
-left join prints p on p.id = s.print_id
-order by s.id desc
-limit 5;'
+AirMonitor uses a local SQLite file. There is no separate database server,
+database user, password, grant, or manual schema load.
+
+Default path:
+
+```text
+/var/lib/airmonitor/airmonitor.sqlite3
 ```
 
-Verify detected prints:
+Main tables:
+
+```text
+sensors              physical sensor inventory
+sensor_sessions      logger runtime sessions
+prints               print jobs detected from normalized printer MQTT state
+sgx_voc_samples      SGX VOC, temperature, and humidity samples
+sps30_samples        SPS30 particulate samples
+filter_control_state persisted filter manual/automation state
+```
+
+The legacy `air_samples` table is retained for existing installations, but new
+code writes to the normalized sensor-specific tables.
+
+## Grafana
+
+Grafana is provisioned from this repository:
+
+```text
+grafana/provisioning/datasources/airmonitor-sqlite.yaml
+grafana/provisioning/dashboards/airmonitor.yaml
+tools/generate-grafana-dashboard.py
+grafana/dashboards/airmonitor-live.json
+```
+
+The dashboard is always generated in light mode and uses the SQLite datasource
+UID `airmonitor-sqlite`. Manual Grafana dashboard edits are temporary; the
+installer regenerates and reprovisions the dashboard from the repo.
+
+Current dashboard order:
+
+```text
+SGX graphs
+SPS30 graphs
+SGX tables
+SPS30 tables
+Operational tables
+```
+
+Install or refresh Grafana provisioning:
+
+```bash
+bash tools/install-grafana.sh
+```
+
+## Host Install And Update
+
+Run clone, pull, and install/update steps as the normal local administrative
+user. Do not maintain the checkout as the service account.
+
+Typical update on an already-installed host:
+
+```bash
+cd ~/airmonitor
+git pull --ff-only
+bash tools/update.sh
+```
+
+`tools/update.sh` installs the Python package, service units, configuration
+examples, and Grafana provisioning when Grafana is present.
+
+Fresh install outline:
+
+```bash
+sudo apt update
+sudo apt install -y git python3 python3-venv sqlite3
+id automation || sudo useradd --system --no-create-home --shell /usr/sbin/nologin automation
+
+git clone git@github.com:ddivins/airmonitor.git
+cd airmonitor
+bash tools/update.sh
+```
+
+Local secret/config files live outside the repo and should be preserved across
+reinstall:
+
+```text
+/etc/airmonitor.env
+/etc/airmonitor-sps30.env
+/etc/bambu-bento.env
+/etc/levoit-filter.env
+/etc/printer-mqtt-service.env
+/etc/airmonitor/hardware.yaml
+/etc/airmonitor/filament-policy.yaml
+```
+
+## Hardware Configuration
+
+Both sensors are expected to be stable USB serial devices. The production host
+uses FTDI USB-UART adapters with distinct EEPROM serials so Linux creates stable
+`/dev/serial/by-id/...` symlinks.
+
+Example hardware registry entries:
+
+```yaml
+version: 1
+devices:
+  sgx-voc-01:
+    driver: airmonitor.sensors.sgx.ps1_voc
+    transport: usb-uart
+    match:
+      vendor: DSD
+      product: AirMonitor
+      serial: SGX-VOC-EXAMPLE
+
+  sps30-01:
+    driver: airmonitor.sensors.sensirion.sps30
+    transport: usb-uart
+    match:
+      vendor: DSD
+      product: AirMonitor
+      serial: SPS30-EXAMPLE
+```
+
+See `hardware/` and `docs/hardware-registry.md` for wiring and discovery notes.
+
+## Operations
+
+Check service state:
+
+```bash
+systemctl --no-pager --full status \
+  airmonitor.service \
+  airmonitor-sps30.service \
+  airmonitor-printer-mqtt.service \
+  airmonitor-bento.service \
+  airmonitor-levoit.service \
+  grafana-server.service \
+  mosquitto.service
+```
+
+Follow logs:
+
+```bash
+sudo journalctl -u airmonitor.service -f
+sudo journalctl -u airmonitor-sps30.service -f
+sudo journalctl -u grafana-server.service -f
+```
+
+Verify recent sensor samples:
 
 ```bash
 sqlite3 /var/lib/airmonitor/airmonitor.sqlite3 '
-select id, started_at, ended_at, last_gcode_state, subtask_name, filament_type, filament_color
-from prints
+select sampled_at, gas_ppm, temperature_c, humidity_rh
+from sgx_voc_samples
+order by id desc
+limit 5;'
+
+sqlite3 /var/lib/airmonitor/airmonitor.sqlite3 '
+select sampled_at, mass_pm1_0, mass_pm2_5, mass_pm4_0, mass_pm10, typical_particle_size
+from sps30_samples
 order by id desc
 limit 5;'
 ```
 
-## Public repository notes
+If the SGX service is active but samples stop with `no sensor response`, a USB
+adapter reset or physical replug may be required. Restarting the service alone
+does not always recover the SGX module after the adapter has stopped responding.
+
+## Public Repository Notes
 
 Do not commit populated environment files, printer serial numbers, printer
 access codes, device IP addresses, private hostnames, logs containing secrets,
 or local-only credentials.
 
-## Safety and interpretation
+## Safety And Interpretation
 
-This is a cross-sensitive TVOC monitor calibrated with isobutylene. It is useful
-for trends, ventilation, and filter control, but it is not a compound-selective
-or life-safety instrument.
+The SGX reading is cross-sensitive TVOC calibrated with isobutylene. It is useful
+for trends, ventilation, and filter control, but it is not compound-selective or
+life-safety instrumentation.
+
+The SPS30 readings are particulate measurements, reported as PM mass
+concentrations and particle counts. They complement the SGX VOC signal; they do
+not replace gas sensing.
