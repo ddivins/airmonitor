@@ -19,9 +19,14 @@ from typing import Optional, Set
 import paho.mqtt.client as mqtt
 from kasa import Discover
 
+from airmonitor.database import connect, init_db
+from airmonitor.database.repositories import FilterControlRepository
+from airmonitor.filters.control import FilterState, resolve_filter_state
+
 
 APP_NAME = "airmonitor-bento"
 APP_VERSION = "3.2.0"
+FILTER_ID = "bento"
 
 LOG = logging.getLogger(APP_NAME)
 
@@ -88,6 +93,7 @@ LOCAL_MQTT_AVAILABILITY_TOPIC = os.environ.get("LOCAL_MQTT_AVAILABILITY_TOPIC", 
 LOCAL_MQTT_CLIENT_ID = os.environ.get("LOCAL_MQTT_CLIENT_ID", APP_NAME)
 
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
+DATABASE_PATH = os.environ.get("AIRMONITOR_DATABASE", "/var/lib/airmonitor/airmonitor.sqlite3")
 
 
 # ----------------------------
@@ -142,6 +148,69 @@ def off_timer_status() -> str:
     return f"running off_in={fmt_duration(remaining)} due_at={local_dt(off_due_at_epoch)}"
 
 
+def outlet_state_value() -> str:
+    if outlet_is_on is None:
+        return FilterState.UNKNOWN.value
+    return FilterState.ON.value if outlet_is_on else FilterState.OFF.value
+
+
+def record_filter_state(
+    *,
+    automation_request: str | None = None,
+    actual_state: str | None = None,
+    effective_state: str | None = None,
+    reason: str | None = None,
+) -> None:
+    try:
+        conn = connect(DATABASE_PATH)
+        init_db(conn)
+        repo = FilterControlRepository(conn)
+        repo.update(
+            FILTER_ID,
+            automation_request=automation_request,
+            actual_state=actual_state,
+            effective_state=effective_state,
+            reason=reason,
+        )
+        conn.close()
+    except Exception:
+        LOG.warning("Failed to record Bento filter control state", exc_info=True)
+
+
+def resolve_and_record_filter(automation_request: str, reason: str) -> tuple[str, str]:
+    try:
+        conn = connect(DATABASE_PATH)
+        init_db(conn)
+        repo = FilterControlRepository(conn)
+        record = repo.update(FILTER_ID, automation_request=automation_request, reason=reason)
+        decision = resolve_filter_state(
+            filter_id=FILTER_ID,
+            manual_mode=record.manual_mode,
+            automation_request=automation_request,
+            automation_reason=reason,
+        )
+        repo.update(
+            FILTER_ID,
+            effective_state=decision.effective_state.value,
+            actual_state=outlet_state_value(),
+            reason=decision.reason,
+        )
+        conn.close()
+        return decision.effective_state.value, decision.reason
+    except Exception:
+        LOG.warning("Failed to resolve Bento filter control state; using automation request", exc_info=True)
+        return automation_request, reason
+
+
+async def apply_filter_request(automation_request: str, reason: str) -> None:
+    effective_state, resolved_reason = resolve_and_record_filter(automation_request, reason)
+    if effective_state == FilterState.ON.value:
+        await set_outlet(True)
+    elif effective_state == FilterState.OFF.value:
+        await set_outlet(False)
+    record_filter_state(actual_state=outlet_state_value(), effective_state=effective_state, reason=resolved_reason)
+
+
 # ----------------------------
 # Kasa outlet
 # ----------------------------
@@ -171,6 +240,7 @@ async def connect_outlet() -> None:
         "ON" if outlet_is_on else "OFF",
         last_power_watts if last_power_watts is not None else "unknown",
     )
+    record_filter_state(actual_state=outlet_state_value())
 
 
 def read_power_watts() -> Optional[float]:
@@ -203,6 +273,7 @@ async def refresh_outlet_status() -> None:
 
     outlet_is_on = bool(outlet_device.is_on)
     last_power_watts = read_power_watts()
+    record_filter_state(actual_state=outlet_state_value())
 
 
 async def disconnect_outlet() -> None:
@@ -282,7 +353,7 @@ async def delayed_off() -> None:
     try:
         await asyncio.sleep(OFF_DELAY_SECONDS)
         LOG.info("Delayed OFF timer expired; turning outlet OFF")
-        await set_outlet(False)
+        await apply_filter_request(FilterState.OFF.value, "cooldown delay expired")
     except asyncio.CancelledError:
         LOG.info("Delayed OFF timer canceled")
         raise
@@ -350,9 +421,13 @@ async def handle_printer_state(gcode_state: str, active: Optional[bool] = None) 
 
     if state in ON_STATES:
         cancel_off_timer()
-        await set_outlet(True)
+        await apply_filter_request(FilterState.ON.value, f"printer active: state={state}")
     else:
         schedule_off_timer()
+        if outlet_is_on:
+            await apply_filter_request(FilterState.ON.value, f"cooldown delay active: printer state={state}")
+        else:
+            await apply_filter_request(FilterState.OFF.value, f"printer inactive: state={state}")
 
 
 # ----------------------------

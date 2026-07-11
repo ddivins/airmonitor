@@ -18,9 +18,14 @@ from typing import Any, Optional
 import paho.mqtt.client as mqtt
 from pyvesync import VeSync
 
+from airmonitor.database import connect, init_db
+from airmonitor.database.repositories import FilterControlRepository
+from airmonitor.filters.control import FilterState, resolve_filter_state
+
 
 APP_NAME = "airmonitor-levoit"
 APP_VERSION = "0.1.1"
+FILTER_ID = "levoit"
 DEFAULT_ENV_FILE = "/etc/airmonitor/levoit.env"
 LOG = logging.getLogger(APP_NAME)
 
@@ -110,6 +115,7 @@ LOCAL_MQTT_KEEPALIVE = getenv_int("LOCAL_MQTT_KEEPALIVE", 60, minimum=10)
 AUTO_OFF_DELAY_SECONDS = getenv_int("LEVOIT_AUTO_OFF_DELAY_SECONDS", 1800, minimum=0)
 TURN_OFF_WHEN_NOT_RECOMMENDED = getenv_bool("LEVOIT_TURN_OFF_WHEN_NOT_RECOMMENDED", False)
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
+DATABASE_PATH = os.environ.get("AIRMONITOR_DATABASE", "/var/lib/airmonitor/airmonitor.sqlite3")
 
 
 @dataclass(frozen=True)
@@ -199,6 +205,60 @@ def is_on(device: Any) -> bool | None:
         if isinstance(value, str):
             return value.lower() in ("on", "true")
     return None
+
+
+def filter_state_value(value: bool | None) -> str:
+    if value is None:
+        return FilterState.UNKNOWN.value
+    return FilterState.ON.value if value else FilterState.OFF.value
+
+
+def record_filter_state(
+    *,
+    automation_request: str | None = None,
+    actual_state: str | None = None,
+    effective_state: str | None = None,
+    reason: str | None = None,
+) -> None:
+    try:
+        conn = connect(DATABASE_PATH)
+        init_db(conn)
+        repo = FilterControlRepository(conn)
+        repo.update(
+            FILTER_ID,
+            automation_request=automation_request,
+            actual_state=actual_state,
+            effective_state=effective_state,
+            reason=reason,
+        )
+        conn.close()
+    except Exception:
+        LOG.warning("Failed to record Levoit filter control state", exc_info=True)
+
+
+def resolve_desired_filter_state(automation_request: str, reason: str, actual_state: str) -> tuple[str, str]:
+    try:
+        conn = connect(DATABASE_PATH)
+        init_db(conn)
+        repo = FilterControlRepository(conn)
+        record = repo.update(
+            FILTER_ID,
+            automation_request=automation_request,
+            actual_state=actual_state,
+            reason=reason,
+        )
+        decision = resolve_filter_state(
+            filter_id=FILTER_ID,
+            manual_mode=record.manual_mode,
+            automation_request=automation_request,
+            automation_reason=reason,
+        )
+        repo.update(FILTER_ID, effective_state=decision.effective_state.value, reason=decision.reason)
+        conn.close()
+        return decision.effective_state.value, decision.reason
+    except Exception:
+        LOG.warning("Failed to resolve Levoit filter control state; using automation request", exc_info=True)
+        return automation_request, reason
 
 
 def turn_on(device: Any) -> None:
@@ -295,6 +355,8 @@ def apply_desired_state(device: Any, desired: DesiredState) -> None:
     elif not desired.should_run and current is not False:
         turn_off(device)
 
+    record_filter_state(actual_state=filter_state_value(is_on(refresh_device(device))))
+
 
 def on_mqtt_connect(client, userdata, flags, reason_code, properties=None):
     LOG.info("Connected to MQTT at %s:%s result=%s", LOCAL_MQTT_HOST, LOCAL_MQTT_PORT, reason_code)
@@ -359,6 +421,14 @@ def run_service() -> int:
             desired = desired_from_printer_state(state, off_deadline)
             if desired.delay_off_until is None and off_deadline is not None and not desired.should_run:
                 off_deadline = None
+            automation_request = FilterState.ON.value if desired.should_run else FilterState.OFF.value
+            actual_state = filter_state_value(is_on(refresh_device(device)))
+            effective_state, reason = resolve_desired_filter_state(automation_request, desired.reason, actual_state)
+            desired = DesiredState(
+                should_run=effective_state == FilterState.ON.value,
+                reason=reason,
+                delay_off_until=desired.delay_off_until,
+            )
             apply_desired_state(device, desired)
             time.sleep(5)
     finally:
