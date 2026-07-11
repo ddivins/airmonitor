@@ -20,6 +20,7 @@ dependencies = [
 airmonitor = "airmonitor.cli:main"
 airmonitor-doctor = "airmonitor.health:main"
 airmonitor-hardware = "airmonitor.hardware:main"
+airmonitor-hardware-auto = "airmonitor.hardware_auto:main"
 airmonitor-sensor-service = "airmonitor.sensor_service:main"
 airmonitor-printer-mqtt = "airmonitor.cli:run_printer_mqtt_service"
 bambu-bento = "airmonitor.cli:run_bento_service"
