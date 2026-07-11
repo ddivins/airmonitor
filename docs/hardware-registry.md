@@ -11,7 +11,7 @@ The persistent registry is:
 /etc/airmonitor/hardware.yaml
 ```
 
-The sensor service reads `AIRMONITOR_HARDWARE_ID` from `/etc/airmonitor.env`. When `AIRMONITOR_PORT=auto`, it resolves that hardware id at startup.
+The sensor service reads `AIRMONITOR_HARDWARE_ID` from `/etc/airmonitor/airmonitor.env`. When `AIRMONITOR_PORT=auto`, it resolves that hardware id at startup.
 
 ## Discover connected devices
 
@@ -84,7 +84,7 @@ sudo /opt/airmonitor/venv/bin/airmonitor-hardware \
   --force
 ```
 
-An explicit `AIRMONITOR_PORT` in `/etc/airmonitor.env` always bypasses registry discovery. Set it to `auto` to use the registry.
+An explicit `AIRMONITOR_PORT` in `/etc/airmonitor/airmonitor.env` always bypasses registry discovery. Set it to `auto` to use the registry.
 
 ## FTDI provisioning
 
@@ -117,7 +117,7 @@ The defaults are `MANUFACTURER=DSD`, `PRODUCT=AirMonitor`, and `SYMLINK_NAME=air
 
 ## Service configuration
 
-Recommended `/etc/airmonitor.env` settings:
+Recommended `/etc/airmonitor/airmonitor.env` settings:
 
 ```text
 AIRMONITOR_PORT=auto

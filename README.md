@@ -157,11 +157,11 @@ Local secret/config files live outside the repo and should be preserved across
 updates:
 
 ```text
-/etc/airmonitor.env
-/etc/airmonitor-sps30.env
-/etc/bambu-bento.env
-/etc/levoit-filter.env
-/etc/printer-mqtt-service.env
+/etc/airmonitor/airmonitor.env
+/etc/airmonitor/sps30.env
+/etc/airmonitor/printer-mqtt.env
+/etc/airmonitor/bento.env
+/etc/airmonitor/levoit.env
 /etc/airmonitor/hardware.yaml
 /etc/airmonitor/filament-policy.yaml
 ```

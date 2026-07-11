@@ -2,8 +2,7 @@
 """Bambu printer MQTT normalization service.
 
 This service owns the direct Bambu local MQTT connection and republishes a
-small normalized state object to a local MQTT broker for consumers such as
-bambu-bento and AirMonitor.
+small normalized state object to a local MQTT broker for AirMonitor consumers.
 """
 
 from __future__ import annotations
@@ -21,7 +20,7 @@ from typing import Any, Optional
 import paho.mqtt.client as mqtt
 
 
-APP_NAME = "printer-mqtt-service"
+APP_NAME = "airmonitor-printer-mqtt"
 APP_VERSION = "0.2.0"
 LOG = logging.getLogger(APP_NAME)
 

@@ -25,8 +25,8 @@ airmonitor-inventory = "airmonitor.inventory:main"
 airmonitor-sensor-service = "airmonitor.sensor_service:main"
 airmonitor-sps30 = "airmonitor.sps30_service:main"
 airmonitor-printer-mqtt = "airmonitor.cli:run_printer_mqtt_service"
-bambu-bento = "airmonitor.cli:run_bento_service"
-levoit-filter = "airmonitor.cli:run_levoit_service"
+airmonitor-bento = "airmonitor.cli:run_bento_service"
+airmonitor-levoit = "airmonitor.cli:run_levoit_service"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/airmonitor"]

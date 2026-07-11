@@ -25,7 +25,7 @@ from airmonitor.hardware import (
     save_registry,
 )
 
-DEFAULT_ENV_FILE = "/etc/airmonitor.env"
+DEFAULT_ENV_FILE = "/etc/airmonitor/airmonitor.env"
 DEFAULT_SERVICE = "airmonitor.service"
 DEFAULT_DRIVER = "airmonitor.sensors.sgx.ps1_voc"
 

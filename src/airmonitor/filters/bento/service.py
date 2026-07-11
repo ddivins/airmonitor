@@ -4,7 +4,7 @@
 This service consumes normalized printer state from a local MQTT broker and
 controls a Kasa smart outlet powering a Bento Box filter.
 
-The direct Bambu printer MQTT connection is owned by printer-mqtt-service.
+The direct Bambu printer MQTT connection is owned by airmonitor-printer-mqtt.
 """
 
 import asyncio
@@ -20,7 +20,7 @@ import paho.mqtt.client as mqtt
 from kasa import Discover
 
 
-APP_NAME = "bambu-bento"
+APP_NAME = "airmonitor-bento"
 APP_VERSION = "3.2.0"
 
 LOG = logging.getLogger(APP_NAME)

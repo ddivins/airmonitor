@@ -3,7 +3,8 @@ set -euo pipefail
 
 SERVICE_LIST="${SERVICE_LIST:-airmonitor-printer-mqtt.service airmonitor.service airmonitor-sps30.service airmonitor-bento.service airmonitor-levoit.service}"
 APP_DIR="${APP_DIR:-/opt/airmonitor}"
-ENV_FILE="${ENV_FILE:-/etc/airmonitor.env}"
+ENV_FILE="${ENV_FILE:-/etc/airmonitor/airmonitor.env}"
+REQUIRED_ENV_FILES="${REQUIRED_ENV_FILES:-/etc/airmonitor/airmonitor.env /etc/airmonitor/printer-mqtt.env /etc/airmonitor/bento.env /etc/airmonitor/levoit.env}"
 POLICY_SRC="${POLICY_SRC:-config/filament-policy.yaml}"
 POLICY_DST="${POLICY_DST:-/etc/airmonitor/filament-policy.yaml}"
 HARDWARE_SRC="${HARDWARE_SRC:-config/hardware.yaml.example}"
@@ -43,7 +44,9 @@ command -v systemctl >/dev/null || fail "systemctl is not available"
 [[ -f "$REPO_DIR/$POLICY_SRC" ]] || fail "missing filament policy: $REPO_DIR/$POLICY_SRC"
 [[ -f "$REPO_DIR/$HARDWARE_SRC" ]] || fail "missing hardware registry template: $REPO_DIR/$HARDWARE_SRC"
 [[ -x "$PIP_BIN" ]] || fail "missing virtualenv pip: $PIP_BIN"
-[[ -f "$ENV_FILE" ]] || fail "missing env file: $ENV_FILE"
+for env_file in $REQUIRED_ENV_FILES; do
+  [[ -f "$env_file" ]] || fail "missing env file: $env_file"
+done
 id "$SERVICE_USER" >/dev/null 2>&1 || fail "missing service user: $SERVICE_USER"
 for service in $SERVICE_LIST; do
   [[ -f "$REPO_DIR/$UNIT_DIR/$service" ]] || fail "missing systemd unit: $REPO_DIR/$UNIT_DIR/$service"

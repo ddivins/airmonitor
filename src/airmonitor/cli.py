@@ -273,11 +273,11 @@ def update(args: argparse.Namespace) -> int:
 
 def preserved_env_files() -> tuple[str, ...]:
     return (
-        "/etc/airmonitor.env",
-        "/etc/airmonitor-sps30.env",
-        "/etc/bambu-bento.env",
-        "/etc/levoit-filter.env",
-        "/etc/printer-mqtt-service.env",
+        "/etc/airmonitor/airmonitor.env",
+        "/etc/airmonitor/sps30.env",
+        "/etc/airmonitor/bento.env",
+        "/etc/airmonitor/levoit.env",
+        "/etc/airmonitor/printer-mqtt.env",
     )
 
 
@@ -492,9 +492,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     subparsers.add_parser("update", help="show the AirMonitor update plan")
 
-    subparsers.add_parser("printer-mqtt-service", help="run the Bambu printer MQTT normalization service")
-    subparsers.add_parser("bambu-bento", help="run the Bento filter service")
-    levoit_parser = subparsers.add_parser("levoit-filter", help="run Levoit filter service commands")
+    subparsers.add_parser("printer-mqtt", help="run the Bambu printer MQTT normalization service")
+    subparsers.add_parser("bento-service", help="run the Bento filter service")
+    levoit_parser = subparsers.add_parser("levoit-service", help="run Levoit filter service commands")
     levoit_parser.add_argument("levoit_args", nargs=argparse.REMAINDER)
 
     log_parser = subparsers.add_parser("log", help="continuously log SGX samples to SQLite")
@@ -538,11 +538,11 @@ def main(argv: list[str] | None = None) -> int:
         return install(args)
     if args.command == "update":
         return update(args)
-    if args.command == "printer-mqtt-service":
+    if args.command == "printer-mqtt":
         return run_printer_mqtt_service()
-    if args.command == "bambu-bento":
+    if args.command == "bento-service":
         return run_bento_service()
-    if args.command == "levoit-filter":
+    if args.command == "levoit-service":
         return run_levoit_service(args.levoit_args or None)
     if args.command == "log":
         return log_samples(args)

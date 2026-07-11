@@ -19,9 +19,9 @@ import paho.mqtt.client as mqtt
 from pyvesync import VeSync
 
 
-APP_NAME = "levoit-filter"
+APP_NAME = "airmonitor-levoit"
 APP_VERSION = "0.1.1"
-DEFAULT_ENV_FILE = "/etc/levoit-filter.env"
+DEFAULT_ENV_FILE = "/etc/airmonitor/levoit.env"
 LOG = logging.getLogger(APP_NAME)
 
 running = True
@@ -396,7 +396,7 @@ def manual(command: str) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="levoit-filter")
+    parser = argparse.ArgumentParser(prog="airmonitor-levoit")
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("run", help="run the purifier automation service")
     subparsers.add_parser("discover", help="list VeSync devices")

@@ -70,11 +70,11 @@ airmonitor-levoit.service          VeSync/Levoit room purifier control
 Keep local environment files outside the repo and preserve them across updates:
 
 ```text
-/etc/airmonitor.env
-/etc/airmonitor-sps30.env
-/etc/bambu-bento.env
-/etc/levoit-filter.env
-/etc/printer-mqtt-service.env
+/etc/airmonitor/airmonitor.env
+/etc/airmonitor/sps30.env
+/etc/airmonitor/printer-mqtt.env
+/etc/airmonitor/bento.env
+/etc/airmonitor/levoit.env
 ```
 
 ```text
