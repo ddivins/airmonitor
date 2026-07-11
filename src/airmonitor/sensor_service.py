@@ -1,13 +1,19 @@
-"""Systemd-friendly sensor logger entry point with hardware resolution."""
+"""Systemd-friendly sensor logger with hardware resolution and hot-plug recovery."""
 
 from __future__ import annotations
 
 import os
 from pathlib import Path
+import signal
+import subprocess
 import sys
+import time
 
-from airmonitor.cli import main as cli_main
 from airmonitor.hardware import DEFAULT_HARDWARE_ID, DEFAULT_REGISTRY, resolve_device
+
+
+DEFAULT_RETRY_SECONDS = 5.0
+DEFAULT_DEVICE_POLL_SECONDS = 1.0
 
 
 def _env(name: str, default: str = "") -> str:
@@ -19,6 +25,13 @@ def _bool_env(name: str, default: bool) -> bool:
     return value not in {"0", "false", "no", "off"}
 
 
+def _float_env(name: str, default: float) -> float:
+    try:
+        return float(_env(name, str(default)))
+    except ValueError:
+        return default
+
+
 def resolve_configured_port() -> str:
     configured = _env("AIRMONITOR_PORT", "auto").strip()
     if configured and configured.lower() != "auto":
@@ -28,8 +41,7 @@ def resolve_configured_port() -> str:
     return resolve_device(hardware_id, registry_path=registry)
 
 
-def build_log_argv() -> list[str]:
-    port = resolve_configured_port()
+def build_log_argv(port: str) -> list[str]:
     argv = [
         "log",
         "--port", port,
@@ -59,14 +71,66 @@ def build_log_argv() -> list[str]:
     return argv
 
 
-def main() -> int:
+def _airmonitor_executable() -> str:
+    candidate = Path(sys.executable).with_name("airmonitor")
+    return str(candidate) if candidate.exists() else "airmonitor"
+
+
+def _stop_child(child: subprocess.Popen[bytes]) -> None:
+    if child.poll() is not None:
+        return
     try:
-        argv = build_log_argv()
-    except Exception as exc:
-        print(f"Unable to resolve AirMonitor sensor hardware: {exc}", file=sys.stderr)
-        return 1
-    print(f"Resolved AirMonitor sensor port: {argv[argv.index('--port') + 1]}", flush=True)
-    return cli_main(argv)
+        os.killpg(child.pid, signal.SIGINT)
+        child.wait(timeout=10)
+    except (ProcessLookupError, subprocess.TimeoutExpired):
+        child.terminate()
+        try:
+            child.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            child.kill()
+            child.wait(timeout=5)
+
+
+def run_forever() -> int:
+    retry_seconds = _float_env("AIRMONITOR_HARDWARE_RETRY_SECONDS", DEFAULT_RETRY_SECONDS)
+    poll_seconds = _float_env("AIRMONITOR_DEVICE_POLL_SECONDS", DEFAULT_DEVICE_POLL_SECONDS)
+
+    while True:
+        try:
+            port = resolve_configured_port()
+        except Exception as exc:
+            print(f"Sensor hardware not available yet: {exc}; retrying in {retry_seconds:g}s", file=sys.stderr, flush=True)
+            time.sleep(retry_seconds)
+            continue
+
+        if not Path(port).exists():
+            print(f"Sensor device not present yet: {port}; retrying in {retry_seconds:g}s", file=sys.stderr, flush=True)
+            time.sleep(retry_seconds)
+            continue
+
+        argv = [_airmonitor_executable(), *build_log_argv(port)]
+        print(f"Resolved AirMonitor sensor port: {port}", flush=True)
+        child = subprocess.Popen(argv, start_new_session=True)
+
+        try:
+            while child.poll() is None:
+                if not Path(port).exists():
+                    print(f"Sensor device removed: {port}; stopping logger and waiting for reconnection", file=sys.stderr, flush=True)
+                    _stop_child(child)
+                    break
+                time.sleep(poll_seconds)
+        except KeyboardInterrupt:
+            _stop_child(child)
+            return 0
+
+        rc = child.poll()
+        if rc not in (None, 0):
+            print(f"Sensor logger exited with status {rc}; retrying in {retry_seconds:g}s", file=sys.stderr, flush=True)
+        time.sleep(retry_seconds)
+
+
+def main() -> int:
+    return run_forever()
 
 
 if __name__ == "__main__":
