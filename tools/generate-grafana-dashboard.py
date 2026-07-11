@@ -18,18 +18,24 @@ SQL = {
         SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time,
                gas_ppm AS voc_ppm
         FROM sgx_voc_samples
+        WHERE CAST(strftime('%s', sampled_at) AS INTEGER) >= $__from / 1000
+          AND CAST(strftime('%s', sampled_at) AS INTEGER) < $__to / 1000
         ORDER BY sampled_at
     """,
     "temperature": """
         SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time,
                temperature_c
         FROM sgx_voc_samples
+        WHERE CAST(strftime('%s', sampled_at) AS INTEGER) >= $__from / 1000
+          AND CAST(strftime('%s', sampled_at) AS INTEGER) < $__to / 1000
         ORDER BY sampled_at
     """,
     "humidity": """
         SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time,
                humidity_rh
         FROM sgx_voc_samples
+        WHERE CAST(strftime('%s', sampled_at) AS INTEGER) >= $__from / 1000
+          AND CAST(strftime('%s', sampled_at) AS INTEGER) < $__to / 1000
         ORDER BY sampled_at
     """,
     "temperature_humidity": """
@@ -37,7 +43,67 @@ SQL = {
                temperature_c,
                humidity_rh
         FROM sgx_voc_samples
+        WHERE CAST(strftime('%s', sampled_at) AS INTEGER) >= $__from / 1000
+          AND CAST(strftime('%s', sampled_at) AS INTEGER) < $__to / 1000
         ORDER BY sampled_at
+    """,
+    "sps30_mass": """
+        SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time,
+               mass_pm1_0,
+               mass_pm2_5,
+               mass_pm4_0,
+               mass_pm10
+        FROM sps30_samples
+        WHERE CAST(strftime('%s', sampled_at) AS INTEGER) >= $__from / 1000
+          AND CAST(strftime('%s', sampled_at) AS INTEGER) < $__to / 1000
+        ORDER BY sampled_at
+    """,
+    "sps30_counts": """
+        SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time,
+               number_pm0_5,
+               number_pm1_0,
+               number_pm2_5,
+               number_pm4_0,
+               number_pm10
+        FROM sps30_samples
+        WHERE CAST(strftime('%s', sampled_at) AS INTEGER) >= $__from / 1000
+          AND CAST(strftime('%s', sampled_at) AS INTEGER) < $__to / 1000
+        ORDER BY sampled_at
+    """,
+    "sps30_particle_size": """
+        SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time,
+               typical_particle_size
+        FROM sps30_samples
+        WHERE CAST(strftime('%s', sampled_at) AS INTEGER) >= $__from / 1000
+          AND CAST(strftime('%s', sampled_at) AS INTEGER) < $__to / 1000
+        ORDER BY sampled_at
+    """,
+    "latest_sps30_sample": """
+        SELECT sampled_at,
+               printf('%.2f', mass_pm1_0) AS pm1_0_ug_m3,
+               printf('%.2f', mass_pm2_5) AS pm2_5_ug_m3,
+               printf('%.2f', mass_pm4_0) AS pm4_0_ug_m3,
+               printf('%.2f', mass_pm10) AS pm10_ug_m3,
+               printf('%.3f', typical_particle_size) AS typical_size_um
+        FROM sps30_samples
+        ORDER BY id DESC
+        LIMIT 1
+    """,
+    "latest_sps30_samples": """
+        SELECT sampled_at,
+               mass_pm1_0,
+               mass_pm2_5,
+               mass_pm4_0,
+               mass_pm10,
+               number_pm0_5,
+               number_pm1_0,
+               number_pm2_5,
+               number_pm4_0,
+               number_pm10,
+               typical_particle_size
+        FROM sps30_samples
+        ORDER BY id DESC
+        LIMIT 20
     """,
     "latest_sample": """
         SELECT sampled_at,
@@ -93,6 +159,10 @@ SQL = {
 
 def compact_sql(sql: str) -> str:
     return " ".join(line.strip() for line in sql.strip().splitlines())
+
+
+def validation_sql(sql: str) -> str:
+    return compact_sql(sql).replace("$__from / 1000", "0").replace("$__to / 1000", "9999999999")
 
 
 def target(sql_key: str, ref_id: str = "A", query_type: str = "table") -> dict[str, Any]:
@@ -221,14 +291,17 @@ def timeseries(
 
 def build() -> dict[str, Any]:
     panels = [
-        timeseries(1, "VOC History", 0, 0, 24, 8, "voc", "ppm", 5),
-        timeseries(2, "Temperature", 0, 8, 12, 8, "temperature", "celsius"),
-        timeseries(3, "Humidity", 12, 8, 12, 8, "humidity", "humidity"),
-        timeseries(4, "Temperature / Humidity", 0, 16, 24, 8, "temperature_humidity"),
-        table(5, "Latest Sample", 0, 24, 24, 4, "latest_sample"),
-        table(6, "Filter Control", 0, 28, 24, 5, "filters"),
-        table(7, "Recent Prints", 0, 33, 24, 7, "recent_prints"),
-        table(8, "Latest Samples", 0, 40, 24, 7, "latest_samples"),
+        timeseries(1, "SPS30 PM Mass", 0, 0, 24, 8, "sps30_mass", "ug/m3"),
+        timeseries(2, "VOC History", 0, 8, 12, 8, "voc", "ppm", 5),
+        timeseries(3, "Temperature / Humidity", 12, 8, 12, 8, "temperature_humidity"),
+        timeseries(4, "SPS30 Particle Count", 0, 16, 24, 8, "sps30_counts", "#/cm3"),
+        timeseries(5, "SPS30 Typical Particle Size", 0, 24, 24, 6, "sps30_particle_size", "um"),
+        table(6, "Latest SPS30 Sample", 0, 30, 24, 4, "latest_sps30_sample"),
+        table(7, "Latest SGX Sample", 0, 34, 24, 4, "latest_sample"),
+        table(8, "Filter Control", 0, 38, 24, 5, "filters"),
+        table(9, "Recent Prints", 0, 43, 24, 7, "recent_prints"),
+        table(10, "Latest SPS30 Samples", 0, 50, 24, 7, "latest_sps30_samples"),
+        table(11, "Latest SGX Samples", 0, 57, 24, 7, "latest_samples"),
     ]
     return {
         "uid": "airmonitor-live",
@@ -254,7 +327,7 @@ def validate_sql(db_path: Path) -> None:
     conn = sqlite3.connect(db_path)
     try:
         for name, sql in SQL.items():
-            conn.execute(f"SELECT * FROM ({compact_sql(sql).rstrip(';')}) LIMIT 1").fetchall()
+            conn.execute(f"SELECT * FROM ({validation_sql(sql).rstrip(';')}) LIMIT 1").fetchall()
             print(f"ok {name}")
     finally:
         conn.close()

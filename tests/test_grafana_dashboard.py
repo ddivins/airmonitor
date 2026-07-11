@@ -58,6 +58,20 @@ class GrafanaDashboardTests(unittest.TestCase):
                     humidity_rh REAL,
                     print_id INTEGER
                 );
+                CREATE TABLE sps30_samples (
+                    id INTEGER PRIMARY KEY,
+                    sampled_at TEXT,
+                    mass_pm1_0 REAL,
+                    mass_pm2_5 REAL,
+                    mass_pm4_0 REAL,
+                    mass_pm10 REAL,
+                    number_pm0_5 REAL,
+                    number_pm1_0 REAL,
+                    number_pm2_5 REAL,
+                    number_pm4_0 REAL,
+                    number_pm10 REAL,
+                    typical_particle_size REAL
+                );
                 CREATE TABLE prints (
                     id INTEGER PRIMARY KEY,
                     started_at TEXT,
@@ -83,7 +97,7 @@ class GrafanaDashboardTests(unittest.TestCase):
                 """
             )
             for sql in self.generator.SQL.values():
-                compact = self.generator.compact_sql(sql).rstrip(";")
+                compact = self.generator.validation_sql(sql).rstrip(";")
                 conn.execute(f"SELECT * FROM ({compact}) LIMIT 1").fetchall()
         finally:
             conn.close()

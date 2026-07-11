@@ -35,7 +35,7 @@
     {
       "id": 1,
       "type": "timeseries",
-      "title": "VOC History",
+      "title": "SPS30 PM Mass",
       "datasource": {
         "type": "frser-sqlite-datasource",
         "uid": "airmonitor-sqlite"
@@ -53,8 +53,70 @@
             "type": "frser-sqlite-datasource",
             "uid": "airmonitor-sqlite"
           },
-          "queryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, gas_ppm AS voc_ppm FROM sgx_voc_samples ORDER BY sampled_at",
-          "rawQueryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, gas_ppm AS voc_ppm FROM sgx_voc_samples ORDER BY sampled_at",
+          "queryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, mass_pm1_0, mass_pm2_5, mass_pm4_0, mass_pm10 FROM sps30_samples WHERE CAST(strftime('%s', sampled_at) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', sampled_at) AS INTEGER) < $__to / 1000 ORDER BY sampled_at",
+          "rawQueryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, mass_pm1_0, mass_pm2_5, mass_pm4_0, mass_pm10 FROM sps30_samples WHERE CAST(strftime('%s', sampled_at) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', sampled_at) AS INTEGER) < $__to / 1000 ORDER BY sampled_at",
+          "queryType": "time series",
+          "timeColumns": [
+            "time"
+          ],
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "axisSoftMin": 0
+          },
+          "mappings": [],
+          "unit": "ug/m3"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "placement": "bottom",
+          "displayMode": "list",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "VOC History",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "airmonitor-sqlite"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "airmonitor-sqlite"
+          },
+          "queryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, gas_ppm AS voc_ppm FROM sgx_voc_samples WHERE CAST(strftime('%s', sampled_at) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', sampled_at) AS INTEGER) < $__to / 1000 ORDER BY sampled_at",
+          "rawQueryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, gas_ppm AS voc_ppm FROM sgx_voc_samples WHERE CAST(strftime('%s', sampled_at) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', sampled_at) AS INTEGER) < $__to / 1000 ORDER BY sampled_at",
           "queryType": "time series",
           "timeColumns": [
             "time"
@@ -96,71 +158,9 @@
       }
     },
     {
-      "id": 2,
-      "type": "timeseries",
-      "title": "Temperature",
-      "datasource": {
-        "type": "frser-sqlite-datasource",
-        "uid": "airmonitor-sqlite"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 8
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "frser-sqlite-datasource",
-            "uid": "airmonitor-sqlite"
-          },
-          "queryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, temperature_c FROM sgx_voc_samples ORDER BY sampled_at",
-          "rawQueryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, temperature_c FROM sgx_voc_samples ORDER BY sampled_at",
-          "queryType": "time series",
-          "timeColumns": [
-            "time"
-          ],
-          "format": "table"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "fillOpacity": 10,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "lineInterpolation": "smooth",
-            "axisSoftMin": 0
-          },
-          "mappings": [],
-          "unit": "celsius"
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "showLegend": true,
-          "placement": "bottom",
-          "displayMode": "list",
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      }
-    },
-    {
       "id": 3,
       "type": "timeseries",
-      "title": "Humidity",
+      "title": "Temperature / Humidity",
       "datasource": {
         "type": "frser-sqlite-datasource",
         "uid": "airmonitor-sqlite"
@@ -178,70 +178,8 @@
             "type": "frser-sqlite-datasource",
             "uid": "airmonitor-sqlite"
           },
-          "queryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, humidity_rh FROM sgx_voc_samples ORDER BY sampled_at",
-          "rawQueryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, humidity_rh FROM sgx_voc_samples ORDER BY sampled_at",
-          "queryType": "time series",
-          "timeColumns": [
-            "time"
-          ],
-          "format": "table"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "fillOpacity": 10,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "lineInterpolation": "smooth",
-            "axisSoftMin": 0
-          },
-          "mappings": [],
-          "unit": "humidity"
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "showLegend": true,
-          "placement": "bottom",
-          "displayMode": "list",
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      }
-    },
-    {
-      "id": 4,
-      "type": "timeseries",
-      "title": "Temperature / Humidity",
-      "datasource": {
-        "type": "frser-sqlite-datasource",
-        "uid": "airmonitor-sqlite"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 16
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "frser-sqlite-datasource",
-            "uid": "airmonitor-sqlite"
-          },
-          "queryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, temperature_c, humidity_rh FROM sgx_voc_samples ORDER BY sampled_at",
-          "rawQueryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, temperature_c, humidity_rh FROM sgx_voc_samples ORDER BY sampled_at",
+          "queryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, temperature_c, humidity_rh FROM sgx_voc_samples WHERE CAST(strftime('%s', sampled_at) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', sampled_at) AS INTEGER) < $__to / 1000 ORDER BY sampled_at",
+          "rawQueryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, temperature_c, humidity_rh FROM sgx_voc_samples WHERE CAST(strftime('%s', sampled_at) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', sampled_at) AS INTEGER) < $__to / 1000 ORDER BY sampled_at",
           "queryType": "time series",
           "timeColumns": [
             "time"
@@ -281,9 +219,133 @@
       }
     },
     {
+      "id": 4,
+      "type": "timeseries",
+      "title": "SPS30 Particle Count",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "airmonitor-sqlite"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "airmonitor-sqlite"
+          },
+          "queryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, number_pm0_5, number_pm1_0, number_pm2_5, number_pm4_0, number_pm10 FROM sps30_samples WHERE CAST(strftime('%s', sampled_at) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', sampled_at) AS INTEGER) < $__to / 1000 ORDER BY sampled_at",
+          "rawQueryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, number_pm0_5, number_pm1_0, number_pm2_5, number_pm4_0, number_pm10 FROM sps30_samples WHERE CAST(strftime('%s', sampled_at) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', sampled_at) AS INTEGER) < $__to / 1000 ORDER BY sampled_at",
+          "queryType": "time series",
+          "timeColumns": [
+            "time"
+          ],
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "axisSoftMin": 0
+          },
+          "mappings": [],
+          "unit": "#/cm3"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "placement": "bottom",
+          "displayMode": "list",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
       "id": 5,
+      "type": "timeseries",
+      "title": "SPS30 Typical Particle Size",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "airmonitor-sqlite"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "airmonitor-sqlite"
+          },
+          "queryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, typical_particle_size FROM sps30_samples WHERE CAST(strftime('%s', sampled_at) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', sampled_at) AS INTEGER) < $__to / 1000 ORDER BY sampled_at",
+          "rawQueryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, typical_particle_size FROM sps30_samples WHERE CAST(strftime('%s', sampled_at) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', sampled_at) AS INTEGER) < $__to / 1000 ORDER BY sampled_at",
+          "queryType": "time series",
+          "timeColumns": [
+            "time"
+          ],
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "axisSoftMin": 0
+          },
+          "mappings": [],
+          "unit": "um"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "placement": "bottom",
+          "displayMode": "list",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 6,
       "type": "table",
-      "title": "Latest Sample",
+      "title": "Latest SPS30 Sample",
       "datasource": {
         "type": "frser-sqlite-datasource",
         "uid": "airmonitor-sqlite"
@@ -292,7 +354,56 @@
         "h": 4,
         "w": 24,
         "x": 0,
-        "y": 24
+        "y": 30
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "airmonitor-sqlite"
+          },
+          "queryText": "SELECT sampled_at, printf('%.2f', mass_pm1_0) AS pm1_0_ug_m3, printf('%.2f', mass_pm2_5) AS pm2_5_ug_m3, printf('%.2f', mass_pm4_0) AS pm4_0_ug_m3, printf('%.2f', mass_pm10) AS pm10_ug_m3, printf('%.3f', typical_particle_size) AS typical_size_um FROM sps30_samples ORDER BY id DESC LIMIT 1",
+          "rawQueryText": "SELECT sampled_at, printf('%.2f', mass_pm1_0) AS pm1_0_ug_m3, printf('%.2f', mass_pm2_5) AS pm2_5_ug_m3, printf('%.2f', mass_pm4_0) AS pm4_0_ug_m3, printf('%.2f', mass_pm10) AS pm10_ug_m3, printf('%.3f', typical_particle_size) AS typical_size_um FROM sps30_samples ORDER BY id DESC LIMIT 1",
+          "queryType": "table",
+          "timeColumns": [],
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Latest SGX Sample",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "airmonitor-sqlite"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 34
       },
       "targets": [
         {
@@ -330,7 +441,7 @@
       }
     },
     {
-      "id": 6,
+      "id": 8,
       "type": "table",
       "title": "Filter Control",
       "datasource": {
@@ -341,7 +452,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 28
+        "y": 38
       },
       "targets": [
         {
@@ -379,7 +490,7 @@
       }
     },
     {
-      "id": 7,
+      "id": 9,
       "type": "table",
       "title": "Recent Prints",
       "datasource": {
@@ -390,7 +501,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 33
+        "y": 43
       },
       "targets": [
         {
@@ -428,9 +539,9 @@
       }
     },
     {
-      "id": 8,
+      "id": 10,
       "type": "table",
-      "title": "Latest Samples",
+      "title": "Latest SPS30 Samples",
       "datasource": {
         "type": "frser-sqlite-datasource",
         "uid": "airmonitor-sqlite"
@@ -439,7 +550,56 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 40
+        "y": 50
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "airmonitor-sqlite"
+          },
+          "queryText": "SELECT sampled_at, mass_pm1_0, mass_pm2_5, mass_pm4_0, mass_pm10, number_pm0_5, number_pm1_0, number_pm2_5, number_pm4_0, number_pm10, typical_particle_size FROM sps30_samples ORDER BY id DESC LIMIT 20",
+          "rawQueryText": "SELECT sampled_at, mass_pm1_0, mass_pm2_5, mass_pm4_0, mass_pm10, number_pm0_5, number_pm1_0, number_pm2_5, number_pm4_0, number_pm10, typical_particle_size FROM sps30_samples ORDER BY id DESC LIMIT 20",
+          "queryType": "table",
+          "timeColumns": [],
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "table",
+      "title": "Latest SGX Samples",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "airmonitor-sqlite"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 57
       },
       "targets": [
         {
