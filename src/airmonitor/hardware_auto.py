@@ -76,6 +76,11 @@ def _run(command: list[str], *, check: bool = True) -> subprocess.CompletedProce
     return subprocess.run(command, check=check, text=True, capture_output=True)
 
 
+def _service_active(service: str) -> bool:
+    proc = _run(["systemctl", "is-active", "--quiet", service], check=False)
+    return proc.returncode == 0
+
+
 def probe_device(device: str, *, timeout: float = 2.0) -> None:
     executable = str(Path(sys.executable).with_name("airmonitor"))
     if not Path(executable).exists():
@@ -147,45 +152,59 @@ def enroll(args: argparse.Namespace) -> int:
         device=args.device,
     )
 
-    if args.probe:
-        probe_device(device.device, timeout=args.probe_timeout)
+    service_was_active = False
+    service_stopped_for_probe = False
 
-    registry = load_registry(args.registry)
-    if args.hardware_id in registry["devices"] and not args.force:
-        raise RuntimeError(f"hardware id already exists: {args.hardware_id}; use --force to replace it")
-    entry = registry_entry(device, driver=args.driver, transport=args.transport)
-    registry["devices"][args.hardware_id] = entry
-    save_registry(registry, args.registry)
+    try:
+        if args.probe and args.manage_service:
+            service_was_active = _service_active(args.service)
+            if service_was_active:
+                _run(["systemctl", "stop", args.service])
+                service_stopped_for_probe = True
 
-    if args.configure_service:
-        update_env_file(
-            args.env_file,
-            hardware_id=args.hardware_id,
-            registry=args.registry,
-            transport=args.transport,
-            sensor_serial=device.serial,
-        )
+        if args.probe:
+            probe_device(device.device, timeout=args.probe_timeout)
 
-    if args.restart_service:
-        _run(["systemctl", "restart", args.service])
+        registry = load_registry(args.registry)
+        if args.hardware_id in registry["devices"] and not args.force:
+            raise RuntimeError(f"hardware id already exists: {args.hardware_id}; use --force to replace it")
+        entry = registry_entry(device, driver=args.driver, transport=args.transport)
+        registry["devices"][args.hardware_id] = entry
+        save_registry(registry, args.registry)
 
-    doctor_result: int | None = None
-    if args.doctor:
-        doctor = str(Path(sys.executable).with_name("airmonitor-doctor"))
-        if not Path(doctor).exists():
-            doctor = "airmonitor-doctor"
-        proc = subprocess.run([doctor], check=False)
-        doctor_result = proc.returncode
+        if args.configure_service:
+            update_env_file(
+                args.env_file,
+                hardware_id=args.hardware_id,
+                registry=args.registry,
+                transport=args.transport,
+                sensor_serial=device.serial,
+            )
 
-    print(json.dumps({
-        "hardware_id": args.hardware_id,
-        "device": device.as_dict(),
-        "registry_entry": entry,
-        "env_file": args.env_file if args.configure_service else None,
-        "service_restarted": args.restart_service,
-        "doctor_exit_code": doctor_result,
-    }, indent=2, sort_keys=True))
-    return 0 if doctor_result in (None, 0) else doctor_result
+        if args.restart_service:
+            _run(["systemctl", "restart", args.service])
+            service_stopped_for_probe = False
+
+        doctor_result: int | None = None
+        if args.doctor:
+            doctor = str(Path(sys.executable).with_name("airmonitor-doctor"))
+            if not Path(doctor).exists():
+                doctor = "airmonitor-doctor"
+            proc = subprocess.run([doctor], check=False)
+            doctor_result = proc.returncode
+
+        print(json.dumps({
+            "hardware_id": args.hardware_id,
+            "device": device.as_dict(),
+            "registry_entry": entry,
+            "env_file": args.env_file if args.configure_service else None,
+            "service_restarted": args.restart_service,
+            "doctor_exit_code": doctor_result,
+        }, indent=2, sort_keys=True))
+        return 0 if doctor_result in (None, 0) else doctor_result
+    finally:
+        if service_stopped_for_probe and service_was_active:
+            _run(["systemctl", "start", args.service], check=False)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -205,6 +224,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--usb-serial", help="specific USB EEPROM serial; strongly recommended when several adapters exist")
     parser.add_argument("--probe", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--probe-timeout", type=float, default=2.0)
+    parser.add_argument("--manage-service", action=argparse.BooleanOptionalAction, default=True, help="stop the sensor service before probing so the serial port is not locked")
     parser.add_argument("--configure-service", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--restart-service", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--doctor", action=argparse.BooleanOptionalAction, default=True)
