@@ -1,0 +1,21 @@
+[Unit]
+Description=AirMonitor Sensirion SPS30 particulate logger
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=automation
+Group=automation
+EnvironmentFile=-/etc/airmonitor-sps30.env
+ExecStart=/opt/airmonitor/venv/bin/airmonitor-sps30
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/lib/airmonitor /etc/airmonitor
+
+[Install]
+WantedBy=multi-user.target
