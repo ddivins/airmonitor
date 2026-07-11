@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SERVICE_LIST="${SERVICE_LIST:-airmonitor-printer-mqtt.service airmonitor.service airmonitor-bento.service airmonitor-levoit.service}"
+SERVICE_LIST="${SERVICE_LIST:-airmonitor-printer-mqtt.service airmonitor.service airmonitor-sps30.service airmonitor-bento.service airmonitor-levoit.service}"
 APP_DIR="${APP_DIR:-/opt/airmonitor}"
 ENV_FILE="${ENV_FILE:-/etc/airmonitor.env}"
 POLICY_SRC="${POLICY_SRC:-config/filament-policy.yaml}"
@@ -18,21 +18,13 @@ INSTALL_GRAFANA="${INSTALL_GRAFANA:-auto}"
 PIP_BIN="$APP_DIR/venv/bin/pip"
 DOCTOR_BIN="$APP_DIR/venv/bin/airmonitor-doctor"
 
-log() {
-  printf '\n==> %s\n' "$*"
-}
-
-fail() {
-  printf '\nERROR: %s\n' "$*" >&2
-  exit 1
-}
-
+log() { printf '\n==> %s\n' "$*"; }
+fail() { printf '\nERROR: %s\n' "$*" >&2; exit 1; }
 show_failure_logs() {
   local service="$1"
   printf '\n==> %s failed to start cleanly; recent journal follows\n' "$service" >&2
   sudo journalctl -u "$service" -n 60 --no-pager >&2 || true
 }
-
 trap 'rc=$?; if [[ $rc -ne 0 ]]; then printf "\nUpdate failed with exit code %s\n" "$rc" >&2; printf "Rollback with: cd %s && bash tools/rollback.sh\n" "$REPO_DIR" >&2; fi' EXIT
 
 log "Validating environment"
@@ -45,16 +37,12 @@ command -v systemctl >/dev/null || fail "systemctl is not available"
 [[ -x "$PIP_BIN" ]] || fail "missing virtualenv pip: $PIP_BIN"
 [[ -f "$ENV_FILE" ]] || fail "missing env file: $ENV_FILE"
 id "$SERVICE_USER" >/dev/null 2>&1 || fail "missing service user: $SERVICE_USER"
-for service in $SERVICE_LIST; do
-  [[ -f "$REPO_DIR/$UNIT_DIR/$service" ]] || fail "missing systemd unit: $REPO_DIR/$UNIT_DIR/$service"
-done
+for service in $SERVICE_LIST; do [[ -f "$REPO_DIR/$UNIT_DIR/$service" ]] || fail "missing systemd unit: $REPO_DIR/$UNIT_DIR/$service"; done
 
 cd "$REPO_DIR"
-
 PREVIOUS_COMMIT="$(git rev-parse HEAD)"
 PREVIOUS_VERSION="$($APP_DIR/venv/bin/python -c 'import importlib.metadata; print(importlib.metadata.version("airmonitor"))' 2>/dev/null || echo unknown)"
 UPDATE_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-
 log "Recording rollback state"
 sudo install -d -o root -g root -m 0755 "$STATE_DIR"
 printf '%s\n' "$PREVIOUS_COMMIT" | sudo tee "$STATE_DIR/previous-commit" >/dev/null
@@ -65,10 +53,8 @@ log "Updating repository: $REPO_DIR"
 git pull --ff-only
 NEW_COMMIT="$(git rev-parse HEAD)"
 printf '%s\n' "$NEW_COMMIT" | sudo tee "$STATE_DIR/target-commit" >/dev/null
-
 log "Installing package into $APP_DIR/venv"
 sudo "$PIP_BIN" install --upgrade .
-
 log "Ensuring data directory exists"
 sudo install -d -o "$SERVICE_USER" -g "$SERVICE_GROUP" -m 0755 "$DATA_DIR"
 
@@ -82,9 +68,7 @@ else
     sudo mv "$POLICY_DST" "$POLICY_DST.bak.$(date +%Y%m%d-%H%M%S)"
     sudo mv "$POLICY_DST.new" "$POLICY_DST"
     echo "Updated $POLICY_DST and saved previous copy as .bak timestamp"
-  else
-    sudo rm "$POLICY_DST.new"
-  fi
+  else sudo rm "$POLICY_DST.new"; fi
 fi
 
 log "Ensuring hardware registry exists"
@@ -92,51 +76,27 @@ sudo install -d -o root -g root -m 0755 "$(dirname "$HARDWARE_DST")"
 if [[ ! -f "$HARDWARE_DST" ]]; then
   sudo install -o root -g root -m 0644 "$HARDWARE_SRC" "$HARDWARE_DST"
   echo "Installed initial hardware registry: $HARDWARE_DST"
-else
-  echo "Preserving existing hardware registry: $HARDWARE_DST"
-fi
+else echo "Preserving existing hardware registry: $HARDWARE_DST"; fi
 
 log "Installing systemd units"
-for service in $SERVICE_LIST; do
-  sudo install -o root -g root -m 0644 "$UNIT_DIR/$service" "/etc/systemd/system/$service"
-done
+for service in $SERVICE_LIST; do sudo install -o root -g root -m 0644 "$UNIT_DIR/$service" "/etc/systemd/system/$service"; done
 sudo systemctl daemon-reload
-
 if [[ "$INSTALL_GRAFANA" == "1" ]] || { [[ "$INSTALL_GRAFANA" == "auto" ]] && command -v grafana >/dev/null && systemctl list-unit-files grafana-server.service >/dev/null 2>&1; }; then
   log "Installing Grafana datasource and dashboards"
   bash tools/install-grafana.sh
 fi
-
 log "Restarting services"
-for service in $SERVICE_LIST; do
-  sudo systemctl restart "$service"
-done
-
+for service in $SERVICE_LIST; do sudo systemctl restart "$service"; done
 log "Waiting for service health"
 sleep 2
-for service in $SERVICE_LIST; do
-  if ! systemctl is-active --quiet "$service"; then
-    show_failure_logs "$service"
-    exit 1
-  fi
-done
-
+for service in $SERVICE_LIST; do if ! systemctl is-active --quiet "$service"; then show_failure_logs "$service"; exit 1; fi; done
 log "Service status"
 systemctl --no-pager --full status $SERVICE_LIST
-
 log "Recent journal"
-for service in $SERVICE_LIST; do
-  sudo journalctl -u "$service" -n 20 --no-pager
-done
-
-if [[ -x "$DOCTOR_BIN" ]]; then
-  log "Running AirMonitor health check"
-  sudo "$DOCTOR_BIN"
-fi
-
+for service in $SERVICE_LIST; do sudo journalctl -u "$service" -n 20 --no-pager; done
+if [[ -x "$DOCTOR_BIN" ]]; then log "Running AirMonitor health check"; sudo "$DOCTOR_BIN"; fi
 printf '%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" | sudo tee "$STATE_DIR/last-update-succeeded" >/dev/null
 printf '%s\n' "$NEW_COMMIT" | sudo tee "$STATE_DIR/installed-commit" >/dev/null
-
 log "Update complete"
 printf 'Previous commit: %s\n' "$PREVIOUS_COMMIT"
 printf 'Installed commit: %s\n' "$NEW_COMMIT"
