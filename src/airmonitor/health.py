@@ -28,7 +28,7 @@ DEFAULT_GRAFANA_PORT = 3000
 DEFAULT_MQTT_HOST = "127.0.0.1"
 DEFAULT_MQTT_PORT = 1883
 ENV_FILES = (
-    "/etc/airmonitor/airmonitor.env",
+    "/etc/airmonitor/sgx-voc.env",
     "/etc/airmonitor/sps30.env",
     "/etc/airmonitor/printer-mqtt.env",
     "/etc/airmonitor/bento.env",

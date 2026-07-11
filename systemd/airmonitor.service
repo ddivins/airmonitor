@@ -7,7 +7,7 @@ Wants=network-online.target
 Type=simple
 User=automation
 Group=automation
-EnvironmentFile=/etc/airmonitor/airmonitor.env
+EnvironmentFile=/etc/airmonitor/sgx-voc.env
 ExecStart=/opt/airmonitor/venv/bin/airmonitor-sensor-service
 Restart=always
 RestartSec=10
@@ -15,7 +15,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=full
 ProtectHome=true
-ReadOnlyPaths=/etc/airmonitor/airmonitor.env
+ReadOnlyPaths=/etc/airmonitor/sgx-voc.env
 ReadWritePaths=/var/lib/airmonitor /etc/airmonitor
 
 [Install]

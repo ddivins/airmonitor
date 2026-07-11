@@ -273,7 +273,7 @@ def update(args: argparse.Namespace) -> int:
 
 def preserved_env_files() -> tuple[str, ...]:
     return (
-        "/etc/airmonitor/airmonitor.env",
+        "/etc/airmonitor/sgx-voc.env",
         "/etc/airmonitor/sps30.env",
         "/etc/airmonitor/bento.env",
         "/etc/airmonitor/levoit.env",

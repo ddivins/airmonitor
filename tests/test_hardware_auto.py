@@ -53,7 +53,7 @@ def test_registry_entry_uses_explicit_path_without_identity() -> None:
 
 
 def test_update_env_file_replaces_and_adds_values(tmp_path: Path) -> None:
-    env_file = tmp_path / "airmonitor.env"
+    env_file = tmp_path / "sgx-voc.env"
     env_file.write_text("AIRMONITOR_PORT=/dev/serial0\nAIRMONITOR_SENSOR_TRANSPORT=gpio-uart\nOTHER=value\n")
     update_env_file(
         env_file,

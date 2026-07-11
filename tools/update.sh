@@ -3,8 +3,8 @@ set -euo pipefail
 
 SERVICE_LIST="${SERVICE_LIST:-airmonitor-printer-mqtt.service airmonitor.service airmonitor-sps30.service airmonitor-bento.service airmonitor-levoit.service}"
 APP_DIR="${APP_DIR:-/opt/airmonitor}"
-ENV_FILE="${ENV_FILE:-/etc/airmonitor/airmonitor.env}"
-REQUIRED_ENV_FILES="${REQUIRED_ENV_FILES:-/etc/airmonitor/airmonitor.env /etc/airmonitor/printer-mqtt.env /etc/airmonitor/bento.env /etc/airmonitor/levoit.env}"
+ENV_FILE="${ENV_FILE:-/etc/airmonitor/sgx-voc.env}"
+REQUIRED_ENV_FILES="${REQUIRED_ENV_FILES:-/etc/airmonitor/sgx-voc.env /etc/airmonitor/sps30.env /etc/airmonitor/printer-mqtt.env /etc/airmonitor/bento.env /etc/airmonitor/levoit.env}"
 POLICY_SRC="${POLICY_SRC:-config/filament-policy.yaml}"
 POLICY_DST="${POLICY_DST:-/etc/airmonitor/filament-policy.yaml}"
 HARDWARE_SRC="${HARDWARE_SRC:-config/hardware.yaml.example}"
