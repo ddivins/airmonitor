@@ -11,7 +11,7 @@ This roadmap is ordered by dependency and operational value. Items near the top 
 - [x] Add appliance health checks and CI.
 - [x] Add USB identity discovery, manual serial registration, and hot-plug recovery.
 - [x] Add one-command hardware enrollment.
-- [ ] Add an appliance inventory command that reports package version, registered hardware, resolved serial paths, service state, MQTT/Grafana reachability, and database status.
+- [x] Add an appliance inventory command that reports package version, registered hardware, resolved serial paths, service state, MQTT/Grafana reachability, and database status.
 - [ ] Make `tools/update.sh` run the full doctor and fail clearly if required checks fail.
 - [ ] Add rollback guidance and retain the previously installed wheel/version during updates.
 
@@ -73,8 +73,8 @@ This roadmap is ordered by dependency and operational value. Items near the top 
 
 ## Current next actions
 
-1. Finish the inventory command and integrate it into tests/documentation.
+1. Make `tools/update.sh` run the full doctor and fail clearly if required checks fail.
 2. Complete SPS30 protocol support and sample persistence.
 3. Add SPS30 hot-plug service and Grafana panels.
 4. Finish persisted filter override integration.
-5. Convert the updater into a doctor-verified, rollback-capable lifecycle command.
+5. Convert the updater into a rollback-capable lifecycle command.
