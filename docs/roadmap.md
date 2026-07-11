@@ -4,7 +4,6 @@ This roadmap is ordered by dependency and operational value. Items near the top 
 
 ## Phase 1 — Stabilize the appliance foundation
 
-- [x] Consolidate legacy repositories into `ddivins/airmonitor`.
 - [x] Preserve separate systemd services inside one package.
 - [x] Add generated Grafana provisioning.
 - [x] Add SQLite schema management and repositories.
@@ -17,11 +16,11 @@ This roadmap is ordered by dependency and operational value. Items near the top 
 
 ## Phase 2 — Complete the sensor platform
 
-- [ ] Implement the Sensirion SPS30 driver under `airmonitor.sensors.sensirion.sps30`.
-- [ ] Support SPS30 USB-UART discovery and manual UART registration through the hardware registry.
-- [ ] Add particulate sample tables and repository methods for PM1.0, PM2.5, PM4, PM10, particle counts, and typical particle size.
-- [ ] Add an SPS30 service entry point with hot-plug behavior equivalent to the SGX service.
-- [ ] Add SPS30 panels and combined environmental dashboards in Grafana.
+- [x] Implement the Sensirion SPS30 driver under `airmonitor.sensors.sensirion.sps30`.
+- [x] Support SPS30 USB-UART discovery and manual UART registration through the hardware registry.
+- [x] Add particulate sample tables and repository methods for PM1.0, PM2.5, PM4, PM10, particle counts, and typical particle size.
+- [x] Add an SPS30 service entry point with hot-plug behavior equivalent to the SGX service.
+- [x] Add SPS30 panels and combined environmental dashboards in Grafana.
 - [ ] Add sensor freshness and last-good-reading checks to `airmonitor-doctor`.
 - [ ] Add simulator/fake serial fixtures so sensor behavior is testable without physical hardware.
 
@@ -59,7 +58,7 @@ This roadmap is ordered by dependency and operational value. Items near the top 
 - [ ] Add end-to-end tests covering MQTT printer state through policy, filter decisions, database writes, and Grafana query generation.
 - [ ] Add database backup/restore commands and documented retention policy.
 - [ ] Add release tags, changelog generation, and installed Git commit reporting.
-- [ ] Add automatic rollback when install, migration, service startup, or doctor fails.
+- [ ] Add automatic rollback when install, update, service startup, or doctor fails.
 - [ ] Add documented recovery from a damaged SQLite database or missing configuration.
 - [ ] Define and test the v1.0 supported hardware and upgrade path.
 
@@ -73,8 +72,8 @@ This roadmap is ordered by dependency and operational value. Items near the top 
 
 ## Current next actions
 
-1. Complete SPS30 protocol support and sample persistence.
-2. Add SPS30 hot-plug service and Grafana panels.
-3. Finish persisted filter override integration.
-4. Add automatic rollback on failed update health checks.
-5. Add main-CLI aliases for inventory and hardware management.
+1. Add sensor freshness and last-good-reading checks to `airmonitor-doctor`.
+2. Finish persisted filter override integration.
+3. Add automatic rollback on failed update health checks.
+4. Add main-CLI aliases for inventory and hardware management.
+5. Add service log collection for support bundles with secrets redacted.

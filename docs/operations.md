@@ -73,12 +73,3 @@ Manual `on` or `off` overrides automation until the filter is returned to `auto`
 ## Branch and release workflow
 
 Development branches should be merged through a pull request after CI passes. The installed appliance should normally track `main`, not an `agent/*` branch.
-
-The umbrella consolidation release is version `0.5.0`. After merge and appliance verification, create an annotated Git tag:
-
-```bash
-git switch main
-git pull --ff-only
-git tag -a v0.5.0 -m "AirMonitor umbrella consolidation"
-git push origin v0.5.0
-```

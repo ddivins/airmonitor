@@ -11,7 +11,6 @@ DS_NAME="${DS_NAME:-AirMonitor SQLite}"
 DS_UID="${DS_UID:-airmonitor-sqlite}"
 DS_TYPE="${DS_TYPE:-frser-sqlite-datasource}"
 DS_PATH="${DS_PATH:-/var/lib/airmonitor/airmonitor.sqlite3}"
-LEGACY_DS_NAME="${LEGACY_DS_NAME:-frser-sqlite-datasource}"
 
 log() {
   printf '\n==> %s\n' "$*"
@@ -71,9 +70,6 @@ else
   api POST /api/datasources "$tmp_ds" >/dev/null
 fi
 rm -f "$tmp_ds"
-
-log "Removing legacy datasource if present: $LEGACY_DS_NAME"
-api DELETE "/api/datasources/name/$LEGACY_DS_NAME" >/dev/null 2>&1 || true
 
 log "Ensuring dashboard folder: $DASHBOARD_FOLDER"
 tmp_folder="$(mktemp)"

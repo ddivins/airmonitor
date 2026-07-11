@@ -14,7 +14,7 @@ class BentoFilter:
 
     The long-running Kasa/MQTT controller lives in
     :mod:`airmonitor.filters.bento.service`; this lightweight object gives the
-    umbrella app a stable plugin surface for discovery and tests.
+    AirMonitor a stable plugin surface for discovery and tests.
     """
 
     info: PluginInfo = PluginInfo(name="bento", kind="filter")

@@ -12,13 +12,12 @@ The current appliance uses USB-attached sensors:
 - Sensirion `SPS30` for particulate matter mass, particle counts, and typical
   particle size
 
-The old standalone `bento-box`, `levoit-filter`, and `printer-mqtt-service`
-repositories have been consolidated here. New development, host installs, and
-dashboard changes should happen in `ddivins/airmonitor`.
+New development, host installs, and dashboard changes happen in
+`ddivins/airmonitor`.
 
 ## What Runs
 
-The umbrella install provides one Python package with separate systemd services:
+The install provides one Python package with separate systemd services:
 
 ```text
 airmonitor.service              SGX VOC / temperature / humidity logger
@@ -28,16 +27,6 @@ airmonitor-bento.service        Bento Box outlet automation
 airmonitor-levoit.service       Levoit/Core room-filter automation
 mosquitto.service               Local MQTT broker
 grafana-server.service          Grafana dashboard
-```
-
-The compatibility console scripts remain available:
-
-```text
-airmonitor
-airmonitor-sps30
-airmonitor-printer-mqtt
-bambu-bento
-levoit-filter
 ```
 
 ## Repository Layout
@@ -105,9 +94,6 @@ sps30_samples        SPS30 particulate samples
 filter_control_state persisted filter manual/automation state
 ```
 
-The legacy `air_samples` table is retained for existing installations, but new
-code writes to the normalized sensor-specific tables.
-
 ## Grafana
 
 Grafana is provisioned from this repository:
@@ -168,7 +154,7 @@ bash tools/update.sh
 ```
 
 Local secret/config files live outside the repo and should be preserved across
-reinstall:
+updates:
 
 ```text
 /etc/airmonitor.env

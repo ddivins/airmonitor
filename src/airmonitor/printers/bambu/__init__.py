@@ -1,4 +1,4 @@
-"""Bambu Lab printer integration umbrella module."""
+"""Bambu Lab printer integration module."""
 
 from __future__ import annotations
 

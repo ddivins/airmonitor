@@ -1,10 +1,10 @@
 # AirMonitor architecture
 
-AirMonitor is the umbrella application for the printer air-quality appliance.
-The active repository is `ddivins/airmonitor`; older standalone repositories
-are backup/reference sources after migration.
+AirMonitor is the application for the printer air-quality appliance. The active
+repository is `ddivins/airmonitor`.
 
-The long-term model is one repository, one Python package, one shared database, one shared configuration model, and multiple optional integrations.
+The model is one repository, one Python package, one shared database, one shared
+configuration model, and multiple optional integrations.
 
 ## Package layout
 
@@ -59,6 +59,7 @@ The code lives in one package, but services may remain separate so failures are 
 
 ```text
 airmonitor.service                 SGX logger and SQLite writer
+airmonitor-sps30.service           SPS30 logger and SQLite writer
 airmonitor-printer-mqtt.service    Bambu local MQTT normalizer
 airmonitor-bento.service           Kasa-powered Bento Box control
 airmonitor-levoit.service          VeSync/Levoit room purifier control
@@ -66,19 +67,17 @@ airmonitor-levoit.service          VeSync/Levoit room purifier control
 
 ## Configuration
 
-Keep local environment files outside the repo and preserve them across reinstall or reset operations:
+Keep local environment files outside the repo and preserve them across updates:
 
 ```text
 /etc/airmonitor.env
+/etc/airmonitor-sps30.env
 /etc/bambu-bento.env
 /etc/levoit-filter.env
 /etc/printer-mqtt-service.env
 ```
 
-Future consolidated config:
-
 ```text
-/etc/airmonitor/config.yaml
 /etc/airmonitor/filament-policy.yaml
 ```
 
@@ -106,7 +105,3 @@ Long-term dashboards:
 - Air quality history
 - Filter activity
 - Exposure and return-to-baseline analysis
-
-## Migration policy
-
-Existing standalone pieces such as `bambu-bento` and `levoit-filter` should migrate into this repository as modules. Compatibility wrappers can remain temporarily, but new work should target the umbrella package paths.

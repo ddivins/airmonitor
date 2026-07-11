@@ -264,8 +264,8 @@ def install(args: argparse.Namespace) -> int:
 
 def update(args: argparse.Namespace) -> int:
     print("AirMonitor update plan")
-    print("  pull latest umbrella repository")
-    print("  reinstall package into the configured virtualenv")
+    print("  pull latest repository")
+    print("  install package into the configured virtualenv")
     print("  preserve " + ", ".join(preserved_env_files()))
     print("  reload/restart generated systemd services")
     return 0
@@ -274,6 +274,7 @@ def update(args: argparse.Namespace) -> int:
 def preserved_env_files() -> tuple[str, ...]:
     return (
         "/etc/airmonitor.env",
+        "/etc/airmonitor-sps30.env",
         "/etc/bambu-bento.env",
         "/etc/levoit-filter.env",
         "/etc/printer-mqtt-service.env",
@@ -284,6 +285,7 @@ def service_names() -> tuple[str, ...]:
     return (
         "airmonitor-printer-mqtt.service",
         "airmonitor.service",
+        "airmonitor-sps30.service",
         "airmonitor-bento.service",
         "airmonitor-levoit.service",
     )
