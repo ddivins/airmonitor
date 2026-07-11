@@ -13,7 +13,7 @@ This roadmap is ordered by dependency and operational value. Items near the top 
 - [x] Add one-command hardware enrollment.
 - [x] Add an appliance inventory command that reports package version, registered hardware, resolved serial paths, service state, MQTT/Grafana reachability, and database status.
 - [x] Make `tools/update.sh` run the full doctor and fail clearly if required checks fail.
-- [ ] Add rollback guidance and retain the previously installed wheel/version during updates.
+- [x] Add rollback guidance and retain the previous installed commit/version during updates.
 
 ## Phase 2 — Complete the sensor platform
 
@@ -59,7 +59,7 @@ This roadmap is ordered by dependency and operational value. Items near the top 
 - [ ] Add end-to-end tests covering MQTT printer state through policy, filter decisions, database writes, and Grafana query generation.
 - [ ] Add database backup/restore commands and documented retention policy.
 - [ ] Add release tags, changelog generation, and installed Git commit reporting.
-- [ ] Add update rollback when install, migration, service startup, or doctor fails.
+- [ ] Add automatic rollback when install, migration, service startup, or doctor fails.
 - [ ] Add documented recovery from a damaged SQLite database or missing configuration.
 - [ ] Define and test the v1.0 supported hardware and upgrade path.
 
@@ -73,8 +73,8 @@ This roadmap is ordered by dependency and operational value. Items near the top 
 
 ## Current next actions
 
-1. Add rollback guidance and retain the previously installed wheel/version during updates.
-2. Complete SPS30 protocol support and sample persistence.
-3. Add SPS30 hot-plug service and Grafana panels.
-4. Finish persisted filter override integration.
-5. Convert the updater into a rollback-capable lifecycle command.
+1. Complete SPS30 protocol support and sample persistence.
+2. Add SPS30 hot-plug service and Grafana panels.
+3. Finish persisted filter override integration.
+4. Add automatic rollback on failed update health checks.
+5. Add main-CLI aliases for inventory and hardware management.
