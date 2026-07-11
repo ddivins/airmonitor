@@ -1,10 +1,12 @@
-"""Sensirion SPS30 particulate sensor placeholder."""
+"""Sensirion SPS30 particulate sensor support."""
 
-from __future__ import annotations
+from .driver import BAUD_RATE, SPS30, SPS30Error, SPS30Measurement, build_frame, parse_response
 
-
-class SPS30Sensor:
-    """Placeholder for the SPS30 integration."""
-
-    def __init__(self, *args, **kwargs):
-        raise NotImplementedError("SPS30 integration has not been migrated yet")
+__all__ = [
+    "BAUD_RATE",
+    "SPS30",
+    "SPS30Error",
+    "SPS30Measurement",
+    "build_frame",
+    "parse_response",
+]
