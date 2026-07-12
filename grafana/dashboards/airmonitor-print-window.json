@@ -129,38 +129,13 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "ppm",
-          "decimals": 2,
           "custom": {
-            "axisLabel": "ppm",
-            "axisSoftMin": 0,
             "drawStyle": "line",
             "lineWidth": 3,
             "fillOpacity": 12,
             "gradientMode": "opacity",
             "showPoints": "never",
             "lineInterpolation": "smooth"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 1
-              },
-              {
-                "color": "orange",
-                "value": 3
-              },
-              {
-                "color": "red",
-                "value": 10
-              }
-            ]
           },
           "mappings": []
         },
@@ -182,6 +157,54 @@
               {
                 "id": "custom.axisLabel",
                 "value": "Local time"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "voc_ppm"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ppm"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "ppm"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 1
+                    },
+                    {
+                      "color": "orange",
+                      "value": 3
+                    },
+                    {
+                      "color": "red",
+                      "value": 10
+                    }
+                  ]
+                }
               }
             ]
           }
@@ -347,11 +370,7 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "conμgm3",
-          "decimals": 2,
           "custom": {
-            "axisLabel": "µg/m³",
-            "axisSoftMin": 0,
             "drawStyle": "line",
             "lineWidth": 2,
             "fillOpacity": 5,
@@ -378,6 +397,102 @@
               {
                 "id": "custom.axisLabel",
                 "value": "Local time"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PM1"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "conμgm3"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "µg/m³"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PM2_5"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "conμgm3"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "µg/m³"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PM4"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "conμgm3"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "µg/m³"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PM10"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "conμgm3"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "µg/m³"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
               }
             ]
           }
