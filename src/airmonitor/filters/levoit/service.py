@@ -24,7 +24,7 @@ from airmonitor.filters.control import FilterState, resolve_filter_state
 
 
 APP_NAME = "airmonitor-levoit"
-APP_VERSION = "0.1.1"
+APP_VERSION = "0.1.2"
 FILTER_ID = "levoit"
 DEFAULT_ENV_FILE = "/etc/airmonitor/levoit.env"
 LOG = logging.getLogger(APP_NAME)
@@ -103,6 +103,7 @@ VESYNC_PASSWORD = os.environ.get("VESYNC_PASSWORD")
 VESYNC_TIME_ZONE = os.environ.get("VESYNC_TIME_ZONE", "America/New_York")
 LEVOIT_DEVICE_NAME = os.environ.get("LEVOIT_DEVICE_NAME") or None
 LEVOIT_FAN_SPEED = getenv_optional_int("LEVOIT_FAN_SPEED")
+LEVOIT_POLL_INTERVAL_SECONDS = getenv_int("LEVOIT_POLL_INTERVAL_SECONDS", 120, minimum=30)
 
 LOCAL_MQTT_HOST = os.environ.get("LOCAL_MQTT_HOST", "localhost")
 LOCAL_MQTT_PORT = getenv_int("LOCAL_MQTT_PORT", 1883, minimum=1)
@@ -189,12 +190,14 @@ def find_purifier(manager: VeSync, name: str | None) -> Any:
     raise RuntimeError(f"Multiple VeSync devices found; set LEVOIT_DEVICE_NAME. Found: {names}")
 
 
-def refresh_device(device: Any) -> Any:
+def refresh_device(device: Any) -> bool:
+    """Refresh device state once and report whether the cloud request succeeded."""
     try:
         device.update()
+        return True
     except Exception:
-        LOG.debug("Device update failed", exc_info=True)
-    return device
+        LOG.warning("VeSync device update failed", exc_info=True)
+        return False
 
 
 def is_on(device: Any) -> bool | None:
@@ -342,20 +345,25 @@ def desired_from_printer_state(state: dict[str, Any] | None, off_deadline: float
     return DesiredState(False, f"printer inactive: state={gcode_state}", None)
 
 
-def apply_desired_state(device: Any, desired: DesiredState) -> None:
+def apply_desired_state(device: Any, desired: DesiredState, current: bool | None) -> bool | None:
+    """Apply a state change using the already-refreshed device state.
+
+    No cloud refresh occurs here. The returned value reflects the requested state
+    when a command was sent and is verified on the next scheduled poll.
+    """
     global last_action_signature
     signature = (desired.should_run, desired.reason, int(desired.delay_off_until or 0))
     if signature != last_action_signature:
         LOG.info("Desired state: should_run=%s reason=%s", desired.should_run, desired.reason)
         last_action_signature = signature
 
-    current = is_on(refresh_device(device))
     if desired.should_run and current is not True:
         turn_on(device)
-    elif not desired.should_run and current is not False:
+        return True
+    if not desired.should_run and current is not False:
         turn_off(device)
-
-    record_filter_state(actual_state=filter_state_value(is_on(refresh_device(device))))
+        return False
+    return current
 
 
 def on_mqtt_connect(client, userdata, flags, reason_code, properties=None):
@@ -385,6 +393,13 @@ def build_mqtt_client() -> mqtt.Client:
     return client
 
 
+def sleep_until_next_poll(seconds: int) -> None:
+    """Sleep in short increments so systemd stop requests remain responsive."""
+    deadline = time.monotonic() + seconds
+    while running and time.monotonic() < deadline:
+        time.sleep(min(1.0, deadline - time.monotonic()))
+
+
 def run_service() -> int:
     setup_logging()
     signal.signal(signal.SIGTERM, stop_service)
@@ -393,6 +408,7 @@ def run_service() -> int:
     LOG.info("Starting %s version %s", APP_NAME, APP_VERSION)
     LOG.info("MQTT: %s:%s topic=%s", LOCAL_MQTT_HOST, LOCAL_MQTT_PORT, LOCAL_MQTT_TOPIC)
     LOG.info("Auto off delay: %ss", AUTO_OFF_DELAY_SECONDS)
+    LOG.info("VeSync poll interval: %ss", LEVOIT_POLL_INTERVAL_SECONDS)
 
     manager = login_manager()
     device = find_purifier(manager, LEVOIT_DEVICE_NAME)
@@ -421,16 +437,26 @@ def run_service() -> int:
             desired = desired_from_printer_state(state, off_deadline)
             if desired.delay_off_until is None and off_deadline is not None and not desired.should_run:
                 off_deadline = None
+
+            # Exactly one VeSync device refresh per service cycle. All decisions,
+            # database writes, and possible commands reuse this state.
+            refresh_device(device)
+            current = is_on(device)
+            actual_state = filter_state_value(current)
             automation_request = FilterState.ON.value if desired.should_run else FilterState.OFF.value
-            actual_state = filter_state_value(is_on(refresh_device(device)))
             effective_state, reason = resolve_desired_filter_state(automation_request, desired.reason, actual_state)
             desired = DesiredState(
                 should_run=effective_state == FilterState.ON.value,
                 reason=reason,
                 delay_off_until=desired.delay_off_until,
             )
-            apply_desired_state(device, desired)
-            time.sleep(5)
+            current = apply_desired_state(device, desired, current)
+            record_filter_state(
+                actual_state=filter_state_value(current),
+                effective_state=effective_state,
+                reason=reason,
+            )
+            sleep_until_next_poll(LEVOIT_POLL_INTERVAL_SECONDS)
     finally:
         client.loop_stop()
         client.disconnect()
