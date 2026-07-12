@@ -1,0 +1,430 @@
+{
+  "uid": "airmonitor-print-window",
+  "title": "AirMonitor Print Window",
+  "description": "Sensor history from 30 minutes before a selected print entered RUNNING until 30 minutes after it ended.",
+  "tags": [
+    "airmonitor",
+    "prints",
+    "environment"
+  ],
+  "timezone": "browser",
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "graphTooltip": 1,
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "10s",
+      "30s",
+      "1m",
+      "5m"
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "links": [],
+  "templating": {
+    "list": [
+      {
+        "name": "print_id",
+        "label": "Print",
+        "type": "query",
+        "datasource": {
+          "type": "frser-sqlite-datasource",
+          "uid": "airmonitor-sqlite"
+        },
+        "query": "SELECT printf('%s — %s — %s (#%d)', substr(started_at, 1, 16), COALESCE(NULLIF(subtask_name, ''), 'Unnamed print'), COALESCE(NULLIF(filament_type, ''), 'unknown filament'), id) AS __text, CAST(id AS TEXT) AS __value FROM prints WHERE started_gcode_state = 'RUNNING' OR last_gcode_state = 'RUNNING' OR ended_gcode_state IS NOT NULL ORDER BY started_at DESC LIMIT 12;",
+        "refresh": 1,
+        "sort": 0,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "selected": true,
+          "text": "Latest print",
+          "value": "26"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "table",
+      "title": "Selected Print",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "airmonitor-sqlite"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "airmonitor-sqlite"
+          },
+          "queryText": "SELECT subtask_name AS print, filament_type AS filament, started_at AS running_started, COALESCE(ended_at, last_seen_at) AS print_ended, datetime(started_at, '-30 minutes') AS chart_from, datetime(COALESCE(ended_at, last_seen_at), '+30 minutes') AS chart_to, COALESCE(ended_gcode_state, last_gcode_state) AS final_state FROM prints WHERE id = CAST('$print_id' AS INTEGER);",
+          "rawQueryText": "SELECT subtask_name AS print, filament_type AS filament, started_at AS running_started, COALESCE(ended_at, last_seen_at) AS print_ended, datetime(started_at, '-30 minutes') AS chart_from, datetime(COALESCE(ended_at, last_seen_at), '+30 minutes') AS chart_to, COALESCE(ended_gcode_state, last_gcode_state) AS final_state FROM prints WHERE id = CAST('$print_id' AS INTEGER);"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "trend",
+      "title": "VOC — 30 Minutes Before Through 30 Minutes After",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "airmonitor-sqlite"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "airmonitor-sqlite"
+          },
+          "queryText": "SELECT ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440.0, 3) AS minutes_from_print_start, s.gas_ppm AS voc_ppm FROM sgx_voc_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') ORDER BY s.sampled_at;",
+          "rawQueryText": "SELECT ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440.0, 3) AS minutes_from_print_start, s.gas_ppm AS voc_ppm FROM sgx_voc_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') ORDER BY s.sampled_at;",
+          "queryType": "table",
+          "timeColumns": [],
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ppm",
+          "decimals": 2,
+          "custom": {
+            "axisLabel": "ppm",
+            "axisSoftMin": 0,
+            "drawStyle": "line",
+            "lineWidth": 3,
+            "fillOpacity": 12,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "lineInterpolation": "smooth"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "orange",
+                "value": 3
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "placement": "bottom",
+          "displayMode": "table",
+          "calcs": [
+            "min",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "trend",
+      "title": "Temperature and Humidity",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "airmonitor-sqlite"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "airmonitor-sqlite"
+          },
+          "queryText": "SELECT ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440.0, 3) AS minutes_from_print_start, s.temperature_c, s.humidity_rh FROM sgx_voc_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') ORDER BY s.sampled_at;",
+          "rawQueryText": "SELECT ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440.0, 3) AS minutes_from_print_start, s.temperature_c, s.humidity_rh FROM sgx_voc_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') ORDER BY s.sampled_at;",
+          "queryType": "table",
+          "timeColumns": [],
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "lineInterpolation": "smooth"
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "temperature_c"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "celsius"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "°C"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "humidity_rh"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "humidity"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "%RH"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "placement": "bottom",
+          "displayMode": "table",
+          "calcs": [
+            "min",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "trend",
+      "title": "Particulate Matter",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "airmonitor-sqlite"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 23
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "airmonitor-sqlite"
+          },
+          "queryText": "SELECT ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440.0, 3) AS minutes_from_print_start, s.mass_pm1_0 AS PM1, s.mass_pm2_5 AS PM2_5, s.mass_pm4_0 AS PM4, s.mass_pm10 AS PM10 FROM sps30_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') ORDER BY s.sampled_at;",
+          "rawQueryText": "SELECT ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440.0, 3) AS minutes_from_print_start, s.mass_pm1_0 AS PM1, s.mass_pm2_5 AS PM2_5, s.mass_pm4_0 AS PM4, s.mass_pm10 AS PM10 FROM sps30_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') ORDER BY s.sampled_at;",
+          "queryType": "table",
+          "timeColumns": [],
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "conμgm3",
+          "decimals": 2,
+          "custom": {
+            "axisLabel": "µg/m³",
+            "axisSoftMin": 0,
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "lineInterpolation": "smooth"
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "placement": "bottom",
+          "displayMode": "table",
+          "calcs": [
+            "min",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "table",
+      "title": "Minimum and Maximum Across Selected Span",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "airmonitor-sqlite"
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "airmonitor-sqlite"
+          },
+          "queryText": "WITH bounds AS (SELECT datetime(started_at, '-30 minutes') AS from_at, datetime(COALESCE(ended_at, last_seen_at), '+30 minutes') AS to_at FROM prints WHERE id = CAST('$print_id' AS INTEGER)), sgx AS (SELECT * FROM sgx_voc_samples, bounds WHERE datetime(sampled_at) BETWEEN from_at AND to_at), sps AS (SELECT * FROM sps30_samples, bounds WHERE datetime(sampled_at) BETWEEN from_at AND to_at) SELECT 'VOC' AS sensor, ROUND(MIN(gas_ppm), 3) AS minimum, ROUND(MAX(gas_ppm), 3) AS maximum, 'ppm' AS unit FROM sgx UNION ALL SELECT 'Temperature', ROUND(MIN(temperature_c), 2), ROUND(MAX(temperature_c), 2), '°C' FROM sgx UNION ALL SELECT 'Humidity', ROUND(MIN(humidity_rh), 2), ROUND(MAX(humidity_rh), 2), '%RH' FROM sgx UNION ALL SELECT 'PM1.0 mass', ROUND(MIN(mass_pm1_0), 2), ROUND(MAX(mass_pm1_0), 2), 'µg/m³' FROM sps UNION ALL SELECT 'PM2.5 mass', ROUND(MIN(mass_pm2_5), 2), ROUND(MAX(mass_pm2_5), 2), 'µg/m³' FROM sps UNION ALL SELECT 'PM4.0 mass', ROUND(MIN(mass_pm4_0), 2), ROUND(MAX(mass_pm4_0), 2), 'µg/m³' FROM sps UNION ALL SELECT 'PM10 mass', ROUND(MIN(mass_pm10), 2), ROUND(MAX(mass_pm10), 2), 'µg/m³' FROM sps UNION ALL SELECT 'Typical particle size', ROUND(MIN(typical_particle_size), 3), ROUND(MAX(typical_particle_size), 3), 'µm' FROM sps;",
+          "rawQueryText": "WITH bounds AS (SELECT datetime(started_at, '-30 minutes') AS from_at, datetime(COALESCE(ended_at, last_seen_at), '+30 minutes') AS to_at FROM prints WHERE id = CAST('$print_id' AS INTEGER)), sgx AS (SELECT * FROM sgx_voc_samples, bounds WHERE datetime(sampled_at) BETWEEN from_at AND to_at), sps AS (SELECT * FROM sps30_samples, bounds WHERE datetime(sampled_at) BETWEEN from_at AND to_at) SELECT 'VOC' AS sensor, ROUND(MIN(gas_ppm), 3) AS minimum, ROUND(MAX(gas_ppm), 3) AS maximum, 'ppm' AS unit FROM sgx UNION ALL SELECT 'Temperature', ROUND(MIN(temperature_c), 2), ROUND(MAX(temperature_c), 2), '°C' FROM sgx UNION ALL SELECT 'Humidity', ROUND(MIN(humidity_rh), 2), ROUND(MAX(humidity_rh), 2), '%RH' FROM sgx UNION ALL SELECT 'PM1.0 mass', ROUND(MIN(mass_pm1_0), 2), ROUND(MAX(mass_pm1_0), 2), 'µg/m³' FROM sps UNION ALL SELECT 'PM2.5 mass', ROUND(MIN(mass_pm2_5), 2), ROUND(MAX(mass_pm2_5), 2), 'µg/m³' FROM sps UNION ALL SELECT 'PM4.0 mass', ROUND(MIN(mass_pm4_0), 2), ROUND(MAX(mass_pm4_0), 2), 'µg/m³' FROM sps UNION ALL SELECT 'PM10 mass', ROUND(MIN(mass_pm10), 2), ROUND(MAX(mass_pm10), 2), 'µg/m³' FROM sps UNION ALL SELECT 'Typical particle size', ROUND(MIN(typical_particle_size), 3), ROUND(MAX(typical_particle_size), 3), 'µm' FROM sps;"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "minimum"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "semi-dark-green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "maximum"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "semi-dark-red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "footer": {
+          "show": false
+        }
+      }
+    }
+  ]
+}
