@@ -74,8 +74,8 @@
             "type": "frser-sqlite-datasource",
             "uid": "airmonitor-sqlite"
           },
-          "queryText": "SELECT subtask_name AS print, COALESCE(NULLIF(filament_type, ''), 'Not captured') AS material, CASE WHEN length(trim(COALESCE(filament_color, ''))) >= 6 THEN '#' || upper(substr(trim(filament_color), 1, 6)) ELSE 'Not captured' END AS color, COALESCE(NULLIF(filament_vendor, ''), 'Not captured') AS brand, COALESCE(NULLIF(filament_sub_brand, ''), NULLIF(filament_profile, ''), 'Not captured') AS filament_profile, strftime('%m/%d/%Y %H:%M:%S', started_at, 'localtime') AS running_started_local, strftime('%m/%d/%Y %H:%M:%S', COALESCE(ended_at, last_seen_at), 'localtime') AS print_ended_local, strftime('%m/%d/%Y %H:%M:%S', started_at, '-30 minutes', 'localtime') AS chart_from_local, strftime('%m/%d/%Y %H:%M:%S', COALESCE(ended_at, last_seen_at), '+30 minutes', 'localtime') AS chart_to_local, COALESCE(ended_gcode_state, last_gcode_state) AS final_state FROM prints WHERE id = CAST('$print_id' AS INTEGER);",
-          "rawQueryText": "SELECT subtask_name AS print, COALESCE(NULLIF(filament_type, ''), 'Not captured') AS material, CASE WHEN length(trim(COALESCE(filament_color, ''))) >= 6 THEN '#' || upper(substr(trim(filament_color), 1, 6)) ELSE 'Not captured' END AS color, COALESCE(NULLIF(filament_vendor, ''), 'Not captured') AS brand, COALESCE(NULLIF(filament_sub_brand, ''), NULLIF(filament_profile, ''), 'Not captured') AS filament_profile, strftime('%m/%d/%Y %H:%M:%S', started_at, 'localtime') AS running_started_local, strftime('%m/%d/%Y %H:%M:%S', COALESCE(ended_at, last_seen_at), 'localtime') AS print_ended_local, strftime('%m/%d/%Y %H:%M:%S', started_at, '-30 minutes', 'localtime') AS chart_from_local, strftime('%m/%d/%Y %H:%M:%S', COALESCE(ended_at, last_seen_at), '+30 minutes', 'localtime') AS chart_to_local, COALESCE(ended_gcode_state, last_gcode_state) AS final_state FROM prints WHERE id = CAST('$print_id' AS INTEGER);"
+          "queryText": "SELECT subtask_name AS print, COALESCE(NULLIF(filament_type, ''), 'Not captured') AS material, CASE WHEN length(trim(COALESCE(filament_color, ''))) >= 6 THEN '#' || upper(substr(trim(filament_color), 1, 6)) ELSE 'Not captured' END AS color, COALESCE(NULLIF(filament_sub_brand, ''), NULLIF(filament_profile, ''), 'Not captured') AS filament_profile, strftime('%m/%d/%Y %H:%M:%S', started_at, 'localtime') AS running_started_local, strftime('%m/%d/%Y %H:%M:%S', COALESCE(ended_at, last_seen_at), 'localtime') AS print_ended_local, strftime('%m/%d/%Y %H:%M:%S', started_at, '-30 minutes', 'localtime') AS chart_from_local, strftime('%m/%d/%Y %H:%M:%S', COALESCE(ended_at, last_seen_at), '+30 minutes', 'localtime') AS chart_to_local, COALESCE(ended_gcode_state, last_gcode_state) AS final_state FROM prints WHERE id = CAST('$print_id' AS INTEGER);",
+          "rawQueryText": "SELECT subtask_name AS print, COALESCE(NULLIF(filament_type, ''), 'Not captured') AS material, CASE WHEN length(trim(COALESCE(filament_color, ''))) >= 6 THEN '#' || upper(substr(trim(filament_color), 1, 6)) ELSE 'Not captured' END AS color, COALESCE(NULLIF(filament_sub_brand, ''), NULLIF(filament_profile, ''), 'Not captured') AS filament_profile, strftime('%m/%d/%Y %H:%M:%S', started_at, 'localtime') AS running_started_local, strftime('%m/%d/%Y %H:%M:%S', COALESCE(ended_at, last_seen_at), 'localtime') AS print_ended_local, strftime('%m/%d/%Y %H:%M:%S', started_at, '-30 minutes', 'localtime') AS chart_from_local, strftime('%m/%d/%Y %H:%M:%S', COALESCE(ended_at, last_seen_at), '+30 minutes', 'localtime') AS chart_to_local, COALESCE(ended_gcode_state, last_gcode_state) AS final_state FROM prints WHERE id = CAST('$print_id' AS INTEGER);"
         }
       ],
       "fieldConfig": {
@@ -89,7 +89,67 @@
           },
           "mappings": []
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "color"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "#000000": {
+                        "index": 0,
+                        "text": "#000000",
+                        "color": "#000000"
+                      },
+                      "#0086D6": {
+                        "index": 1,
+                        "text": "#0086D6",
+                        "color": "#0086D6"
+                      },
+                      "#688197": {
+                        "index": 2,
+                        "text": "#688197",
+                        "color": "#688197"
+                      },
+                      "#7CD82B": {
+                        "index": 3,
+                        "text": "#7CD82B",
+                        "color": "#7CD82B"
+                      },
+                      "#DE4343": {
+                        "index": 4,
+                        "text": "#DE4343",
+                        "color": "#DE4343"
+                      },
+                      "#FFF144": {
+                        "index": 5,
+                        "text": "#FFF144",
+                        "color": "#FFF144"
+                      },
+                      "#FFFFFF": {
+                        "index": 6,
+                        "text": "#FFFFFF",
+                        "color": "#FFFFFF"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "showHeader": true,
