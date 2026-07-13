@@ -1,19 +1,57 @@
 # AirMonitor
 
-AirMonitor is a Raspberry Pi air-quality appliance for 3D-printing spaces. It
-logs gas and particulate readings, tracks Bambu printer state, drives room
-filter automation, and provisions a light-mode Grafana dashboard from this
-repository.
+AirMonitor is an open-source DIY air-quality monitoring platform for 3D-printing spaces.
+It combines commercially available sensor modules, USB-connected interfaces, automatic
+hardware discovery, local data storage, Grafana dashboards, printer awareness, and filter
+automation in a Raspberry Pi-based appliance.
 
-The current appliance uses USB-attached sensors:
+The current AirMonitor Sensors are built around:
 
-- Amphenol SGX Sensortech `PS1-VOC-1000-MOD` for TVOC, temperature, and
-  humidity
-- Sensirion `SPS30` for particulate matter mass, particle counts, and typical
-  particle size
+- Amphenol SGX Sensortech `PS1-VOC-1000-MOD` for TVOC, temperature, and humidity
+- Sensirion `SPS30` for particulate matter mass, particle counts, and typical particle size
 
-New development, host installs, and dashboard changes happen in
-`ddivins/airmonitor`.
+These are DIY-built sensor assemblies, not custom sensing chips. Each AirMonitor Sensor
+packages a commercial sensor module with the required interface electronics, wiring, and
+a purpose-built enclosure.
+
+See the [Hardware Guide](docs/hardware-registry.md) for the current USB architecture,
+EEPROM identification, supported sensor modules, enclosure plans, and advanced UART notes.
+
+> **DIY project notice:** AirMonitor is not a certified air-quality instrument and should
+> not be relied upon for regulatory, medical, or life-safety decisions.
+
+## Project Overview
+
+AirMonitor currently provides:
+
+- USB-connected AirMonitor Sensors
+- EEPROM-based USB identity and stable device discovery
+- Modular Python sensor drivers
+- Local SQLite storage
+- Provisioned Grafana dashboards
+- Bambu printer-state integration
+- Bento Box and Levoit filter automation
+- Planned 3D-printable enclosures, with printable releases to be linked from MakerWorld
+
+## Hardware Model
+
+```text
+Commercial sensor module
+        │
+USB Interface
+(USB-UART + EEPROM identity)
+        │
+Linux device discovery
+        │
+AirMonitor hardware registry
+        │
+Python sensor driver
+        │
+SQLite / Grafana / automation
+```
+
+USB is the recommended connection method. Native UART wiring remains documented as an
+advanced option for builders using a Raspberry Pi GPIO UART or another embedded host.
 
 ## What Runs
 
@@ -55,11 +93,10 @@ printer/state
 printer/available
 ```
 
-The SGX logger records VOC samples and associates samples with the active print
-and a configurable post-print context window. The SPS30 logger records
-particulate samples independently. Filter services use printer state, filament
-policy, sensor state, and manual override state to decide whether the Bento or
-Levoit filter should run.
+The SGX logger records VOC samples and associates samples with the active print and a
+configurable post-print context window. The SPS30 logger records particulate samples
+independently. Filter services use printer state, filament policy, sensor state, and manual
+override state to decide whether the Bento or Levoit filter should run.
 
 Manual filter override state is persisted in SQLite:
 
@@ -74,8 +111,8 @@ Manual `on` or `off` wins over automation until set back to `auto`.
 
 ## SQLite Storage
 
-AirMonitor uses a local SQLite file. There is no separate database server,
-database user, password, grant, or manual schema load.
+AirMonitor uses a local SQLite file. There is no separate database server, database user,
+password, grant, or manual schema load.
 
 Default path:
 
@@ -105,19 +142,9 @@ tools/generate-grafana-dashboard.py
 grafana/dashboards/airmonitor-live.json
 ```
 
-The dashboard is always generated in light mode and uses the SQLite datasource
-UID `airmonitor-sqlite`. Manual Grafana dashboard edits are temporary; the
-installer regenerates and reprovisions the dashboard from the repo.
-
-Current dashboard order:
-
-```text
-SGX graphs
-SPS30 graphs
-SGX tables
-SPS30 tables
-Operational tables
-```
+The dashboard is generated in light mode and uses the SQLite datasource UID
+`airmonitor-sqlite`. Manual Grafana dashboard edits are temporary; the installer
+regenerates and reprovisions the dashboard from the repository.
 
 Install or refresh Grafana provisioning:
 
@@ -125,10 +152,10 @@ Install or refresh Grafana provisioning:
 bash tools/install-grafana.sh
 ```
 
-## Host Install And Update
+## Host Install and Update
 
-Run clone, pull, and install/update steps as the normal local administrative
-user. Do not maintain the checkout as the service account.
+Run clone, pull, and install/update steps as the normal local administrative user. Do not
+maintain the checkout as the service account.
 
 Typical update on an already-installed host:
 
@@ -138,9 +165,6 @@ git pull --ff-only
 bash tools/update.sh
 ```
 
-`tools/update.sh` installs the Python package, service units, configuration
-examples, and Grafana provisioning when Grafana is present.
-
 Fresh install outline:
 
 ```bash
@@ -148,13 +172,13 @@ sudo apt update
 sudo apt install -y git python3 python3-venv sqlite3
 id automation || sudo useradd --system --no-create-home --shell /usr/sbin/nologin automation
 
-git clone git@github.com:ddivins/airmonitor.git
+git clone https://github.com/ddivins/airmonitor.git
 cd airmonitor
 bash tools/update.sh
 ```
 
-Local secret/config files live outside the repo and should be preserved across
-updates:
+Local secret and host-specific configuration files live outside the repository and should
+be preserved across updates:
 
 ```text
 /etc/airmonitor/sgx-voc.env
@@ -168,9 +192,9 @@ updates:
 
 ## Hardware Configuration
 
-Both sensors are expected to be stable USB serial devices. The production host
-uses FTDI USB-UART adapters with distinct EEPROM serials so Linux creates stable
-`/dev/serial/by-id/...` symlinks.
+The recommended build uses FTDI USB-UART adapters with distinct EEPROM identities. Linux
+creates stable `/dev/serial/by-id/...` symlinks, while the AirMonitor hardware registry
+matches the configured manufacturer, product, and serial values.
 
 Example hardware registry entries:
 
@@ -184,7 +208,6 @@ devices:
       vendor: DSD
       product: AirMonitor
       serial: SGX-VOC-EXAMPLE
-
   sps30-01:
     driver: airmonitor.sensors.sensirion.sps30
     transport: usb-uart
@@ -194,7 +217,8 @@ devices:
       serial: SPS30-EXAMPLE
 ```
 
-See `hardware/` and `docs/hardware-registry.md` for wiring and discovery notes.
+See the [Hardware Guide](docs/hardware-registry.md) for build architecture, EEPROM
+provisioning, discovery, and advanced native UART information.
 
 ## Operations
 
@@ -219,38 +243,16 @@ sudo journalctl -u airmonitor-sps30.service -f
 sudo journalctl -u grafana-server.service -f
 ```
 
-Verify recent sensor samples:
-
-```bash
-sqlite3 /var/lib/airmonitor/airmonitor.sqlite3 '
-select sampled_at, gas_ppm, temperature_c, humidity_rh
-from sgx_voc_samples
-order by id desc
-limit 5;'
-
-sqlite3 /var/lib/airmonitor/airmonitor.sqlite3 '
-select sampled_at, mass_pm1_0, mass_pm2_5, mass_pm4_0, mass_pm10, typical_particle_size
-from sps30_samples
-order by id desc
-limit 5;'
-```
-
-If the SGX service is active but samples stop with `no sensor response`, a USB
-adapter reset or physical replug may be required. Restarting the service alone
-does not always recover the SGX module after the adapter has stopped responding.
-
 ## Public Repository Notes
 
-Do not commit populated environment files, printer serial numbers, printer
-access codes, device IP addresses, private hostnames, logs containing secrets,
-or local-only credentials.
+Do not commit populated environment files, printer serial numbers, printer access codes,
+device IP addresses, private hostnames, logs containing secrets, or local-only credentials.
 
-## Safety And Interpretation
+## Safety and Interpretation
 
-The SGX reading is cross-sensitive TVOC calibrated with isobutylene. It is useful
-for trends, ventilation, and filter control, but it is not compound-selective or
-life-safety instrumentation.
+The SGX reading is cross-sensitive TVOC calibrated with isobutylene. It is useful for
+trends, ventilation, and filter control, but it is not compound-selective or life-safety
+instrumentation.
 
-The SPS30 readings are particulate measurements, reported as PM mass
-concentrations and particle counts. They complement the SGX VOC signal; they do
-not replace gas sensing.
+The SPS30 readings are particulate measurements reported as PM mass concentrations and
+particle counts. They complement the SGX VOC signal; they do not replace gas sensing.
