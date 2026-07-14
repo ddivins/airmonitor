@@ -62,7 +62,8 @@ class StatusHandler(BaseHTTPRequestHandler):
             self._send(404, b"Not found\n", "text/plain; charset=utf-8")
             return
         content_type = mimetypes.guess_type(name)[0] or "application/octet-stream"
-        self._send(200, body, content_type, "public, max-age=3600")
+        cache = "no-store" if name == "index.html" else "public, max-age=3600"
+        self._send(200, body, content_type, cache)
 
     def log_message(self, format: str, *args: object) -> None:
         print(f"{self.address_string()} - {format % args}")
