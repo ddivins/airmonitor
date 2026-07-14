@@ -6,6 +6,6 @@ datasources:
     type: frser-sqlite-datasource
     access: proxy
     isDefault: true
-    editable: true
+    editable: false
     jsonData:
       path: /var/lib/airmonitor/airmonitor.sqlite3

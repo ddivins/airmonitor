@@ -4,6 +4,8 @@ AirMonitor can provision Grafana automatically with:
 
 - SQLite datasource for `/var/lib/airmonitor/airmonitor.sqlite3`
 - Light-theme server defaults
+- Anonymous, read-only Viewer access
+- AirMonitor logo and tagline banner
 - AirMonitor Live dashboard
 - AirMonitor database group permissions for Grafana
 
@@ -42,6 +44,22 @@ Provisioning files are installed to:
 https://airmonitor.example.com/d/airmonitor-live/airmonitor-live
 ```
 
+For a navigation-free kiosk display that is pinned to the light theme:
+
+```text
+https://airmonitor.example.com/d/airmonitor-live/airmonitor-live?kiosk&theme=light
+```
+
+Anonymous access is enabled with the Grafana `Viewer` role. The login form is hidden,
+the provisioned dashboard cannot be edited or deleted in the UI, and the repository
+remains the source of truth. Anyone who can reach the Grafana site can view dashboards
+and datasources available to the configured Grafana organization. If its name is not
+`Main Org.`, pass it when provisioning, for example:
+
+```bash
+GRAFANA_ANONYMOUS_ORG_NAME='Example Org' bash tools/install-grafana.sh
+```
+
 ## Dashboard behavior
 
 The VOC graph uses:
@@ -77,10 +95,6 @@ newgrp airmonitor-data
 
 ## Grafana home dashboard
 
-After provisioning, set the home dashboard in Grafana:
-
-```text
-Administration → General → Default preferences → Home Dashboard → AirMonitor Live
-```
-
-Keep theme set to Light.
+The installer sets AirMonitor Live as the server home dashboard and Light as the default
+theme. Use the kiosk URL above for unattended displays so the theme is also explicit in
+the URL.

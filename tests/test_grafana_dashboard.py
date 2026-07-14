@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sqlite3
 from pathlib import Path
 import unittest
@@ -25,13 +26,18 @@ class GrafanaDashboardTests(unittest.TestCase):
 
         self.assertEqual(dashboard["style"], "light")
         self.assertEqual(dashboard["uid"], "airmonitor-live")
+        self.assertFalse(dashboard["editable"])
         for panel in dashboard["panels"]:
             self.assertEqual(panel["datasource"]["uid"], "airmonitor-sqlite")
+
+        brand = dashboard["panels"][0]
+        self.assertEqual(brand["type"], "text")
+        self.assertIn("airmonitor-brand-300.png", brand["options"]["content"])
 
     def test_dashboard_uses_explicit_sqlite_plugin_query_model(self):
         dashboard = self.generator.build()
 
-        self.assertEqual(dashboard["panels"][0]["type"], "timeseries")
+        self.assertEqual(dashboard["panels"][1]["type"], "timeseries")
         self.assertNotIn("stat", {panel["type"] for panel in dashboard["panels"]})
         for panel in dashboard["panels"]:
             for target in panel["targets"]:
@@ -44,6 +50,13 @@ class GrafanaDashboardTests(unittest.TestCase):
                 else:
                     self.assertEqual(target["queryType"], "table")
                     self.assertEqual(target["timeColumns"], [])
+
+    def test_all_committed_dashboards_are_read_only(self):
+        dashboard_dir = Path(__file__).parents[1] / "grafana" / "dashboards"
+        for path in dashboard_dir.glob("*.json"):
+            with self.subTest(path=path.name):
+                dashboard = json.loads(path.read_text(encoding="utf-8"))
+                self.assertFalse(dashboard["editable"])
 
     def test_all_panel_queries_match_schema(self):
         conn = sqlite3.connect(":memory:")

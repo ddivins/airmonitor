@@ -4,16 +4,19 @@ set -euo pipefail
 REPO_DIR="${REPO_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 GRAFANA_HOME="${GRAFANA_HOME:-/usr/share/grafana}"
 GRAFANA_SERVICE="${GRAFANA_SERVICE:-grafana-server}"
+GRAFANA_SYSTEMD_DROPIN_DIR="${GRAFANA_SYSTEMD_DROPIN_DIR:-/etc/systemd/system/${GRAFANA_SERVICE}.service.d}"
 DASHBOARD_DIR="${DASHBOARD_DIR:-/var/lib/grafana/dashboards/airmonitor}"
 DATASOURCE_SRC="${DATASOURCE_SRC:-grafana/provisioning/datasources/airmonitor-sqlite.yaml}"
 DASHBOARD_PROVIDER_SRC="${DASHBOARD_PROVIDER_SRC:-grafana/provisioning/dashboards/airmonitor.yaml}"
 DASHBOARD_SRC="${DASHBOARD_SRC:-grafana/dashboards/airmonitor-live.json}"
 DASHBOARD_GENERATOR="${DASHBOARD_GENERATOR:-tools/generate-grafana-dashboard.py}"
+BRAND_ASSET="${BRAND_ASSET:-grafana/assets/airmonitor-brand-300.png}"
 DB_DIR="${DB_DIR:-/var/lib/airmonitor}"
 DB_FILE="${DB_FILE:-/var/lib/airmonitor/airmonitor.sqlite3}"
 DATA_GROUP="${DATA_GROUP:-airmonitor-data}"
 GRAFANA_DOMAIN="${GRAFANA_DOMAIN:-airmonitor.example.com}"
 GRAFANA_ROOT_URL="${GRAFANA_ROOT_URL:-https://airmonitor.example.com/}"
+GRAFANA_ANONYMOUS_ORG_NAME="${GRAFANA_ANONYMOUS_ORG_NAME:-Main Org.}"
 GRAFANA_DB="${GRAFANA_DB:-/var/lib/grafana/grafana.db}"
 FRESH_AIRMONITOR_GRAFANA="${FRESH_AIRMONITOR_GRAFANA:-1}"
 
@@ -27,18 +30,29 @@ fail() {
 }
 
 log "Validating inputs"
-command -v grafana >/dev/null || fail "grafana command not found; install Grafana first"
+if command -v grafana >/dev/null; then
+  GRAFANA_CLI=(grafana cli)
+elif [[ -x /usr/sbin/grafana ]]; then
+  GRAFANA_CLI=(/usr/sbin/grafana cli)
+elif command -v grafana-cli >/dev/null; then
+  GRAFANA_CLI=(grafana-cli)
+elif [[ -x /usr/sbin/grafana-cli ]]; then
+  GRAFANA_CLI=(/usr/sbin/grafana-cli)
+else
+  fail "Grafana CLI not found; install Grafana first"
+fi
 command -v systemctl >/dev/null || fail "systemctl not found"
 command -v python3 >/dev/null || fail "python3 is required"
 [[ -d "$REPO_DIR/.git" ]] || fail "not a Git repository: $REPO_DIR"
 [[ -f "$REPO_DIR/$DATASOURCE_SRC" ]] || fail "missing $DATASOURCE_SRC"
 [[ -f "$REPO_DIR/$DASHBOARD_PROVIDER_SRC" ]] || fail "missing $DASHBOARD_PROVIDER_SRC"
 [[ -f "$REPO_DIR/$DASHBOARD_GENERATOR" ]] || fail "missing dashboard generator: $REPO_DIR/$DASHBOARD_GENERATOR"
+[[ -f "$REPO_DIR/$BRAND_ASSET" ]] || fail "missing brand asset: $REPO_DIR/$BRAND_ASSET"
 
 cd "$REPO_DIR"
 
 log "Installing SQLite datasource plugin"
-sudo grafana cli --homepath "$GRAFANA_HOME" plugins install frser-sqlite-datasource || true
+sudo "${GRAFANA_CLI[@]}" --homepath "$GRAFANA_HOME" plugins install frser-sqlite-datasource || true
 
 log "Configuring Grafana server defaults"
 sudo install -d -o root -g grafana -m 0750 /etc/grafana/grafana.ini.d
@@ -51,7 +65,41 @@ root_url = $GRAFANA_ROOT_URL
 
 [users]
 default_theme = light
+viewers_can_edit = false
+
+[auth]
+disable_login_form = true
+
+[auth.anonymous]
+enabled = true
+org_name = $GRAFANA_ANONYMOUS_ORG_NAME
+org_role = Viewer
+hide_version = true
+
+[dashboards]
+default_home_dashboard_path = $DASHBOARD_DIR/airmonitor-live.json
 EOF
+
+log "Configuring Grafana systemd environment overrides"
+sudo install -d -o root -g root -m 0755 "$GRAFANA_SYSTEMD_DROPIN_DIR"
+sudo tee "$GRAFANA_SYSTEMD_DROPIN_DIR/airmonitor.conf" >/dev/null <<EOF
+[Service]
+Environment="GF_SERVER_HTTP_ADDR=127.0.0.1"
+Environment="GF_SERVER_HTTP_PORT=3000"
+Environment="GF_SERVER_DOMAIN=$GRAFANA_DOMAIN"
+Environment="GF_SERVER_ROOT_URL=$GRAFANA_ROOT_URL"
+Environment="GF_USERS_DEFAULT_THEME=light"
+Environment="GF_USERS_VIEWERS_CAN_EDIT=false"
+Environment="GF_AUTH_DISABLE_LOGIN_FORM=true"
+Environment="GF_AUTH_ANONYMOUS_ENABLED=true"
+Environment="GF_AUTH_ANONYMOUS_ORG_NAME=$GRAFANA_ANONYMOUS_ORG_NAME"
+Environment="GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer"
+Environment="GF_AUTH_ANONYMOUS_HIDE_VERSION=true"
+Environment="GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=$DASHBOARD_DIR/airmonitor-live.json"
+EOF
+
+log "Installing AirMonitor brand asset"
+sudo install -o root -g grafana -m 0644 "$BRAND_ASSET" "$GRAFANA_HOME/public/img/airmonitor-brand-300.png"
 
 if [[ -f "$DB_FILE" ]]; then
   log "Validating dashboard SQL against $DB_FILE"
@@ -100,6 +148,7 @@ if [[ "$FRESH_AIRMONITOR_GRAFANA" == "1" && -f "$GRAFANA_DB" ]]; then
 fi
 
 log "Restarting Grafana"
+sudo systemctl daemon-reload
 sudo systemctl restart "$GRAFANA_SERVICE"
 sleep 3
 systemctl --no-pager --full status "$GRAFANA_SERVICE"

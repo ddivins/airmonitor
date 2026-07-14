@@ -289,19 +289,37 @@ def timeseries(
     }
 
 
+def brand_panel(panel_id: int) -> dict[str, Any]:
+    return {
+        "id": panel_id,
+        "type": "text",
+        "title": "",
+        "datasource": DS,
+        "gridPos": {"h": 6, "w": 24, "x": 0, "y": 0},
+        "targets": [],
+        "fieldConfig": {"defaults": {}, "overrides": []},
+        "options": {
+            "mode": "markdown",
+            "content": "![AirMonitor — Monitor. Understand. Don't Die.](/public/img/airmonitor-brand-300.png)",
+        },
+        "transparent": True,
+    }
+
+
 def build() -> dict[str, Any]:
     panels = [
-        timeseries(1, "SGX VOC History", 0, 0, 12, 8, "voc", "ppm", 5),
-        timeseries(2, "SGX Temperature / Humidity", 12, 0, 12, 8, "temperature_humidity"),
-        timeseries(3, "SPS30 PM Mass", 0, 8, 24, 8, "sps30_mass", "ug/m3"),
-        timeseries(4, "SPS30 Particle Count", 0, 16, 12, 8, "sps30_counts", "#/cm3"),
-        timeseries(5, "SPS30 Typical Particle Size", 12, 16, 12, 8, "sps30_particle_size", "um"),
-        table(6, "Latest SGX Sample", 0, 24, 24, 4, "latest_sample"),
-        table(7, "Latest SGX Samples", 0, 28, 24, 7, "latest_samples"),
-        table(8, "Latest SPS30 Sample", 0, 35, 24, 4, "latest_sps30_sample"),
-        table(9, "Latest SPS30 Samples", 0, 39, 24, 7, "latest_sps30_samples"),
-        table(10, "Filter Control", 0, 46, 24, 5, "filters"),
-        table(11, "Recent Prints", 0, 51, 24, 7, "recent_prints"),
+        brand_panel(12),
+        timeseries(1, "SGX VOC History", 0, 6, 12, 8, "voc", "ppm", 5),
+        timeseries(2, "SGX Temperature / Humidity", 12, 6, 12, 8, "temperature_humidity"),
+        timeseries(3, "SPS30 PM Mass", 0, 14, 24, 8, "sps30_mass", "ug/m3"),
+        timeseries(4, "SPS30 Particle Count", 0, 22, 12, 8, "sps30_counts", "#/cm3"),
+        timeseries(5, "SPS30 Typical Particle Size", 12, 22, 12, 8, "sps30_particle_size", "um"),
+        table(6, "Latest SGX Sample", 0, 30, 24, 4, "latest_sample"),
+        table(7, "Latest SGX Samples", 0, 34, 24, 7, "latest_samples"),
+        table(8, "Latest SPS30 Sample", 0, 41, 24, 4, "latest_sps30_sample"),
+        table(9, "Latest SPS30 Samples", 0, 45, 24, 7, "latest_sps30_samples"),
+        table(10, "Filter Control", 0, 52, 24, 5, "filters"),
+        table(11, "Recent Prints", 0, 57, 24, 7, "recent_prints"),
     ]
     return {
         "uid": "airmonitor-live",
@@ -314,7 +332,7 @@ def build() -> dict[str, Any]:
         "version": 1,
         "time": {"from": "now-6h", "to": "now"},
         "timepicker": {"refresh_intervals": ["10s", "30s", "1m", "5m"]},
-        "editable": True,
+        "editable": False,
         "graphTooltip": 1,
         "annotations": {"list": []},
         "templating": {"list": []},
