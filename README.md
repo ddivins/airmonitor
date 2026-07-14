@@ -13,8 +13,8 @@ automation in a Raspberry Pi-based appliance.
 
 The current AirMonitor Sensors are built around:
 
-- Amphenol SGX Sensortech `PS1-VOC-1000-MOD` for TVOC, temperature, and humidity
-- Sensirion `SPS30` for particulate matter mass, particle counts, and typical particle size
+- [Amphenol SGX Sensortech `PS1-VOC-1000-MOD`](hardware/sgx-ps1-voc-1000-mod/README.md) for TVOC, temperature, and humidity
+- [Sensirion `SPS30`](hardware/sensirion-sps30/README.md) for particulate matter mass, particle counts, and typical particle size
 
 These are DIY-built sensor assemblies, not custom sensing chips. Each AirMonitor Sensor
 packages a commercial sensor module with the required interface electronics, wiring, and
