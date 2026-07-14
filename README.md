@@ -1,7 +1,7 @@
 # AirMonitor
 
 <p align="center">
-  <img src="docs/assets/airmonitor-logo.svg" alt="AirMonitor — Monitor. Understand. Don’t Die." width="900">
+  <img src="docs/assets/branding/airmonitor-logo-1536px.png" alt="AirMonitor — Monitor. Understand. Don’t Die." width="760">
 </p>
 
 <p align="center"><strong><em>Monitor. Understand. Don’t Die.</em></strong></p>
