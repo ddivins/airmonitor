@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">AirMonitor</title>
+  <desc id="desc">A filament spool feeds a 3D-printer hotend while airflow and particles represent emissions monitoring. Monitor. Understand. Don't Die.</desc>
+  <defs>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#16c7ad"/>
+      <stop offset="0.55" stop-color="#078bc7"/>
+      <stop offset="1" stop-color="#2266d4"/>
+    </linearGradient>
+    <linearGradient id="word" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#17c7b0"/>
+      <stop offset="1" stop-color="#087ec2"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="760" fill="#fff"/>
+
+  <!-- airflow entering the print area -->
+  <g fill="none" stroke="url(#brand)" stroke-width="11" stroke-linecap="round">
+    <path d="M55 225 C115 185 160 255 225 215"/>
+    <path d="M55 275 C120 235 160 305 225 265"/>
+    <path d="M55 325 C115 285 160 355 225 315"/>
+  </g>
+
+  <!-- filament spool -->
+  <g stroke="#061d49" stroke-width="12" fill="none" stroke-linejoin="round">
+    <ellipse cx="290" cy="270" rx="74" ry="181"/>
+    <ellipse cx="470" cy="270" rx="105" ry="205" fill="#fff"/>
+    <path d="M290 89 H470 M290 451 H470"/>
+  </g>
+  <g fill="none" stroke="url(#brand)" stroke-width="12" stroke-linecap="round">
+    <path d="M304 105 C330 91 351 91 372 105 V435 C350 449 328 449 304 435"/>
+    <path d="M330 101 V439"/><path d="M357 98 V442"/><path d="M384 96 V444"/><path d="M411 94 V446"/><path d="M438 92 V448"/>
+  </g>
+  <g stroke="#061d49" stroke-width="10" fill="#fff" stroke-linejoin="round">
+    <path d="M452 85 C548 72 585 160 572 270 C585 380 548 468 452 455 C387 430 366 361 371 270 C366 179 387 110 452 85Z"/>
+    <ellipse cx="470" cy="270" rx="34" ry="69" fill="#061d49"/>
+    <path d="M452 112 L488 112 L502 163 L470 178 L438 163Z"/>
+    <path d="M514 196 L548 184 L554 239 L521 249Z"/>
+    <path d="M521 291 L554 301 L548 356 L514 344Z"/>
+    <path d="M452 428 L488 428 L502 377 L470 362 L438 377Z"/>
+    <path d="M424 344 L390 356 L384 301 L417 291Z"/>
+    <path d="M417 249 L384 239 L390 184 L424 196Z"/>
+  </g>
+
+  <!-- one strand visibly unwinds from the rear/filament pack and feeds the hotend -->
+  <path d="M438 402 C520 446 590 425 628 374 C660 331 651 224 653 168 C654 122 682 105 724 105 C766 105 790 126 790 165 V216"
+        fill="none" stroke="url(#brand)" stroke-width="14" stroke-linecap="round"/>
+
+  <!-- hotend -->
+  <g stroke="#061d49" stroke-width="11" stroke-linejoin="round">
+    <rect x="684" y="215" width="218" height="183" rx="35" fill="#fff"/>
+    <rect x="770" y="190" width="48" height="52" rx="5" fill="#fff"/>
+    <rect x="735" y="398" width="116" height="34" rx="8" fill="#fff"/>
+    <path d="M762 432 H824 L793 474Z" fill="#fff"/>
+  </g>
+  <g fill="url(#brand)">
+    <circle cx="742" cy="315" r="12"/><circle cx="778" cy="315" r="12"/><circle cx="814" cy="315" r="12"/>
+  </g>
+  <g stroke="#061d49" stroke-width="10" stroke-linecap="round">
+    <path d="M850 285 L880 274"/><path d="M850 312 L880 301"/><path d="M850 339 L880 328"/>
+  </g>
+
+  <!-- airflow leaving the print area -->
+  <g fill="none" stroke="url(#brand)" stroke-width="9" stroke-linecap="round">
+    <path d="M935 283 C984 252 1025 314 1082 279"/>
+    <path d="M935 329 C984 298 1025 360 1082 325"/>
+  </g>
+
+  <!-- emissions -->
+  <g fill="url(#brand)">
+    <circle cx="716" cy="500" r="8"/><circle cx="754" cy="487" r="12"/><circle cx="793" cy="502" r="8"/>
+    <circle cx="833" cy="486" r="11"/><circle cx="874" cy="508" r="7"/><circle cx="909" cy="491" r="10"/>
+    <circle cx="948" cy="512" r="6"/><circle cx="733" cy="535" r="6"/><circle cx="775" cy="526" r="9"/>
+    <circle cx="820" cy="541" r="12"/><circle cx="864" cy="531" r="7"/><circle cx="904" cy="548" r="9"/>
+    <circle cx="951" cy="538" r="6"/><circle cx="995" cy="554" r="7"/>
+  </g>
+
+  <!-- wordmark -->
+  <text x="74" y="660" font-family="Inter, Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="128" font-weight="600" letter-spacing="-6">
+    <tspan fill="url(#word)">Air</tspan><tspan fill="#061d49">Monitor</tspan>
+  </text>
+  <text x="154" y="720" fill="#162747" font-family="Inter, Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="33" font-weight="500" letter-spacing="5">Monitor. Understand. Don’t Die.</text>
+</svg>
