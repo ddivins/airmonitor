@@ -40,6 +40,7 @@ SERVICES = (
     "airmonitor-sps30.service",
     "airmonitor-bento.service",
     "airmonitor-levoit.service",
+    "airmonitor-status.service",
 )
 
 

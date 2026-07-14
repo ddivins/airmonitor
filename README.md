@@ -69,6 +69,7 @@ airmonitor-sps30.service        SPS30 particulate logger
 airmonitor-printer-mqtt.service Bambu MQTT normalizer
 airmonitor-bento.service        Bento Box outlet automation
 airmonitor-levoit.service       Levoit/Core room-filter automation
+airmonitor-status.service       Read-only appliance status landing page
 mosquitto.service               Local MQTT broker
 grafana-server.service          Grafana dashboard
 ```
@@ -138,6 +139,10 @@ filter_control_state persisted filter manual/automation state
 ```
 
 ## Grafana
+
+The appliance root URL presents a read-only status landing page built from normalized
+AirMonitor service state. It links to the detailed Grafana dashboard and never accesses
+sensor hardware directly. See [Status Page](docs/status-page.md).
 
 Grafana is provisioned from this repository:
 
@@ -237,6 +242,7 @@ systemctl --no-pager --full status \
   airmonitor-printer-mqtt.service \
   airmonitor-bento.service \
   airmonitor-levoit.service \
+  airmonitor-status.service \
   grafana-server.service \
   mosquitto.service
 ```

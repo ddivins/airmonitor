@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#f4f8fb">
+  <title>AirMonitor Status</title>
+  <link rel="icon" href="/status-assets/favicon.ico">
+  <link rel="stylesheet" href="/status-assets/style.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <img class="brand" src="/status-assets/airmonitor-logo-300px.webp" alt="AirMonitor — Monitor. Understand. Don't Die.">
+      <div class="hero-copy">
+        <div class="eyebrow">Appliance status</div>
+        <div class="status-line">
+          <span id="overall-dot" class="status-dot loading"></span>
+          <h1 id="overall">Checking status…</h1>
+        </div>
+        <p id="summary">Reading normalized AirMonitor service state.</p>
+        <p class="updated">Updated <time id="updated">—</time></p>
+      </div>
+      <a class="grafana-button" href="/d/airmonitor-live/airmonitor-live?kiosk&theme=light">Open Grafana Dashboard <span aria-hidden="true">→</span></a>
+    </header>
+
+    <section aria-labelledby="readings-title">
+      <div class="section-heading"><h2 id="readings-title">Current air</h2><span>Latest service samples</span></div>
+      <div class="metric-grid">
+        <article class="metric"><span>VOC</span><strong id="voc">—</strong><small>ppm</small></article>
+        <article class="metric"><span>Temperature</span><strong id="temperature">—</strong><small>°C</small></article>
+        <article class="metric"><span>Humidity</span><strong id="humidity">—</strong><small>% RH</small></article>
+        <article class="metric"><span>PM2.5</span><strong id="pm25">—</strong><small>µg/m³</small></article>
+        <article class="metric"><span>PM10</span><strong id="pm10">—</strong><small>µg/m³</small></article>
+      </div>
+    </section>
+
+    <section class="two-column">
+      <article class="panel">
+        <div class="section-heading"><h2>Printer</h2><span id="printer-availability">—</span></div>
+        <dl class="details">
+          <div><dt>State</dt><dd id="printer-state">—</dd></div>
+          <div><dt>Filament</dt><dd id="filament">—</dd></div>
+          <div><dt>Job</dt><dd id="print-job">—</dd></div>
+        </dl>
+      </article>
+      <article class="panel">
+        <div class="section-heading"><h2>Air handling</h2><span>Resolved control state</span></div>
+        <div id="filters" class="state-list"><div class="skeleton"></div><div class="skeleton"></div></div>
+      </article>
+    </section>
+
+    <section class="two-column">
+      <article class="panel">
+        <div class="section-heading"><h2>Sensor freshness</h2><span>From persisted samples</span></div>
+        <div id="freshness" class="state-list"><div class="skeleton"></div><div class="skeleton"></div></div>
+      </article>
+      <article class="panel">
+        <div class="section-heading"><h2>Appliance</h2><span>Host telemetry</span></div>
+        <dl class="details appliance-details">
+          <div><dt>Uptime</dt><dd id="uptime">—</dd></div>
+          <div><dt>Disk</dt><dd id="disk">—</dd></div>
+          <div><dt>Database</dt><dd id="database-size">—</dd></div>
+          <div><dt>CPU temperature</dt><dd id="cpu-temperature">—</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section aria-labelledby="services-title">
+      <div class="section-heading"><h2 id="services-title">Services</h2><span>Systemd state</span></div>
+      <div id="services" class="service-grid"><div class="skeleton"></div></div>
+    </section>
+  </main>
+  <script src="/status-assets/app.js" defer></script>
+</body>
+</html>

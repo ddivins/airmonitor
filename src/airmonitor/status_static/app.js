@@ -1,0 +1,76 @@
+const $ = (id) => document.getElementById(id);
+const escapeHtml = (value) => String(value ?? "").replace(/[&<>'"]/g, (character) => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"})[character]);
+const number = (value, digits = 1) => value == null ? "—" : Number(value).toFixed(digits);
+const bytes = (value) => {
+  if (value == null) return "—";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let size = Number(value), index = 0;
+  while (size >= 1024 && index < units.length - 1) { size /= 1024; index += 1; }
+  return `${size.toFixed(index > 1 ? 1 : 0)} ${units[index]}`;
+};
+const duration = (seconds) => {
+  if (seconds == null) return "—";
+  if (seconds < 60) return `${Math.round(seconds)} sec`;
+  if (seconds < 3600) return `${Math.round(seconds / 60)} min`;
+  if (seconds < 86400) return `${(seconds / 3600).toFixed(1)} hr`;
+  return `${(seconds / 86400).toFixed(1)} days`;
+};
+const timeAgo = (seconds) => seconds == null ? "No samples" : `${duration(seconds)} ago`;
+const pill = (text, klass) => `<span class="pill ${klass}">${text}</span>`;
+const serviceLabel = (name) => name.replace(".service", "").replace("airmonitor-", "").replaceAll("-", " ");
+
+function render(data) {
+  const status = data.overall || "offline";
+  $("overall").textContent = status;
+  $("overall-dot").className = `status-dot ${status}`;
+  $("summary").textContent = data.warnings?.length ? data.warnings.join(" · ") : "All monitored systems are operating normally.";
+  $("updated").textContent = new Date(data.checked_at).toLocaleTimeString([], {hour: "numeric", minute: "2-digit", second: "2-digit"});
+
+  const sgx = data.readings?.sgx || {};
+  const sps = data.readings?.sps30 || {};
+  $("voc").textContent = number(sgx.gas_ppm, 2);
+  $("temperature").textContent = number(sgx.temperature_c, 1);
+  $("humidity").textContent = number(sgx.humidity_rh, 1);
+  $("pm25").textContent = number(sps.mass_pm2_5, 1);
+  $("pm10").textContent = number(sps.mass_pm10, 1);
+
+  const printer = data.printer || {};
+  $("printer-state").textContent = printer.last_gcode_state || "Unknown";
+  $("printer-availability").textContent = printer.printer_connected === 1 ? "Connected" : (printer.printer_available || "Unknown");
+  $("filament").textContent = [printer.filament_type, printer.filament_name].filter(Boolean).join(" · ") || "—";
+  $("print-job").textContent = printer.subtask_name || "No active job";
+
+  $("filters").innerHTML = (data.filters || []).map((item) => `
+    <div class="state-row"><div><div class="state-name">${escapeHtml(item.filter_id)}</div><div class="state-meta">${escapeHtml(item.manual_mode)} · ${escapeHtml(item.reason || "service reported")}</div></div>${pill(escapeHtml(item.effective_state), escapeHtml(item.effective_state))}</div>
+  `).join("") || '<div class="state-row"><span>No filter state</span></div>';
+
+  $("freshness").innerHTML = Object.entries(data.freshness || {}).map(([name, item]) => {
+    const fresh = item.age_seconds != null && item.age_seconds <= 90;
+    return `<div class="state-row"><div><div class="state-name">${escapeHtml(name)}</div><div class="state-meta">${escapeHtml(timeAgo(item.age_seconds))}</div></div>${pill(fresh ? "Fresh" : "Stale", fresh ? "fresh" : "stale")}</div>`;
+  }).join("");
+
+  const host = data.host || {};
+  $("uptime").textContent = duration(host.uptime_seconds);
+  $("disk").textContent = host.disk_used_percent == null ? "—" : `${host.disk_used_percent}% · ${bytes(host.disk_used_bytes)}`;
+  $("database-size").textContent = bytes(host.database_size_bytes);
+  $("cpu-temperature").textContent = host.cpu_temperature_c == null ? "Unavailable" : `${number(host.cpu_temperature_c, 1)} °C`;
+
+  $("services").innerHTML = Object.entries(data.services || {}).map(([name, state]) => `
+    <div class="service-item"><span class="service-label" title="${escapeHtml(name)}">${escapeHtml(serviceLabel(name))}</span>${pill(escapeHtml(state), escapeHtml(state))}</div>
+  `).join("");
+}
+
+async function refresh() {
+  try {
+    const response = await fetch("/status-api", {cache: "no-store"});
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    render(await response.json());
+  } catch (error) {
+    $("overall").textContent = "Offline";
+    $("overall-dot").className = "status-dot offline";
+    $("summary").textContent = "The AirMonitor status service is unavailable.";
+  }
+}
+
+refresh();
+setInterval(refresh, 10000);

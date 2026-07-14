@@ -28,6 +28,7 @@ airmonitor-printer-mqtt = "airmonitor.cli:run_printer_mqtt_service"
 airmonitor-bento = "airmonitor.cli:run_bento_service"
 airmonitor-levoit = "airmonitor.cli:run_levoit_service"
 airmonitor-levoit-service = "airmonitor.filters.levoit.supervisor:main"
+airmonitor-status = "airmonitor.status_web:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/airmonitor"]

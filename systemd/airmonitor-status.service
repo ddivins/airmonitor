@@ -1,0 +1,23 @@
+[Unit]
+Description=AirMonitor appliance status page
+After=network-online.target airmonitor.service airmonitor-sps30.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=automation
+Group=automation
+ExecStart=/opt/airmonitor/venv/bin/airmonitor-status
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ReadOnlyPaths=/var/lib/airmonitor
+
+[Install]
+WantedBy=multi-user.target

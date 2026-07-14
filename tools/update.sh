@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SERVICE_LIST="${SERVICE_LIST:-airmonitor-printer-mqtt.service airmonitor.service airmonitor-sps30.service airmonitor-bento.service airmonitor-levoit.service}"
+SERVICE_LIST="${SERVICE_LIST:-airmonitor-printer-mqtt.service airmonitor.service airmonitor-sps30.service airmonitor-bento.service airmonitor-levoit.service airmonitor-status.service}"
 APP_DIR="${APP_DIR:-/opt/airmonitor}"
 ENV_FILE="${ENV_FILE:-/etc/airmonitor/sgx-voc.env}"
 REQUIRED_ENV_FILES="${REQUIRED_ENV_FILES:-/etc/airmonitor/sgx-voc.env /etc/airmonitor/sps30.env /etc/airmonitor/printer-mqtt.env /etc/airmonitor/bento.env /etc/airmonitor/levoit.env}"
@@ -105,6 +105,11 @@ for service in $SERVICE_LIST; do
 done
 sudo systemctl daemon-reload
 sudo systemctl enable $SERVICE_LIST >/dev/null
+
+if command -v nginx >/dev/null || [[ -x /usr/sbin/nginx ]]; then
+  log "Installing AirMonitor status page routing"
+  bash tools/install-status-page.sh
+fi
 
 if [[ "$INSTALL_GRAFANA" == "1" ]] || { [[ "$INSTALL_GRAFANA" == "auto" ]] && command -v grafana >/dev/null && systemctl list-unit-files grafana-server.service >/dev/null 2>&1; }; then
   log "Installing Grafana datasource and dashboards"
