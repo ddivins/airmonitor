@@ -9,6 +9,7 @@ DASHBOARD_DIR="${DASHBOARD_DIR:-/var/lib/grafana/dashboards/airmonitor}"
 DATASOURCE_SRC="${DATASOURCE_SRC:-grafana/provisioning/datasources/airmonitor-sqlite.yaml}"
 DASHBOARD_PROVIDER_SRC="${DASHBOARD_PROVIDER_SRC:-grafana/provisioning/dashboards/airmonitor.yaml}"
 DASHBOARD_SRC="${DASHBOARD_SRC:-grafana/dashboards/airmonitor-live.json}"
+PRINT_WINDOW_DASHBOARD_SRC="${PRINT_WINDOW_DASHBOARD_SRC:-grafana/dashboards/airmonitor-print-window.json}"
 DASHBOARD_GENERATOR="${DASHBOARD_GENERATOR:-tools/generate-grafana-dashboard.py}"
 BRAND_ASSET="${BRAND_ASSET:-grafana/assets/airmonitor-brand-300.png}"
 DB_DIR="${DB_DIR:-/var/lib/airmonitor}"
@@ -46,6 +47,7 @@ command -v python3 >/dev/null || fail "python3 is required"
 [[ -d "$REPO_DIR/.git" ]] || fail "not a Git repository: $REPO_DIR"
 [[ -f "$REPO_DIR/$DATASOURCE_SRC" ]] || fail "missing $DATASOURCE_SRC"
 [[ -f "$REPO_DIR/$DASHBOARD_PROVIDER_SRC" ]] || fail "missing $DASHBOARD_PROVIDER_SRC"
+[[ -f "$REPO_DIR/$PRINT_WINDOW_DASHBOARD_SRC" ]] || fail "missing $PRINT_WINDOW_DASHBOARD_SRC"
 [[ -f "$REPO_DIR/$DASHBOARD_GENERATOR" ]] || fail "missing dashboard generator: $REPO_DIR/$DASHBOARD_GENERATOR"
 [[ -f "$REPO_DIR/$BRAND_ASSET" ]] || fail "missing brand asset: $REPO_DIR/$BRAND_ASSET"
 
@@ -123,6 +125,7 @@ fi
 sudo install -o root -g grafana -m 0640 "$DASHBOARD_PROVIDER_SRC" /etc/grafana/provisioning/dashboards/airmonitor.yaml
 sudo install -d -o grafana -g grafana -m 0755 "$DASHBOARD_DIR"
 sudo install -o grafana -g grafana -m 0644 "$DASHBOARD_SRC" "$DASHBOARD_DIR/airmonitor-live.json"
+sudo install -o grafana -g grafana -m 0644 "$PRINT_WINDOW_DASHBOARD_SRC" "$DASHBOARD_DIR/airmonitor-print-window.json"
 
 log "Configuring AirMonitor DB permissions"
 sudo groupadd --system "$DATA_GROUP" 2>/dev/null || true
