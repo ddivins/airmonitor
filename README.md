@@ -1,5 +1,11 @@
 # AirMonitor
 
+<p align="center">
+  <img src="docs/assets/airmonitor-logo.svg" alt="AirMonitor — Monitor. Understand. Don’t Die." width="900">
+</p>
+
+<p align="center"><strong><em>Monitor. Understand. Don’t Die.</em></strong></p>
+
 AirMonitor is an open-source DIY air-quality monitoring platform for 3D-printing spaces.
 It combines commercially available sensor modules, USB-connected interfaces, automatic
 hardware discovery, local data storage, Grafana dashboards, printer awareness, and filter
