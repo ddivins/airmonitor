@@ -68,7 +68,7 @@ default_theme = light
 viewers_can_edit = false
 
 [auth]
-disable_login_form = true
+disable_login_form = false
 
 [auth.anonymous]
 enabled = true
@@ -90,7 +90,7 @@ Environment="GF_SERVER_DOMAIN=$GRAFANA_DOMAIN"
 Environment="GF_SERVER_ROOT_URL=$GRAFANA_ROOT_URL"
 Environment="GF_USERS_DEFAULT_THEME=light"
 Environment="GF_USERS_VIEWERS_CAN_EDIT=false"
-Environment="GF_AUTH_DISABLE_LOGIN_FORM=true"
+Environment="GF_AUTH_DISABLE_LOGIN_FORM=false"
 Environment="GF_AUTH_ANONYMOUS_ENABLED=true"
 Environment="GF_AUTH_ANONYMOUS_ORG_NAME=$GRAFANA_ANONYMOUS_ORG_NAME"
 Environment="GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer"

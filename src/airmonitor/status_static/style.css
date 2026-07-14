@@ -31,6 +31,9 @@ body { margin: 0; color: var(--ink); background: var(--canvas); }
 .updated { font-size: .78rem; }
 .grafana-button { align-self: center; display: inline-flex; gap: 14px; align-items: center; padding: 14px 18px; color: white; background: var(--navy); border-radius: 12px; text-decoration: none; font-weight: 750; white-space: nowrap; }
 .grafana-button:hover, .grafana-button:focus-visible { background: var(--blue); outline: 3px solid rgba(22,117,209,.2); outline-offset: 3px; }
+.hero-actions { display: grid; gap: 10px; justify-items: stretch; text-align: center; }
+.grafana-signin { color: var(--blue); font-size: .82rem; font-weight: 750; text-decoration: none; }
+.grafana-signin:hover, .grafana-signin:focus-visible { text-decoration: underline; outline: none; }
 section { margin-top: 30px; }
 .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 2px 12px; }
 .section-heading h2 { margin: 0; color: var(--navy); font-size: 1rem; letter-spacing: -.01em; }
@@ -69,7 +72,8 @@ section { margin-top: 30px; }
 @media (max-width: 850px) {
   .hero { grid-template-columns: 150px 1fr; }
   .brand { width: 145px; }
-  .grafana-button { grid-column: 1 / -1; justify-content: center; }
+  .hero-actions { grid-column: 1 / -1; }
+  .grafana-button { justify-content: center; }
   .metric-grid { grid-template-columns: repeat(3,1fr); }
   .service-grid { grid-template-columns: repeat(2,1fr); }
 }

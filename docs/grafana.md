@@ -50,8 +50,9 @@ For a navigation-free kiosk display that is pinned to the light theme:
 https://airmonitor.example.com/d/airmonitor-live/airmonitor-live?kiosk&theme=light
 ```
 
-Anonymous access is enabled with the Grafana `Viewer` role. The login form is hidden,
-the provisioned dashboard cannot be edited or deleted in the UI, and the repository
+Anonymous access is enabled with the Grafana `Viewer` role. The landing page links to the
+Grafana login for authenticated access, while the provisioned dashboard cannot be edited
+or deleted in the UI and the repository
 remains the source of truth. Anyone who can reach the Grafana site can view dashboards
 and datasources available to the configured Grafana organization. If its name is not
 `Main Org.`, pass it when provisioning, for example:
