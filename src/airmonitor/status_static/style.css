@@ -20,6 +20,8 @@ body { margin: 0; color: var(--ink); background: var(--canvas); }
 .hero { min-height: 190px; display: grid; grid-template-columns: 230px 1fr auto; align-items: center; gap: 30px; padding: 22px 28px; border-radius: 24px; overflow: hidden; position: relative; }
 .hero::before { content: ""; position: absolute; inset: 0 0 auto; height: 5px; background: linear-gradient(90deg,var(--teal),var(--blue)); }
 .brand { display: block; width: 210px; height: auto; }
+.brand-link { display: block; width: fit-content; border-radius: 10px; }
+.brand-link:focus-visible { outline: 3px solid rgba(22,117,209,.25); outline-offset: 5px; }
 .eyebrow { color: var(--blue); font-size: .73rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
 .status-line { display: flex; align-items: center; gap: 12px; margin: 7px 0 3px; }
 .status-line h1 { margin: 0; color: var(--navy); font-size: clamp(1.8rem,4vw,3rem); line-height: 1; text-transform: capitalize; }
@@ -31,9 +33,10 @@ body { margin: 0; color: var(--ink); background: var(--canvas); }
 .updated { font-size: .78rem; }
 .grafana-button { align-self: center; display: inline-flex; gap: 14px; align-items: center; padding: 14px 18px; color: white; background: var(--navy); border-radius: 12px; text-decoration: none; font-weight: 750; white-space: nowrap; }
 .grafana-button:hover, .grafana-button:focus-visible { background: var(--blue); outline: 3px solid rgba(22,117,209,.2); outline-offset: 3px; }
-.hero-actions { display: grid; gap: 10px; justify-items: stretch; text-align: center; }
-.grafana-signin { color: var(--blue); font-size: .82rem; font-weight: 750; text-decoration: none; }
-.grafana-signin:hover, .grafana-signin:focus-visible { text-decoration: underline; outline: none; }
+.hero-actions { display: grid; gap: 9px; width: 238px; justify-items: stretch; text-align: center; }
+.grafana-signin { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 1px 8px; padding: 11px 14px; color: var(--navy); background: #f7fafc; border: 1px solid var(--line); border-radius: 12px; font-size: .84rem; font-weight: 800; line-height: 1.2; text-align: left; text-decoration: none; }
+.grafana-signin small { grid-column: 1 / -1; color: var(--muted); font-size: .68rem; font-weight: 600; }
+.grafana-signin:hover, .grafana-signin:focus-visible { color: var(--blue); background: #eef6fc; border-color: #b8d5eb; outline: 3px solid rgba(22,117,209,.15); outline-offset: 2px; }
 section { margin-top: 30px; }
 .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 2px 12px; }
 .section-heading h2 { margin: 0; color: var(--navy); font-size: 1rem; letter-spacing: -.01em; }
@@ -72,7 +75,7 @@ section { margin-top: 30px; }
 @media (max-width: 850px) {
   .hero { grid-template-columns: 150px 1fr; }
   .brand { width: 145px; }
-  .hero-actions { grid-column: 1 / -1; }
+  .hero-actions { grid-column: 1 / -1; width: 100%; }
   .grafana-button { justify-content: center; }
   .metric-grid { grid-template-columns: repeat(3,1fr); }
   .service-grid { grid-template-columns: repeat(2,1fr); }
@@ -81,6 +84,8 @@ section { margin-top: 30px; }
   .shell { width: min(100% - 20px,1180px); padding-top: 10px; }
   .hero { grid-template-columns: 1fr; gap: 14px; padding: 20px; }
   .brand { width: 130px; }
+  .hero-actions { width: 100%; }
+  .grafana-button, .grafana-signin { min-height: 54px; }
   .metric-grid { grid-template-columns: repeat(2,1fr); }
   .two-column { grid-template-columns: 1fr; }
   .appliance-details { grid-template-columns: 1fr; }
