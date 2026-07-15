@@ -122,7 +122,7 @@ function render(data) {
 
   $("services").innerHTML = Object.entries(data.services || {}).map(([name, state]) => {
     const runtime = serviceRuntime(state);
-    const runtimeText = runtime.active === runtime.sub ? runtime.active : `${runtime.active} / ${runtime.sub}`;
+    const runtimeText = runtime.active;
     const ownership = targetManagedServices.has(name) ? "Target managed" : (session.user?.admin && name in session.services ? session.services[name].enabled : "");
     return `<div class="service-item"><div class="service-summary"><span class="service-label" title="${escapeHtml(name)}">${escapeHtml(serviceLabel(name))}</span><span>${ownership ? `<span class="enabled-state">${escapeHtml(ownership)}</span> ` : ""}${pill(escapeHtml(runtimeText), escapeHtml(runtime.active))}</span></div>${serviceControl(name)}</div>`;
   }).join("");
