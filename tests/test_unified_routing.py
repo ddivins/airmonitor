@@ -16,6 +16,8 @@ def test_nginx_routes_grafana_and_shared_session_on_one_origin() -> None:
     config = (ROOT / "nginx" / "airmonitor.conf").read_text(encoding="utf-8")
     assert "location /grafana/" in config
     assert "proxy_cookie_path /grafana" in config
+    assert '\"redirectUrl\":\"/grafana/\"' in config
+    assert '\"redirectUrl\":\"/\"' in config
     assert "https://airmonitor.example.com/grafana$request_uri" in config
 
 
@@ -24,4 +26,4 @@ def test_landing_page_uses_same_origin_grafana_links() -> None:
         content = (ROOT / "src" / "airmonitor" / "status_static" / name).read_text(encoding="utf-8")
         assert 'href="/grafana/' in content
         assert "https://grafana.airmonitor.example.com" not in content
-        assert "/grafana/login?redirectTo=%2F" in content
+        assert 'href="/grafana/login"' in content
