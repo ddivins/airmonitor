@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#f4f8fb">
   <title>AirMonitor Status</title>
   <link rel="icon" href="/status-assets/favicon.ico">
-  <link rel="stylesheet" href="/status-assets/style.css?v=4">
+  <link rel="stylesheet" href="/status-assets/style.css?v=5">
 </head>
 <body>
   <main class="shell">
@@ -26,7 +26,10 @@
       </div>
       <div class="hero-actions">
         <a class="grafana-button" href="https://grafana.airmonitor.example.com/d/airmonitor-live/airmonitor-live?kiosk&theme=light">Open Grafana Dashboard <span aria-hidden="true">→</span></a>
-        <a class="grafana-signin" href="https://grafana.airmonitor.example.com/logout">Sign in to Grafana <span aria-hidden="true">↗</span><small>More dashboards and navigation</small></a>
+        <div id="auth-panel" class="auth-panel">
+          <a class="grafana-signin" href="https://grafana.airmonitor.example.com/logout">Sign in <span aria-hidden="true">↗</span><small>Administration and dashboards</small></a>
+          <a class="password-reset" href="https://grafana.airmonitor.example.com/user/password/send-reset-email">Forgot password?</a>
+        </div>
       </div>
     </header>
 
@@ -75,10 +78,11 @@
     </section>
 
     <section aria-labelledby="services-title">
-      <div class="section-heading"><h2 id="services-title">Services</h2><span>Systemd state</span></div>
+      <div class="section-heading"><h2 id="services-title">Services</h2><span id="services-caption">Systemd state</span></div>
+      <div id="admin-notice" class="admin-notice" hidden>Administrator controls affect live data collection and automation.</div>
       <div id="services" class="service-grid"><div class="skeleton"></div></div>
     </section>
   </main>
-  <script src="/status-assets/app.js?v=4" defer></script>
+  <script src="/status-assets/app.js?v=5" defer></script>
 </body>
 </html>

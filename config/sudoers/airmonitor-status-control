@@ -1,0 +1,1 @@
+automation ALL=(root) NOPASSWD: /usr/local/sbin/airmonitor-service-control *

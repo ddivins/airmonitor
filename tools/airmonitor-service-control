@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+
+action="${1:-}"
+service="${2:-}"
+
+case "$service" in
+    airmonitor.service|airmonitor-sps30.service|airmonitor-printer-mqtt.service|airmonitor-bento.service|airmonitor-levoit.service) ;;
+    *) echo "Unsupported service" >&2; exit 64 ;;
+esac
+
+case "$action" in
+    start|stop|restart) systemctl "$action" "$service" ;;
+    enable) systemctl enable --now "$service" ;;
+    disable) systemctl disable --now "$service" ;;
+    *) echo "Unsupported action" >&2; exit 64 ;;
+esac

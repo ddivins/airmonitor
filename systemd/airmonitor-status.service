@@ -10,7 +10,9 @@ Group=automation
 ExecStart=/opt/airmonitor/venv/bin/airmonitor-status
 Restart=always
 RestartSec=5
-NoNewPrivileges=true
+# The process may invoke only the root-owned, allowlisted service-control helper
+# through its dedicated sudoers rule.
+NoNewPrivileges=false
 PrivateTmp=true
 ProtectSystem=full
 ProtectHome=true

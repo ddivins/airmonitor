@@ -20,6 +20,13 @@ GRAFANA_ROOT_URL="${GRAFANA_ROOT_URL:-https://grafana.airmonitor.example.com/}"
 GRAFANA_ANONYMOUS_ORG_NAME="${GRAFANA_ANONYMOUS_ORG_NAME:-Main Org.}"
 GRAFANA_DB="${GRAFANA_DB:-/var/lib/grafana/grafana.db}"
 FRESH_AIRMONITOR_GRAFANA="${FRESH_AIRMONITOR_GRAFANA:-1}"
+GRAFANA_SMTP_ENABLED="${GRAFANA_SMTP_ENABLED:-false}"
+GRAFANA_SMTP_HOST="${GRAFANA_SMTP_HOST:-}"
+GRAFANA_SMTP_USER="${GRAFANA_SMTP_USER:-}"
+GRAFANA_SMTP_PASSWORD="${GRAFANA_SMTP_PASSWORD:-}"
+GRAFANA_SMTP_FROM_ADDRESS="${GRAFANA_SMTP_FROM_ADDRESS:-}"
+GRAFANA_SMTP_FROM_NAME="${GRAFANA_SMTP_FROM_NAME:-AirMonitor}"
+GRAFANA_SMTP_ENV_FILE="${GRAFANA_SMTP_ENV_FILE:-/etc/airmonitor/grafana-smtp.env}"
 
 log() {
   printf '\n==> %s\n' "$*"
@@ -72,6 +79,10 @@ viewers_can_edit = false
 [auth]
 disable_login_form = false
 
+[security]
+cookie_secure = true
+cookie_samesite = lax
+
 [auth.anonymous]
 enabled = true
 org_name = $GRAFANA_ANONYMOUS_ORG_NAME
@@ -82,10 +93,32 @@ hide_version = true
 default_home_dashboard_path = $DASHBOARD_DIR/airmonitor-live.json
 EOF
 
+sudo chown root:grafana /etc/grafana/grafana.ini.d/airmonitor.ini
+sudo chmod 0640 /etc/grafana/grafana.ini.d/airmonitor.ini
+
+if [[ "$GRAFANA_SMTP_ENABLED" == "true" ]]; then
+  [[ -n "$GRAFANA_SMTP_HOST" && -n "$GRAFANA_SMTP_USER" && -n "$GRAFANA_SMTP_PASSWORD" && -n "$GRAFANA_SMTP_FROM_ADDRESS" ]] || fail "SMTP is enabled but required settings are missing"
+  [[ "$GRAFANA_SMTP_PASSWORD" != *$'\n'* ]] || fail "SMTP password cannot contain a newline"
+  smtp_password="${GRAFANA_SMTP_PASSWORD//\\/\\\\}"
+  smtp_password="${smtp_password//\"/\\\"}"
+  sudo install -d -o root -g grafana -m 0750 "$(dirname "$GRAFANA_SMTP_ENV_FILE")"
+  {
+    printf 'GF_SMTP_ENABLED=true\n'
+    printf 'GF_SMTP_HOST=%s\n' "$GRAFANA_SMTP_HOST"
+    printf 'GF_SMTP_USER=%s\n' "$GRAFANA_SMTP_USER"
+    printf 'GF_SMTP_PASSWORD="%s"\n' "$smtp_password"
+    printf 'GF_SMTP_FROM_ADDRESS=%s\n' "$GRAFANA_SMTP_FROM_ADDRESS"
+    printf 'GF_SMTP_FROM_NAME=%s\n' "$GRAFANA_SMTP_FROM_NAME"
+  } | sudo tee "$GRAFANA_SMTP_ENV_FILE" >/dev/null
+  sudo chown root:grafana "$GRAFANA_SMTP_ENV_FILE"
+  sudo chmod 0640 "$GRAFANA_SMTP_ENV_FILE"
+fi
+
 log "Configuring Grafana systemd environment overrides"
 sudo install -d -o root -g root -m 0755 "$GRAFANA_SYSTEMD_DROPIN_DIR"
 sudo tee "$GRAFANA_SYSTEMD_DROPIN_DIR/airmonitor.conf" >/dev/null <<EOF
 [Service]
+EnvironmentFile=-$GRAFANA_SMTP_ENV_FILE
 Environment="GF_SERVER_HTTP_ADDR=127.0.0.1"
 Environment="GF_SERVER_HTTP_PORT=3000"
 Environment="GF_SERVER_DOMAIN=$GRAFANA_DOMAIN"
@@ -93,6 +126,8 @@ Environment="GF_SERVER_ROOT_URL=$GRAFANA_ROOT_URL"
 Environment="GF_USERS_DEFAULT_THEME=light"
 Environment="GF_USERS_VIEWERS_CAN_EDIT=false"
 Environment="GF_AUTH_DISABLE_LOGIN_FORM=false"
+Environment="GF_SECURITY_COOKIE_SECURE=true"
+Environment="GF_SECURITY_COOKIE_SAMESITE=lax"
 Environment="GF_AUTH_ANONYMOUS_ENABLED=true"
 Environment="GF_AUTH_ANONYMOUS_ORG_NAME=$GRAFANA_ANONYMOUS_ORG_NAME"
 Environment="GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer"

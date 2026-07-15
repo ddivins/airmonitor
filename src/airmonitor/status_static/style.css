@@ -37,6 +37,15 @@ body { margin: 0; color: var(--ink); background: var(--canvas); }
 .grafana-signin { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 1px 8px; padding: 11px 14px; color: var(--navy); background: #f7fafc; border: 1px solid var(--line); border-radius: 12px; font-size: .84rem; font-weight: 800; line-height: 1.2; text-align: left; text-decoration: none; }
 .grafana-signin small { grid-column: 1 / -1; color: var(--muted); font-size: .68rem; font-weight: 600; }
 .grafana-signin:hover, .grafana-signin:focus-visible { color: var(--blue); background: #eef6fc; border-color: #b8d5eb; outline: 3px solid rgba(22,117,209,.15); outline-offset: 2px; }
+.auth-panel { display: grid; gap: 5px; }
+.password-reset { color: var(--muted); font-size: .7rem; font-weight: 650; text-decoration: none; }
+.password-reset:hover, .password-reset:focus-visible { color: var(--blue); text-decoration: underline; }
+.signed-in { padding: 11px 14px; color: var(--navy); background: #f7fafc; border: 1px solid var(--line); border-radius: 12px; text-align: left; }
+.signed-in strong, .signed-in small { display: block; }
+.signed-in small { margin-top: 2px; color: var(--muted); font-size: .7rem; }
+.account-links { display: flex; justify-content: center; gap: 14px; margin-top: 6px; }
+.account-links a { color: var(--blue); font-size: .7rem; font-weight: 700; text-decoration: none; }
+.account-links a:hover, .account-links a:focus-visible { text-decoration: underline; }
 section { margin-top: 30px; }
 .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 2px 12px; }
 .section-heading h2 { margin: 0; color: var(--navy); font-size: 1rem; letter-spacing: -.01em; }
@@ -71,8 +80,17 @@ section { margin-top: 30px; }
 .pill.inactive, .pill.offline, .pill.failed { color: var(--offline); background: #fae0e2; }
 .pill.inactive::before, .pill.offline::before, .pill.failed::before { background: var(--offline); }
 .service-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
-.service-item { background: var(--surface); box-shadow: none; }
+.service-item { background: var(--surface); box-shadow: none; flex-wrap: wrap; }
 .service-label { min-width: 0; color: var(--navy); font-size: .82rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.service-summary { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
+.service-controls { display: grid; grid-template-columns: 1fr auto; gap: 8px; width: 100%; padding-top: 8px; border-top: 1px solid #edf1f4; }
+.service-controls select, .service-controls button { min-height: 42px; border-radius: 9px; border: 1px solid var(--line); font: inherit; }
+.service-controls select { min-width: 0; padding: 0 10px; color: var(--navy); background: white; }
+.service-controls button { padding: 0 14px; color: white; background: var(--navy); border-color: var(--navy); font-weight: 750; cursor: pointer; }
+.service-controls button:hover, .service-controls button:focus-visible { background: var(--blue); border-color: var(--blue); }
+.service-controls button:disabled { cursor: wait; opacity: .55; }
+.admin-notice { margin: 0 0 12px; padding: 10px 12px; color: #7a4d00; background: #fff5db; border: 1px solid #f0d38c; border-radius: 10px; font-size: .78rem; }
+.enabled-state { color: var(--muted); font-size: .68rem; text-transform: capitalize; }
 .skeleton { height: 48px; border-radius: 12px; background: linear-gradient(90deg,#edf1f4,#f8fafc,#edf1f4); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
 @keyframes shimmer { to { background-position: -200% 0; } }
 @media (max-width: 850px) {

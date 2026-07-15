@@ -18,6 +18,26 @@ const duration = (seconds) => {
 const timeAgo = (seconds) => seconds == null ? "No samples" : `${duration(seconds)} ago`;
 const pill = (text, klass) => `<span class="pill ${klass}">${text}</span>`;
 const serviceLabel = (name) => name.replace(".service", "").replace("airmonitor-", "").replaceAll("-", " ");
+let session = {authenticated: false, services: {}};
+
+function renderSession() {
+  const panel = $("auth-panel");
+  const user = session.user;
+  if (!session.authenticated || !user) {
+    panel.innerHTML = `<a class="grafana-signin" href="https://grafana.airmonitor.example.com/logout">Sign in <span aria-hidden="true">↗</span><small>Administration and dashboards</small></a><a class="password-reset" href="https://grafana.airmonitor.example.com/user/password/send-reset-email">Forgot password?</a>`;
+    $("admin-notice").hidden = true;
+    $("services-caption").textContent = "Systemd state";
+    return;
+  }
+  panel.innerHTML = `<div class="signed-in"><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(user.role)} · ${escapeHtml(user.email || user.login)}</small><div class="account-links"><a href="https://grafana.airmonitor.example.com/profile">Account</a><a href="https://grafana.airmonitor.example.com/logout">Sign out</a></div></div>`;
+  $("admin-notice").hidden = !user.admin;
+  $("services-caption").textContent = user.admin ? "Administrator controls" : "Systemd state";
+}
+
+function serviceControl(name) {
+  if (!session.user?.admin || !(name in session.services)) return "";
+  return `<div class="service-controls"><select aria-label="Action for ${escapeHtml(serviceLabel(name))}" data-service-action="${escapeHtml(name)}"><option value="restart">Restart</option><option value="start">Start</option><option value="stop">Stop</option><option value="enable">Enable and start</option><option value="disable">Disable and stop</option></select><button type="button" data-service-apply="${escapeHtml(name)}">Apply</button></div>`;
+}
 
 function render(data) {
   const status = data.overall || "offline";
@@ -59,9 +79,50 @@ function render(data) {
   $("cpu-temperature").textContent = host.cpu_temperature_c == null ? "Unavailable" : `${number(host.cpu_temperature_c, 1)} °C`;
 
   $("services").innerHTML = Object.entries(data.services || {}).map(([name, state]) => `
-    <div class="service-item"><span class="service-label" title="${escapeHtml(name)}">${escapeHtml(serviceLabel(name))}</span>${pill(escapeHtml(state), escapeHtml(state))}</div>
+    <div class="service-item"><div class="service-summary"><span class="service-label" title="${escapeHtml(name)}">${escapeHtml(serviceLabel(name))}</span><span>${session.user?.admin && name in session.services ? `<span class="enabled-state">${escapeHtml(session.services[name])}</span> ` : ""}${pill(escapeHtml(state), escapeHtml(state))}</span></div>${serviceControl(name)}</div>
   `).join("");
 }
+
+async function refreshSession() {
+  try {
+    const response = await fetch("/session-api", {cache: "no-store", credentials: "same-origin"});
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    session = await response.json();
+  } catch (_) {
+    session = {authenticated: false, services: {}};
+  }
+  renderSession();
+}
+
+async function controlService(service, action, button) {
+  if (!session.user?.admin) return;
+  if (!window.confirm(`${action} ${service}? This affects live AirMonitor operation.`)) return;
+  button.disabled = true;
+  try {
+    const response = await fetch("/service-control-api", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {"Content-Type": "application/json", "X-AirMonitor-Action": "service-control"},
+      body: JSON.stringify({service, action}),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
+    await new Promise((resolve) => setTimeout(resolve, 900));
+    await Promise.all([refreshSession(), refresh()]);
+  } catch (error) {
+    window.alert(`Service action failed: ${error.message}`);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-service-apply]");
+  if (!button) return;
+  const service = button.dataset.serviceApply;
+  const select = document.querySelector(`[data-service-action="${CSS.escape(service)}"]`);
+  controlService(service, select.value, button);
+});
 
 async function refresh() {
   try {
@@ -75,5 +136,11 @@ async function refresh() {
   }
 }
 
-refresh();
+async function initialize() {
+  await refreshSession();
+  await refresh();
+}
+
+initialize();
 setInterval(refresh, 10000);
+setInterval(async () => { await refreshSession(); await refresh(); }, 60000);
