@@ -81,12 +81,12 @@
       <div class="section-heading"><h2 id="services-title">Services</h2><span id="services-caption">Systemd state</span></div>
       <div id="admin-notice" class="admin-notice" hidden>Administrator controls affect live data collection and automation.</div>
       <div id="services" class="service-grid"><div class="skeleton"></div></div>
+      <div id="service-status-panel" class="service-output" hidden>
+        <div class="service-output-heading"><div><span>Live systemctl status</span><h3 id="service-status-title">Service output</h3></div><button id="service-status-clear" type="button">Clear</button></div>
+        <pre id="service-status-output" aria-live="polite">Select a service to view its status.</pre>
+      </div>
     </section>
   </main>
-  <dialog id="service-status-dialog" class="service-dialog" aria-labelledby="service-status-title">
-    <div class="dialog-heading"><h2 id="service-status-title">Service status</h2><button id="service-status-close" type="button" aria-label="Close service status">×</button></div>
-    <pre id="service-status-output">Loading…</pre>
-  </dialog>
-  <script src="/status-assets/app.js?v=12" defer></script>
+  <script src="/status-assets/app.js?v=13" defer></script>
 </body>
 </html>

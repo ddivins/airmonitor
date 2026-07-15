@@ -32,11 +32,14 @@ const targetManagedServices = new Set([
   "airmonitor-printer-mqtt.service", "airmonitor-bento.service", "airmonitor-levoit.service",
 ]);
 let session = {authenticated: false, services: {}};
+let streamedService = null;
+let serviceStreamTimer = null;
 
 function renderSession() {
   const panel = $("auth-panel");
   const user = session.user;
   if (!session.authenticated || !user) {
+    stopServiceStatusStream();
     panel.innerHTML = `<a class="grafana-signin" href="https://grafana.airmonitor.example.com/logout">Sign in <span aria-hidden="true">↗</span><small>Administration and dashboards</small></a><a class="password-reset" href="https://grafana.airmonitor.example.com/user/password/send-reset-email">Forgot password?</a>`;
     $("admin-notice").hidden = true;
     $("services-caption").textContent = "Systemd state";
@@ -61,19 +64,47 @@ function filterControl(item) {
   </div>`;
 }
 
-function showServiceStatus(service, output) {
+function showServiceStatus(service, output, scroll = false) {
   $("service-status-title").textContent = service;
   $("service-status-output").textContent = output || "No systemctl output.";
-  $("service-status-dialog").showModal();
+  $("service-status-panel").hidden = false;
+  if (scroll) $("service-status-panel").scrollIntoView({behavior: "smooth", block: "start"});
+}
+
+async function readServiceStatus(service) {
+  const response = await fetch(`/service-status-api?service=${encodeURIComponent(service)}`, {cache: "no-store", credentials: "same-origin"});
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
+  return result.output;
+}
+
+function stopServiceStatusStream() {
+  streamedService = null;
+  if (serviceStreamTimer) window.clearInterval(serviceStreamTimer);
+  serviceStreamTimer = null;
+  $("service-status-panel").hidden = true;
+}
+
+function startServiceStatusStream(service, initialOutput = null) {
+  streamedService = service;
+  if (serviceStreamTimer) window.clearInterval(serviceStreamTimer);
+  showServiceStatus(service, initialOutput || "Loading systemctl status…", true);
+  const update = async () => {
+    if (streamedService !== service) return;
+    try {
+      showServiceStatus(service, await readServiceStatus(service));
+    } catch (error) {
+      showServiceStatus(service, `Unable to refresh service status: ${error.message}`);
+    }
+  };
+  update();
+  serviceStreamTimer = window.setInterval(update, 2000);
 }
 
 async function fetchServiceStatus(service, button) {
   button.disabled = true;
   try {
-    const response = await fetch(`/service-status-api?service=${encodeURIComponent(service)}`, {cache: "no-store", credentials: "same-origin"});
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
-    showServiceStatus(service, result.output);
+    startServiceStatusStream(service, await readServiceStatus(service));
   } catch (error) {
     window.alert(`Unable to read service status: ${error.message}`);
   } finally {
@@ -152,7 +183,7 @@ async function controlService(service, action, button) {
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
-    showServiceStatus(service, result.output);
+    startServiceStatusStream(service, result.output);
     await new Promise((resolve) => setTimeout(resolve, 900));
     await Promise.all([refreshSession(), refresh()]);
   } catch (error) {
@@ -200,7 +231,7 @@ document.addEventListener("click", (event) => {
   controlService(service, select.value, button);
 });
 
-$("service-status-close").addEventListener("click", () => $("service-status-dialog").close());
+$("service-status-clear").addEventListener("click", stopServiceStatusStream);
 
 async function refresh() {
   try {
