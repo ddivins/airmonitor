@@ -55,7 +55,7 @@ Grafana login for authenticated access, while the provisioned dashboard cannot b
 or deleted in the UI and the repository
 remains the source of truth. Anyone who can reach the Grafana site can view dashboards
 and datasources available to the configured Grafana organization. If its name is not
-`Main Org.`, pass it when provisioning, for example:
+`Example Org`, pass it when provisioning, for example:
 
 ```bash
 GRAFANA_ANONYMOUS_ORG_NAME='Example Org' bash tools/install-grafana.sh

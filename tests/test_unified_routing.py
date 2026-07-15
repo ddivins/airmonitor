@@ -9,6 +9,7 @@ def test_grafana_is_configured_under_appliance_subpath() -> None:
     assert "https://airmonitor.example.com/grafana/" in installer
     assert "GF_SERVER_SERVE_FROM_SUB_PATH=true" in installer
     assert "serve_from_sub_path = true" in installer
+    assert 'GRAFANA_ANONYMOUS_ORG_NAME:-Example Org' in installer
 
 
 def test_nginx_routes_grafana_and_shared_session_on_one_origin() -> None:
