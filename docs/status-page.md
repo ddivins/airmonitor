@@ -54,7 +54,9 @@ navigation works in both directions without combining the two applications on on
 
 The landing page links to Grafana's password-reset workflow. Configure SMTP while running
 the Grafana installer; the password is stored only in a root/Grafana-readable environment
-file:
+file. The shared `/etc/airmonitor` directory remains `root:root` mode `0755` so collection
+services can read their own configuration, while `grafana-smtp.env` is `root:grafana`
+mode `0640`:
 
 ```bash
 GRAFANA_SMTP_ENABLED=true \

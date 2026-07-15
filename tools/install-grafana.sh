@@ -101,7 +101,9 @@ if [[ "$GRAFANA_SMTP_ENABLED" == "true" ]]; then
   [[ "$GRAFANA_SMTP_PASSWORD" != *$'\n'* ]] || fail "SMTP password cannot contain a newline"
   smtp_password="${GRAFANA_SMTP_PASSWORD//\\/\\\\}"
   smtp_password="${smtp_password//\"/\\\"}"
-  sudo install -d -o root -g grafana -m 0750 "$(dirname "$GRAFANA_SMTP_ENV_FILE")"
+  # /etc/airmonitor is shared by services running as automation. Keep the
+  # directory traversable; the SMTP secret itself remains root:grafana 0640.
+  sudo install -d -o root -g root -m 0755 "$(dirname "$GRAFANA_SMTP_ENV_FILE")"
   {
     printf 'GF_SMTP_ENABLED=true\n'
     printf 'GF_SMTP_HOST=%s\n' "$GRAFANA_SMTP_HOST"
