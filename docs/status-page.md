@@ -13,7 +13,9 @@ The status service reads:
 
 Nginx sends only the exact `/` route, `/status-api`, and `/status-assets/` to the status
 service. Existing Grafana paths continue to use Grafana, and the landing page links to the
-light-theme kiosk dashboard.
+light-theme kiosk dashboard. The `/grafana-signin` route clears the anonymous Grafana
+session and sends successful authentication to `/dashboards`; Grafana's normal `/`
+post-login destination is reserved for the appliance landing page.
 
 Install or refresh routing with:
 
