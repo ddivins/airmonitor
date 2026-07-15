@@ -35,3 +35,9 @@ def test_application_members_follow_target_lifecycle_but_status_survives():
 
 def test_voc_unit_is_managed_only_by_target():
     assert "[Install]" not in unit("airmonitor-voc.service")
+
+
+def test_status_service_can_persist_filter_controls():
+    status = unit("airmonitor-status.service")
+    assert "ReadWritePaths=/var/lib/airmonitor" in status
+    assert "ReadOnlyPaths=/var/lib/airmonitor" not in status
