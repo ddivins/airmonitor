@@ -96,7 +96,7 @@ def collect_status(
     """Collect status without talking to sensor hardware or control integrations."""
     checked_at = _iso_now(now)
     database_error = None
-    sgx = sps30 = printer = None
+    sgx = sps30 = printer = levoit = None
     filters: list[dict[str, Any]] = []
     try:
         conn = sqlite3.connect(f"file:{database}?mode=ro", uri=True, timeout=2)
@@ -119,6 +119,11 @@ def collect_status(
                    effective_state, reason, updated_at
             FROM filter_control_state ORDER BY filter_id
         """)]
+        levoit = _row(conn, """
+            SELECT sampled_at, device_name, power_state, mode, fan_level,
+                   pm2_5, air_quality, filter_life_percent
+            FROM levoit_samples ORDER BY id DESC LIMIT 1
+        """)
         conn.close()
     except (OSError, sqlite3.Error) as exc:
         database_error = str(exc)
@@ -166,6 +171,7 @@ def collect_status(
         "freshness": sensor_freshness,
         "printer": printer,
         "filters": filters,
+        "levoit": levoit,
         "services": services,
         "host": host,
         "database_error": database_error,

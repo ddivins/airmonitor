@@ -24,7 +24,7 @@ from airmonitor.filters.control import FilterState, resolve_filter_state
 
 
 APP_NAME = "airmonitor-levoit"
-APP_VERSION = "0.1.3"
+APP_VERSION = "0.1.4"
 FILTER_ID = "levoit"
 DEFAULT_ENV_FILE = "/etc/airmonitor/levoit.env"
 LOG = logging.getLogger(APP_NAME)
@@ -349,6 +349,57 @@ def device_status(device: Any) -> dict[str, Any]:
     return status
 
 
+def telemetry_from_device(device: Any, current: bool | None) -> dict[str, Any]:
+    """Normalize the fields exposed by different pyvesync purifier classes."""
+    details = getattr(device, "details", None)
+    details = details if isinstance(details, dict) else {}
+
+    def first_value(*values):
+        return next((value for value in values if value is not None), None)
+
+    return {
+        "device_name": device_name(device),
+        "power_state": filter_state_value(current),
+        "mode": first_value(getattr(device, "mode", None), details.get("mode")),
+        "fan_level": first_value(
+            getattr(device, "fan_speed", None),
+            getattr(device, "speed", None),
+            details.get("level"),
+        ),
+        "pm2_5": first_value(
+            getattr(device, "pm25", None),
+            getattr(device, "air_quality_value", None),
+            details.get("air_quality_value"),
+        ),
+        "air_quality": first_value(getattr(device, "air_quality", None), details.get("air_quality")),
+        "filter_life_percent": first_value(getattr(device, "filter_life", None), details.get("filter_life")),
+        "raw_json": json.dumps(details, sort_keys=True, default=str),
+    }
+
+
+def record_levoit_telemetry(device: Any, current: bool | None) -> None:
+    telemetry = telemetry_from_device(device, current)
+    try:
+        conn = connect(DATABASE_PATH)
+        init_db(conn)
+        conn.execute(
+            """
+            INSERT INTO levoit_samples (
+                device_name, power_state, mode, fan_level, pm2_5,
+                air_quality, filter_life_percent, raw_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            tuple(telemetry[key] for key in (
+                "device_name", "power_state", "mode", "fan_level", "pm2_5",
+                "air_quality", "filter_life_percent", "raw_json",
+            )),
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        LOG.warning("Failed to record Levoit telemetry", exc_info=True)
+
+
 def desired_from_printer_state(state: dict[str, Any] | None, off_deadline: float | None) -> DesiredState:
     if not state:
         return DesiredState(False, "no printer state", off_deadline)
@@ -486,6 +537,7 @@ def run_service() -> int:
             )
             current = apply_desired_state(device, desired, current)
             expected_device_state = current
+            record_levoit_telemetry(device, current)
             record_filter_state(
                 actual_state=filter_state_value(current),
                 effective_state=effective_state,

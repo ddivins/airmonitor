@@ -42,8 +42,9 @@ function render(data) {
   $("filament").textContent = [printer.filament_type, printer.filament_name].filter(Boolean).join(" · ") || "—";
   $("print-job").textContent = printer.subtask_name || "No active job";
 
+  const levoit = data.levoit || {};
   $("filters").innerHTML = (data.filters || []).map((item) => `
-    <div class="state-row"><div><div class="state-name">${escapeHtml(item.filter_id)}</div><div class="state-meta">${escapeHtml(item.manual_mode)} · ${escapeHtml(item.reason || "service reported")}</div></div>${pill(escapeHtml(item.effective_state), escapeHtml(item.effective_state))}</div>
+    <div class="state-row"><div><div class="state-name">${escapeHtml(item.filter_id)}</div><div class="state-meta">${escapeHtml(item.manual_mode)} · ${escapeHtml(item.reason || "service reported")}</div>${item.filter_id === "levoit" && levoit.sampled_at ? `<div class="state-meta telemetry">Fan ${escapeHtml(levoit.fan_level ?? "—")} · PM2.5 ${escapeHtml(number(levoit.pm2_5, 0))} µg/m³ · ${escapeHtml(levoit.mode || "unknown mode")} · Filter ${escapeHtml(levoit.filter_life_percent ?? "—")}%</div>` : ""}</div>${pill(escapeHtml(item.effective_state), escapeHtml(item.effective_state))}</div>
   `).join("") || '<div class="state-row"><span>No filter state</span></div>';
 
   $("freshness").innerHTML = Object.entries(data.freshness || {}).map(([name, item]) => {

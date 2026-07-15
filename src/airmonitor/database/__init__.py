@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 
 DDL = """
@@ -117,12 +117,26 @@ CREATE TABLE IF NOT EXISTS filter_control_state (
     updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
+CREATE TABLE IF NOT EXISTS levoit_samples (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sampled_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    device_name TEXT,
+    power_state TEXT NOT NULL,
+    mode TEXT,
+    fan_level INTEGER,
+    pm2_5 REAL,
+    air_quality INTEGER,
+    filter_life_percent INTEGER,
+    raw_json TEXT
+);
+
 CREATE INDEX IF NOT EXISTS idx_sensor_sessions_sensor_time ON sensor_sessions(sensor_id, started_at);
 CREATE INDEX IF NOT EXISTS idx_prints_started_at ON prints(started_at);
 CREATE INDEX IF NOT EXISTS idx_prints_last_state ON prints(last_gcode_state, started_at);
 CREATE INDEX IF NOT EXISTS idx_sgx_samples_sampled_at ON sgx_voc_samples(sampled_at);
 CREATE INDEX IF NOT EXISTS idx_sgx_samples_sensor_time ON sgx_voc_samples(sensor_id, sampled_at);
 CREATE INDEX IF NOT EXISTS idx_sgx_samples_print_time ON sgx_voc_samples(print_id, sampled_at);
+CREATE INDEX IF NOT EXISTS idx_levoit_samples_sampled_at ON levoit_samples(sampled_at);
 
 -- Legacy v1 table retained for existing installations. New code writes to the
 -- normalized tables above.

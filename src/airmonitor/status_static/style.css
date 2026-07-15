@@ -61,6 +61,7 @@ section { margin-top: 30px; }
 .state-row, .service-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 12px; background: #f8fafc; }
 .state-name { color: var(--navy); font-weight: 750; text-transform: capitalize; }
 .state-meta { color: var(--muted); font-size: .78rem; }
+.state-meta.telemetry { margin-top: 4px; color: var(--ink); font-variant-numeric: tabular-nums; }
 .pill { display: inline-flex; align-items: center; gap: 7px; padding: 5px 9px; border-radius: 999px; background: #e5eaf0; font-size: .72rem; font-weight: 800; text-transform: uppercase; }
 .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
 .pill.active, .pill.fresh, .pill.on { color: var(--healthy); background: #ddf3e9; }
