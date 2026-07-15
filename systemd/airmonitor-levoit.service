@@ -17,6 +17,3 @@ PrivateTmp=true
 ProtectSystem=full
 ProtectHome=true
 ReadWritePaths=/var/lib/airmonitor
-
-[Install]
-WantedBy=multi-user.target

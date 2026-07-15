@@ -36,9 +36,8 @@ class StatusWebTests(unittest.TestCase):
 
     @patch("airmonitor.status_web.subprocess.run")
     def test_service_enabled_is_read_only(self, mocked_run):
-        mocked_run.return_value = subprocess.CompletedProcess([], 0, stdout="enabled\n", stderr="")
-        self.assertEqual(service_enabled("airmonitor-voc.service"), "enabled")
-        self.assertEqual(mocked_run.call_args.args[0], ["systemctl", "is-enabled", "airmonitor-voc.service"])
+        self.assertEqual(service_enabled("airmonitor-voc.service"), "target managed")
+        mocked_run.assert_not_called()
 
     @patch("airmonitor.status_web.subprocess.run")
     def test_service_status_matches_systemctl_output(self, mocked_run):
@@ -57,6 +56,9 @@ class StatusWebTests(unittest.TestCase):
 
     def test_application_target_has_lifecycle_controls(self):
         self.assertEqual(SERVICE_ACTIONS["airmonitor.target"], ("start", "stop", "restart"))
+
+    def test_target_managed_members_have_no_enablement_controls(self):
+        self.assertEqual(SERVICE_ACTIONS["airmonitor-sps30.service"], ("start", "stop", "restart"))
 
     def test_filter_mode_is_persisted_and_resolved(self):
         with tempfile.TemporaryDirectory() as directory:

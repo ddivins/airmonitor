@@ -36,14 +36,21 @@ CONTROLLED_SERVICES = (
     "grafana-server.service",
     "mosquitto.service",
 )
-CONTROL_ACTIONS = ("start", "stop", "restart", "enable", "disable")
+TARGET_MANAGED_SERVICES = (
+    "airmonitor-voc.service",
+    "airmonitor-sps30.service",
+    "airmonitor-printer-mqtt.service",
+    "airmonitor-bento.service",
+    "airmonitor-levoit.service",
+    "airmonitor-status.service",
+)
 SERVICE_ACTIONS = {
     "airmonitor.target": ("start", "stop", "restart"),
-    "airmonitor-voc.service": CONTROL_ACTIONS,
-    "airmonitor-sps30.service": CONTROL_ACTIONS,
-    "airmonitor-printer-mqtt.service": CONTROL_ACTIONS,
-    "airmonitor-bento.service": CONTROL_ACTIONS,
-    "airmonitor-levoit.service": CONTROL_ACTIONS,
+    "airmonitor-voc.service": ("start", "stop", "restart"),
+    "airmonitor-sps30.service": ("start", "stop", "restart"),
+    "airmonitor-printer-mqtt.service": ("start", "stop", "restart"),
+    "airmonitor-bento.service": ("start", "stop", "restart"),
+    "airmonitor-levoit.service": ("start", "stop", "restart"),
     "grafana-server.service": ("restart",),
     "mosquitto.service": ("restart",),
 }
@@ -91,6 +98,8 @@ def grafana_user(cookie: str | None, api_url: str = GRAFANA_API) -> dict | None:
 
 
 def service_enabled(service: str) -> str:
+    if service in TARGET_MANAGED_SERVICES:
+        return "target managed"
     try:
         result = subprocess.run(
             ["systemctl", "is-enabled", service],

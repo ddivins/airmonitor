@@ -21,6 +21,3 @@ ProtectKernelModules=true
 ProtectControlGroups=true
 # Administrator filter controls persist manual modes in the shared SQLite DB.
 ReadWritePaths=/var/lib/airmonitor
-
-[Install]
-WantedBy=multi-user.target

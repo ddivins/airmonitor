@@ -47,18 +47,28 @@ def _row(conn: sqlite3.Connection, sql: str) -> dict[str, Any] | None:
     return dict(result) if result else None
 
 
-def _service_state(service: str) -> str:
+def _service_state(service: str) -> dict[str, str]:
     try:
         result = subprocess.run(
-            ["systemctl", "is-active", service],
+            ["systemctl", "show", service, "--property=ActiveState", "--property=SubState"],
             check=False,
             capture_output=True,
             text=True,
             timeout=2,
         )
     except (FileNotFoundError, subprocess.TimeoutExpired):
-        return "unknown"
-    return (result.stdout or result.stderr).strip() or "unknown"
+        return {"active_state": "unknown", "sub_state": "unknown"}
+    values = dict(
+        line.split("=", 1) for line in result.stdout.splitlines() if "=" in line
+    )
+    return {
+        "active_state": values.get("ActiveState", "unknown"),
+        "sub_state": values.get("SubState", "unknown"),
+    }
+
+
+def _active_state(value: str | dict[str, str]) -> str:
+    return value.get("active_state", "unknown") if isinstance(value, dict) else value
 
 
 def _service_error(service: str) -> str | None:
@@ -111,7 +121,7 @@ def collect_status(
     database: str = DEFAULT_DATABASE,
     *,
     now: datetime | None = None,
-    service_reader: Callable[[str], str] = _service_state,
+    service_reader: Callable[[str], str | dict[str, str]] = _service_state,
     error_reader: Callable[[str], str | None] = _service_error,
     host_reader: Callable[[str], dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
@@ -168,7 +178,7 @@ def collect_status(
 
     ages = [item["age_seconds"] for item in sensor_freshness.values()]
     both_offline = all(age is None or age > SENSOR_OFFLINE_SECONDS for age in ages)
-    core_inactive = [name for name, state in services.items() if state != "active"]
+    core_inactive = [name for name, state in services.items() if _active_state(state) != "active"]
     warnings: list[str] = []
     if database_error:
         warnings.append("Database unavailable")
@@ -181,7 +191,7 @@ def collect_status(
     if (host.get("cpu_temperature_c") or 0) >= 75:
         warnings.append("CPU temperature is high")
 
-    if database_error or both_offline or all(services.get(name) != "active" for name in ("airmonitor-voc.service", "airmonitor-sps30.service")):
+    if database_error or both_offline or all(_active_state(services.get(name, "unknown")) != "active" for name in ("airmonitor-voc.service", "airmonitor-sps30.service")):
         overall = "offline"
     elif warnings:
         overall = "degraded"

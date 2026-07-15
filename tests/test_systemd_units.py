@@ -41,3 +41,15 @@ def test_status_service_can_persist_filter_controls():
     status = unit("airmonitor-status.service")
     assert "ReadWritePaths=/var/lib/airmonitor" in status
     assert "ReadOnlyPaths=/var/lib/airmonitor" not in status
+
+
+def test_target_managed_units_are_static():
+    for name in (
+        "airmonitor-voc.service",
+        "airmonitor-sps30.service",
+        "airmonitor-printer-mqtt.service",
+        "airmonitor-bento.service",
+        "airmonitor-levoit.service",
+        "airmonitor-status.service",
+    ):
+        assert "[Install]" not in unit(name)

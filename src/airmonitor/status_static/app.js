@@ -24,6 +24,13 @@ const serviceLabel = (name) => ({
   "grafana-server.service": "Grafana server",
   "mosquitto.service": "Mosquitto MQTT",
 })[name] || name.replace(".service", "").replace("airmonitor-", "").replaceAll("-", " ");
+const serviceRuntime = (value) => typeof value === "object" && value !== null
+  ? {active: value.active_state || "unknown", sub: value.sub_state || "unknown"}
+  : {active: value || "unknown", sub: value || "unknown"};
+const targetManagedServices = new Set([
+  "airmonitor-status.service", "airmonitor-voc.service", "airmonitor-sps30.service",
+  "airmonitor-printer-mqtt.service", "airmonitor-bento.service", "airmonitor-levoit.service",
+]);
 let session = {authenticated: false, services: {}};
 
 function renderSession() {
@@ -113,9 +120,12 @@ function render(data) {
   $("database-size").textContent = bytes(host.database_size_bytes);
   $("cpu-temperature").textContent = host.cpu_temperature_c == null ? "Unavailable" : `${number(host.cpu_temperature_c, 1)} °C`;
 
-  $("services").innerHTML = Object.entries(data.services || {}).map(([name, state]) => `
-    <div class="service-item"><div class="service-summary"><span class="service-label" title="${escapeHtml(name)}">${escapeHtml(serviceLabel(name))}</span><span>${session.user?.admin && name in session.services ? `<span class="enabled-state">${escapeHtml(session.services[name].enabled)}</span> ` : ""}${pill(escapeHtml(state), escapeHtml(state))}</span></div>${serviceControl(name)}</div>
-  `).join("");
+  $("services").innerHTML = Object.entries(data.services || {}).map(([name, state]) => {
+    const runtime = serviceRuntime(state);
+    const runtimeText = runtime.active === runtime.sub ? runtime.active : `${runtime.active} / ${runtime.sub}`;
+    const ownership = targetManagedServices.has(name) ? "Target managed" : (session.user?.admin && name in session.services ? session.services[name].enabled : "");
+    return `<div class="service-item"><div class="service-summary"><span class="service-label" title="${escapeHtml(name)}">${escapeHtml(serviceLabel(name))}</span><span>${ownership ? `<span class="enabled-state">${escapeHtml(ownership)}</span> ` : ""}${pill(escapeHtml(runtimeText), escapeHtml(runtime.active))}</span></div>${serviceControl(name)}</div>`;
+  }).join("");
 }
 
 async function refreshSession() {
