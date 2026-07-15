@@ -31,7 +31,9 @@ function render(data) {
   $("voc").textContent = number(sgx.gas_ppm, 2);
   $("temperature").textContent = number(sgx.temperature_c, 1);
   $("humidity").textContent = number(sgx.humidity_rh, 1);
+  $("pm1").textContent = number(sps.mass_pm1_0, 1);
   $("pm25").textContent = number(sps.mass_pm2_5, 1);
+  $("pm4").textContent = number(sps.mass_pm4_0, 1);
   $("pm10").textContent = number(sps.mass_pm10, 1);
 
   const printer = data.printer || {};

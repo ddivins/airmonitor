@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#f4f8fb">
   <title>AirMonitor Status</title>
   <link rel="icon" href="/status-assets/favicon.ico">
-  <link rel="stylesheet" href="/status-assets/style.css?v=2">
+  <link rel="stylesheet" href="/status-assets/style.css?v=3">
 </head>
 <body>
   <main class="shell">
@@ -33,11 +33,13 @@
     <section aria-labelledby="readings-title">
       <div class="section-heading"><h2 id="readings-title">Current air</h2><span>Latest service samples</span></div>
       <div class="metric-grid">
-        <article class="metric"><span>VOC</span><strong id="voc">—</strong><small>ppm</small></article>
-        <article class="metric"><span>Temperature</span><strong id="temperature">—</strong><small>°C</small></article>
-        <article class="metric"><span>Humidity</span><strong id="humidity">—</strong><small>% RH</small></article>
-        <article class="metric"><span>PM2.5</span><strong id="pm25">—</strong><small>µg/m³</small></article>
-        <article class="metric"><span>PM10</span><strong id="pm10">—</strong><small>µg/m³</small></article>
+        <a class="metric" href="/d/airmonitor-live/airmonitor-live?viewPanel=1&amp;kiosk&amp;theme=light" aria-label="Open VOC history in Grafana"><span>VOC</span><strong id="voc">—</strong><small>ppm <b>View history →</b></small></a>
+        <a class="metric" href="/d/airmonitor-live/airmonitor-live?viewPanel=2&amp;kiosk&amp;theme=light" aria-label="Open temperature history in Grafana"><span>Temperature</span><strong id="temperature">—</strong><small>°C <b>View history →</b></small></a>
+        <a class="metric" href="/d/airmonitor-live/airmonitor-live?viewPanel=2&amp;kiosk&amp;theme=light" aria-label="Open humidity history in Grafana"><span>Humidity</span><strong id="humidity">—</strong><small>% RH <b>View history →</b></small></a>
+        <a class="metric" href="/d/airmonitor-live/airmonitor-live?viewPanel=3&amp;kiosk&amp;theme=light" aria-label="Open PM1 history in Grafana"><span>PM1</span><strong id="pm1">—</strong><small>µg/m³ <b>View history →</b></small></a>
+        <a class="metric" href="/d/airmonitor-live/airmonitor-live?viewPanel=3&amp;kiosk&amp;theme=light" aria-label="Open PM2.5 history in Grafana"><span>PM2.5</span><strong id="pm25">—</strong><small>µg/m³ <b>View history →</b></small></a>
+        <a class="metric" href="/d/airmonitor-live/airmonitor-live?viewPanel=3&amp;kiosk&amp;theme=light" aria-label="Open PM4 history in Grafana"><span>PM4</span><strong id="pm4">—</strong><small>µg/m³ <b>View history →</b></small></a>
+        <a class="metric" href="/d/airmonitor-live/airmonitor-live?viewPanel=3&amp;kiosk&amp;theme=light" aria-label="Open PM10 history in Grafana"><span>PM10</span><strong id="pm10">—</strong><small>µg/m³ <b>View history →</b></small></a>
       </div>
     </section>
 
@@ -77,6 +79,6 @@
       <div id="services" class="service-grid"><div class="skeleton"></div></div>
     </section>
   </main>
-  <script src="/status-assets/app.js" defer></script>
+  <script src="/status-assets/app.js?v=3" defer></script>
 </body>
 </html>

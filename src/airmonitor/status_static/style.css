@@ -41,11 +41,13 @@ section { margin-top: 30px; }
 .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 2px 12px; }
 .section-heading h2 { margin: 0; color: var(--navy); font-size: 1rem; letter-spacing: -.01em; }
 .section-heading span { color: var(--muted); font-size: .78rem; }
-.metric-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 12px; }
-.metric { min-height: 132px; padding: 18px; border-radius: 17px; display: flex; flex-direction: column; justify-content: space-between; }
+.metric-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 12px; }
+.metric { min-height: 132px; padding: 18px; border-radius: 17px; display: flex; flex-direction: column; justify-content: space-between; text-decoration: none; transition: border-color .15s, box-shadow .15s, transform .15s; }
+.metric:hover, .metric:focus-visible { border-color: #b8d5eb; box-shadow: 0 16px 42px rgba(6,29,73,.1); transform: translateY(-2px); outline: 3px solid rgba(22,117,209,.15); outline-offset: 2px; }
 .metric span { color: var(--muted); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
 .metric strong { color: var(--navy); font-size: clamp(1.7rem,3.2vw,2.5rem); font-variant-numeric: tabular-nums; }
-.metric small { color: var(--muted); }
+.metric small { color: var(--muted); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 8px; }
+.metric small b { color: var(--blue); font-size: .68rem; }
 .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .panel { border-radius: 18px; padding: 20px; }
 .details { margin: 0; display: grid; gap: 0; }

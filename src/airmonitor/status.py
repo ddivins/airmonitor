@@ -106,7 +106,7 @@ def collect_status(
             FROM sgx_voc_samples ORDER BY id DESC LIMIT 1
         """)
         sps30 = _row(conn, """
-            SELECT sampled_at, mass_pm2_5, mass_pm10
+            SELECT sampled_at, mass_pm1_0, mass_pm2_5, mass_pm4_0, mass_pm10
             FROM sps30_samples ORDER BY id DESC LIMIT 1
         """)
         printer = _row(conn, """
