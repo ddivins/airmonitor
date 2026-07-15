@@ -16,6 +16,7 @@ service. Existing Grafana paths continue to use Grafana, and the landing page li
 light-theme kiosk dashboard. The `/grafana-signin` route clears the anonymous Grafana
 session. Anonymous requests to `/` receive the appliance page, while requests carrying a
 Grafana session cookie send Grafana's normal post-login `/` destination back to Grafana.
+The stable `/status` route always serves the appliance page, including for signed-in users.
 
 Install or refresh routing with:
 
