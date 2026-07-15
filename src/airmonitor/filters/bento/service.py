@@ -79,6 +79,7 @@ RECONNECT_DELAY = getenv_int("RECONNECT_DELAY", 15, minimum=1)
 MQTT_KEEPALIVE = getenv_int("MQTT_KEEPALIVE", 60, minimum=10)
 LOCAL_MQTT_PORT = getenv_int("LOCAL_MQTT_PORT", 1883, minimum=1)
 HEARTBEAT_SECONDS = getenv_int("HEARTBEAT_SECONDS", 600, minimum=30)
+OUTLET_POLL_SECONDS = getenv_int("OUTLET_POLL_SECONDS", 15, minimum=5)
 MQTT_WATCHDOG_SECONDS = getenv_int("MQTT_WATCHDOG_SECONDS", 300, minimum=60)
 
 TURN_OFF_ON_SERVICE_STOP = getenv_bool("TURN_OFF_ON_SERVICE_STOP", False)
@@ -106,6 +107,7 @@ loop: Optional[asyncio.AbstractEventLoop] = None
 
 outlet_device = None
 outlet_is_on: Optional[bool] = None
+expected_outlet_state: Optional[bool] = None
 last_printer_state: Optional[str] = None
 last_printer_active: Optional[bool] = None
 last_mqtt_seen: Optional[float] = None
@@ -152,6 +154,34 @@ def outlet_state_value() -> str:
     if outlet_is_on is None:
         return FilterState.UNKNOWN.value
     return FilterState.ON.value if outlet_is_on else FilterState.OFF.value
+
+
+def external_override_mode(expected: bool | None, actual: bool | None) -> str | None:
+    """Latch an external ON; an external OFF returns control to automation."""
+    if expected is None or actual is None or actual == expected:
+        return None
+    return FilterState.ON.value if actual else "auto"
+
+
+def record_external_manual_override(actual: bool) -> None:
+    state = FilterState.ON.value if actual else FilterState.OFF.value
+    manual_mode = FilterState.ON.value if actual else "auto"
+    reason = "external manual change detected: on" if actual else "external off returned control to auto"
+    try:
+        conn = connect(DATABASE_PATH)
+        init_db(conn)
+        repo = FilterControlRepository(conn)
+        repo.update(
+            FILTER_ID,
+            manual_mode=manual_mode,
+            actual_state=state,
+            effective_state=state,
+            reason=reason,
+        )
+        conn.close()
+        LOG.info("Detected external Bento outlet change; control mode is now %s", manual_mode.upper())
+    except Exception:
+        LOG.warning("Failed to persist external Bento manual override", exc_info=True)
 
 
 def record_filter_state(
@@ -216,7 +246,7 @@ async def apply_filter_request(automation_request: str, reason: str) -> None:
 # ----------------------------
 
 async def connect_outlet() -> None:
-    global outlet_device, outlet_is_on, last_power_watts
+    global outlet_device, outlet_is_on, expected_outlet_state, last_power_watts
 
     LOG.info("Connecting to Kasa outlet at %s", OUTLET_HOST)
 
@@ -231,6 +261,8 @@ async def connect_outlet() -> None:
 
     await outlet_device.update()
     outlet_is_on = bool(outlet_device.is_on)
+    if expected_outlet_state is None:
+        expected_outlet_state = outlet_is_on
     last_power_watts = read_power_watts()
 
     LOG.info(
@@ -276,6 +308,29 @@ async def refresh_outlet_status() -> None:
     record_filter_state(actual_state=outlet_state_value())
 
 
+async def reconcile_external_outlet_change() -> None:
+    """Detect Kasa/app changes and apply the persisted override policy."""
+    global expected_outlet_state
+
+    await refresh_outlet_status()
+    override_mode = external_override_mode(expected_outlet_state, outlet_is_on)
+    if override_mode is None:
+        return
+
+    record_external_manual_override(bool(outlet_is_on))
+    expected_outlet_state = outlet_is_on
+
+    try:
+        conn = connect(DATABASE_PATH)
+        init_db(conn)
+        record = FilterControlRepository(conn).get(FILTER_ID)
+        conn.close()
+        request = record.automation_request if record.automation_request in {"on", "off"} else "off"
+        await apply_filter_request(request, record.reason or "automation")
+    except Exception:
+        LOG.warning("Failed to reconcile Bento outlet after external change", exc_info=True)
+
+
 async def disconnect_outlet() -> None:
     """Release python-kasa's HTTP session and clear cached outlet state."""
     global outlet_device, outlet_is_on, last_power_watts
@@ -295,7 +350,7 @@ async def disconnect_outlet() -> None:
 
 
 async def set_outlet(state: bool) -> None:
-    global outlet_device, outlet_is_on, last_power_watts
+    global outlet_device, outlet_is_on, expected_outlet_state, last_power_watts
 
     if outlet_is_on == state:
         LOG.debug("Outlet already %s; duplicate command suppressed", "ON" if state else "OFF")
@@ -328,6 +383,7 @@ async def set_outlet(state: bool) -> None:
         await outlet_device.update()
 
     outlet_is_on = bool(outlet_device.is_on)
+    expected_outlet_state = outlet_is_on
     last_power_watts = read_power_watts()
 
     LOG.info(
@@ -457,6 +513,15 @@ async def heartbeat_runner() -> None:
             "never" if mqtt_age is None else mqtt_age,
             off_timer_status(),
         )
+
+
+async def outlet_poll_runner() -> None:
+    while running:
+        await asyncio.sleep(OUTLET_POLL_SECONDS)
+        try:
+            await reconcile_external_outlet_change()
+        except Exception:
+            LOG.warning("Bento outlet poll failed", exc_info=True)
 
 
 async def watchdog_runner() -> None:
@@ -615,6 +680,7 @@ def log_startup_config() -> None:
     LOG.info("ON states: %s", sorted(ON_STATES))
     LOG.info("OFF delay: %s seconds", OFF_DELAY_SECONDS)
     LOG.info("Heartbeat: every %s seconds", HEARTBEAT_SECONDS)
+    LOG.info("Outlet manual-change poll: every %s seconds", OUTLET_POLL_SECONDS)
     LOG.info("MQTT watchdog: %s seconds", MQTT_WATCHDOG_SECONDS)
     LOG.info("Turn outlet off on service stop: %s", TURN_OFF_ON_SERVICE_STOP)
 
@@ -642,6 +708,7 @@ async def main() -> None:
     await connect_outlet()
     background_tasks = [
         asyncio.create_task(heartbeat_runner(), name="heartbeat"),
+        asyncio.create_task(outlet_poll_runner(), name="outlet-poll"),
         asyncio.create_task(watchdog_runner(), name="watchdog"),
     ]
 

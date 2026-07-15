@@ -117,14 +117,15 @@ Reason: Printing ABS
 
 ## Out-of-band changes
 
-If the user turns a filter on from the vendor app, button, or smart plug UI, AirMonitor should not immediately fight it.
+The Levoit and Bento services compare observed device state with the state last
+commanded by AirMonitor. An external ON change (VeSync, Kasa, or a physical
+button) latches that filter in manual `on` mode. An external OFF change returns
+the filter to `auto` and immediately reconciles it with the current automation
+request. This means an active print can turn a manually stopped filter back on.
 
-Preferred behavior:
-
-1. Detect that actual state differs from expected state.
-2. Treat it as a temporary manual action or mark state as `external_override`.
-3. Surface the condition in logs and Grafana.
-4. Do not send an opposite command until the controller has a clear ownership decision.
+Levoit detects changes during its normal device poll. Bento polls its local Kasa
+outlet every `OUTLET_POLL_SECONDS` (15 seconds by default). The resulting manual
+mode and reason are persisted and shown on the status page.
 
 ## Persistence
 
