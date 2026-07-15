@@ -15,8 +15,8 @@ BRAND_ASSET="${BRAND_ASSET:-grafana/assets/airmonitor-brand-300.png}"
 DB_DIR="${DB_DIR:-/var/lib/airmonitor}"
 DB_FILE="${DB_FILE:-/var/lib/airmonitor/airmonitor.sqlite3}"
 DATA_GROUP="${DATA_GROUP:-airmonitor-data}"
-GRAFANA_DOMAIN="${GRAFANA_DOMAIN:-grafana.airmonitor.example.com}"
-GRAFANA_ROOT_URL="${GRAFANA_ROOT_URL:-https://grafana.airmonitor.example.com/}"
+GRAFANA_DOMAIN="${GRAFANA_DOMAIN:-airmonitor.example.com}"
+GRAFANA_ROOT_URL="${GRAFANA_ROOT_URL:-https://airmonitor.example.com/grafana/}"
 GRAFANA_ANONYMOUS_ORG_NAME="${GRAFANA_ANONYMOUS_ORG_NAME:-Main Org.}"
 GRAFANA_DB="${GRAFANA_DB:-/var/lib/grafana/grafana.db}"
 FRESH_AIRMONITOR_GRAFANA="${FRESH_AIRMONITOR_GRAFANA:-1}"
@@ -71,6 +71,7 @@ http_addr = 127.0.0.1
 http_port = 3000
 domain = $GRAFANA_DOMAIN
 root_url = $GRAFANA_ROOT_URL
+serve_from_sub_path = true
 
 [users]
 default_theme = light
@@ -125,6 +126,7 @@ Environment="GF_SERVER_HTTP_ADDR=127.0.0.1"
 Environment="GF_SERVER_HTTP_PORT=3000"
 Environment="GF_SERVER_DOMAIN=$GRAFANA_DOMAIN"
 Environment="GF_SERVER_ROOT_URL=$GRAFANA_ROOT_URL"
+Environment="GF_SERVER_SERVE_FROM_SUB_PATH=true"
 Environment="GF_USERS_DEFAULT_THEME=light"
 Environment="GF_USERS_VIEWERS_CAN_EDIT=false"
 Environment="GF_AUTH_DISABLE_LOGIN_FORM=false"

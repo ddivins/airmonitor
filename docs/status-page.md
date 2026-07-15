@@ -11,10 +11,9 @@ The status service reads:
 - a fixed allowlist of systemd service states
 - disk usage, database size, host uptime, and Linux thermal-zone temperature
 
-Nginx serves the landing page at `airmonitor.example.com` and proxies Grafana on the
-separate `grafana.airmonitor.example.com` virtual host. This keeps Grafana sessions,
-login redirects, and its `/` route independent from the appliance page. Old Grafana paths
-on the appliance hostname redirect to the matching path on the Grafana hostname.
+Nginx serves the landing page at `airmonitor.example.com` and proxies Grafana beneath
+`/grafana/` on that same hostname. The historical `grafana.airmonitor.example.com`
+host redirects old bookmarks into the corresponding unified-app path.
 
 Install or refresh routing with:
 
@@ -28,8 +27,8 @@ streams are older than five minutes.
 
 ## Authentication and administration
 
-Grafana is the single identity source for both hostnames. Nginx scopes Grafana's session
-cookie to `.airmonitor.example.com`; the landing service validates that opaque cookie
+Grafana is the single identity source. Nginx makes its `/grafana/` session cookie available
+at the appliance root; the landing service validates that opaque cookie
 against Grafana's loopback `/api/user` endpoint and never reads Grafana's user database or
 stores passwords itself. Logged-out visitors retain full read-only appliance status.
 
@@ -48,9 +47,8 @@ the UI cannot disable itself. Stopping `airmonitor.target` stops its sensor and 
 members but leaves the status page available to start them again. Grafana and Mosquitto expose restart-only controls; stop, enable, and disable are
 rejected independently by both the HTTP policy and the privileged helper.
 
-Successful Grafana password logins return to the appliance landing page. The provisioned
-Grafana dashboards include an `AirMonitor Status` dashboard link back to the appliance, so
-navigation works in both directions without combining the two applications on one host.
+Grafana and the appliance landing page now share one origin. The provisioned dashboards
+include an `AirMonitor Status` link back to the appliance root.
 
 ## Password reset email
 

@@ -41,13 +41,13 @@ Provisioning files are installed to:
 ## Dashboard URL
 
 ```text
-https://grafana.airmonitor.example.com/d/airmonitor-live/airmonitor-live
+https://airmonitor.example.com/grafana/d/airmonitor-live/airmonitor-live
 ```
 
 For a navigation-free kiosk display that is pinned to the light theme:
 
 ```text
-https://grafana.airmonitor.example.com/d/airmonitor-live/airmonitor-live?kiosk&theme=light
+https://airmonitor.example.com/grafana/d/airmonitor-live/airmonitor-live?kiosk&theme=light
 ```
 
 Anonymous access is enabled with the Grafana `Viewer` role. The landing page links to the
