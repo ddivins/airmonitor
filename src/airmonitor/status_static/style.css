@@ -83,7 +83,7 @@ section { margin-top: 30px; }
 .service-item { background: var(--surface); box-shadow: none; flex-wrap: wrap; }
 .service-label { min-width: 0; color: var(--navy); font-size: .82rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .service-summary { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
-.service-controls { display: grid; grid-template-columns: 1fr auto; gap: 8px; width: 100%; padding-top: 8px; border-top: 1px solid #edf1f4; }
+.service-controls { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; width: 100%; padding-top: 8px; border-top: 1px solid #edf1f4; }
 .service-controls select, .service-controls button { min-height: 42px; border-radius: 9px; border: 1px solid var(--line); font: inherit; }
 .service-controls select { min-width: 0; padding: 0 10px; color: var(--navy); background: white; }
 .service-controls button { padding: 0 14px; color: white; background: var(--navy); border-color: var(--navy); font-weight: 750; cursor: pointer; }
@@ -91,6 +91,12 @@ section { margin-top: 30px; }
 .service-controls button:disabled { cursor: wait; opacity: .55; }
 .admin-notice { margin: 0 0 12px; padding: 10px 12px; color: #7a4d00; background: #fff5db; border: 1px solid #f0d38c; border-radius: 10px; font-size: .78rem; }
 .enabled-state { color: var(--muted); font-size: .68rem; text-transform: capitalize; }
+.service-dialog { width: min(820px,calc(100% - 24px)); max-height: min(82vh,720px); padding: 0; color: #d7e1ec; background: #101827; border: 1px solid #2b3a50; border-radius: 16px; box-shadow: 0 24px 80px rgba(0,0,0,.35); }
+.service-dialog::backdrop { background: rgba(6,18,38,.55); backdrop-filter: blur(3px); }
+.dialog-heading { position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; background: #172236; border-bottom: 1px solid #2b3a50; }
+.dialog-heading h2 { margin: 0; color: white; font-size: .95rem; }
+.dialog-heading button { width: 38px; height: 38px; color: white; background: transparent; border: 1px solid #526078; border-radius: 9px; font-size: 1.4rem; cursor: pointer; }
+.service-dialog pre { min-height: 180px; margin: 0; padding: 18px; overflow: auto; color: #d7e1ec; font: .78rem/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
 .skeleton { height: 48px; border-radius: 12px; background: linear-gradient(90deg,#edf1f4,#f8fafc,#edf1f4); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
 @keyframes shimmer { to { background-position: -200% 0; } }
 @media (max-width: 850px) {
@@ -112,4 +118,6 @@ section { margin-top: 30px; }
   .appliance-details { grid-template-columns: 1fr; }
   .appliance-details div:nth-child(2) { border-top: 1px solid #edf1f4; }
   .service-grid { grid-template-columns: 1fr; }
+  .service-controls { grid-template-columns: 1fr auto; }
+  .service-controls .status-button { grid-column: 1 / -1; }
 }

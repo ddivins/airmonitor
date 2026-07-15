@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from airmonitor.status_web import grafana_user, service_enabled
+from airmonitor.status_web import grafana_user, service_enabled, service_status
 
 
 class FakeResponse:
@@ -39,6 +39,17 @@ class StatusWebTests(unittest.TestCase):
         mocked_run.return_value = subprocess.CompletedProcess([], 0, stdout="enabled\n", stderr="")
         self.assertEqual(service_enabled("airmonitor.service"), "enabled")
         self.assertEqual(mocked_run.call_args.args[0], ["systemctl", "is-enabled", "airmonitor.service"])
+
+    @patch("airmonitor.status_web.subprocess.run")
+    def test_service_status_matches_systemctl_output(self, mocked_run):
+        mocked_run.return_value = subprocess.CompletedProcess([], 0, stdout="● airmonitor.service - AirMonitor\n   Active: active\n", stderr="")
+        output = service_status("airmonitor.service")
+        self.assertIn("Active: active", output)
+        self.assertEqual(mocked_run.call_args.args[0], ["systemctl", "status", "--no-pager", "--full", "airmonitor.service"])
+
+    def test_service_status_rejects_non_airmonitor_service(self):
+        with self.assertRaises(ValueError):
+            service_status("ssh.service")
 
     def test_control_helper_rejects_unknown_service_before_systemctl(self):
         helper = Path(__file__).parents[1] / "tools" / "airmonitor-service-control"

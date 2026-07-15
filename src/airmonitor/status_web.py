@@ -12,6 +12,7 @@ from pathlib import PurePosixPath
 import subprocess
 from typing import Iterable
 from urllib.error import HTTPError, URLError
+from urllib.parse import parse_qs, urlsplit
 from urllib.request import Request, urlopen
 
 from airmonitor.status import DEFAULT_DATABASE, collect_status
@@ -60,6 +61,23 @@ def service_enabled(service: str) -> str:
     return (result.stdout or result.stderr).strip() or "unknown"
 
 
+def service_status(service: str) -> str:
+    """Return systemctl-compatible status text for an allowlisted service."""
+    if service not in CONTROLLED_SERVICES:
+        raise ValueError("Unsupported service")
+    try:
+        result = subprocess.run(
+            ["systemctl", "status", "--no-pager", "--full", service],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired) as error:
+        raise RuntimeError("systemctl status unavailable") from error
+    return (result.stdout or result.stderr).strip()
+
+
 class StatusHandler(BaseHTTPRequestHandler):
     server_version = "AirMonitorStatus"
 
@@ -88,7 +106,8 @@ class StatusHandler(BaseHTTPRequestHandler):
         self.do_GET()
 
     def do_GET(self) -> None:
-        path = self.path.split("?", 1)[0]
+        request_url = urlsplit(self.path)
+        path = request_url.path
         if path == "/api/status":
             self._json(200, collect_status(self.server.database))
             return
@@ -109,6 +128,22 @@ class StatusHandler(BaseHTTPRequestHandler):
                 },
                 "services": {name: service_enabled(name) for name in CONTROLLED_SERVICES} if admin else {},
             })
+            return
+        if path == "/api/services/status":
+            user = self._current_user()
+            if not user or not bool(user.get("isGrafanaAdmin")):
+                self._json(403, {"error": "Grafana administrator access required"})
+                return
+            service = parse_qs(request_url.query).get("service", [None])[0]
+            if service not in CONTROLLED_SERVICES:
+                self._json(400, {"error": "Unsupported service"})
+                return
+            try:
+                output = service_status(service)
+            except RuntimeError as error:
+                self._json(503, {"error": str(error)})
+                return
+            self._json(200, {"service": service, "output": output})
             return
         if path == "/healthz":
             self._send(200, b'{"ok":true}', "application/json; charset=utf-8")
@@ -174,7 +209,11 @@ class StatusHandler(BaseHTTPRequestHandler):
         if result.returncode:
             self._json(500, {"error": (result.stderr or result.stdout).strip() or "Service action failed"})
             return
-        self._json(200, {"ok": True, "service": service, "action": action})
+        try:
+            output = service_status(service)
+        except RuntimeError:
+            output = "Service action succeeded, but systemctl status was unavailable."
+        self._json(200, {"ok": True, "service": service, "action": action, "output": output})
 
     def log_message(self, format: str, *args: object) -> None:
         print(f"{self.address_string()} - {format % args}")

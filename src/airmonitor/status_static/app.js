@@ -36,7 +36,27 @@ function renderSession() {
 
 function serviceControl(name) {
   if (!session.user?.admin || !(name in session.services)) return "";
-  return `<div class="service-controls"><select aria-label="Action for ${escapeHtml(serviceLabel(name))}" data-service-action="${escapeHtml(name)}"><option value="restart">Restart</option><option value="start">Start</option><option value="stop">Stop</option><option value="enable">Enable and start</option><option value="disable">Disable and stop</option></select><button type="button" data-service-apply="${escapeHtml(name)}">Apply</button></div>`;
+  return `<div class="service-controls"><select aria-label="Action for ${escapeHtml(serviceLabel(name))}" data-service-action="${escapeHtml(name)}"><option value="restart">Restart</option><option value="start">Start</option><option value="stop">Stop</option><option value="enable">Enable and start</option><option value="disable">Disable and stop</option></select><button type="button" data-service-apply="${escapeHtml(name)}">Apply</button><button class="status-button" type="button" data-service-status="${escapeHtml(name)}">Status</button></div>`;
+}
+
+function showServiceStatus(service, output) {
+  $("service-status-title").textContent = service;
+  $("service-status-output").textContent = output || "No systemctl output.";
+  $("service-status-dialog").showModal();
+}
+
+async function fetchServiceStatus(service, button) {
+  button.disabled = true;
+  try {
+    const response = await fetch(`/service-status-api?service=${encodeURIComponent(service)}`, {cache: "no-store", credentials: "same-origin"});
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
+    showServiceStatus(service, result.output);
+  } catch (error) {
+    window.alert(`Unable to read service status: ${error.message}`);
+  } finally {
+    button.disabled = false;
+  }
 }
 
 function render(data) {
@@ -107,6 +127,7 @@ async function controlService(service, action, button) {
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
+    showServiceStatus(service, result.output);
     await new Promise((resolve) => setTimeout(resolve, 900));
     await Promise.all([refreshSession(), refresh()]);
   } catch (error) {
@@ -117,12 +138,19 @@ async function controlService(service, action, button) {
 }
 
 document.addEventListener("click", (event) => {
+  const statusButton = event.target.closest("[data-service-status]");
+  if (statusButton) {
+    fetchServiceStatus(statusButton.dataset.serviceStatus, statusButton);
+    return;
+  }
   const button = event.target.closest("[data-service-apply]");
   if (!button) return;
   const service = button.dataset.serviceApply;
   const select = document.querySelector(`[data-service-action="${CSS.escape(service)}"]`);
   controlService(service, select.value, button);
 });
+
+$("service-status-close").addEventListener("click", () => $("service-status-dialog").close());
 
 async function refresh() {
   try {

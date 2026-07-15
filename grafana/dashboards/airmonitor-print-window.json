@@ -28,7 +28,19 @@
   "annotations": {
     "list": []
   },
-  "links": [],
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": false,
+      "tags": [],
+      "targetBlank": false,
+      "title": "AirMonitor Status",
+      "type": "link",
+      "url": "https://airmonitor.example.com/"
+    }
+  ],
   "templating": {
     "list": [
       {

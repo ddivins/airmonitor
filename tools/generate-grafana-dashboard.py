@@ -336,7 +336,17 @@ def build() -> dict[str, Any]:
         "graphTooltip": 1,
         "annotations": {"list": []},
         "templating": {"list": []},
-        "links": [],
+        "links": [{
+            "asDropdown": False,
+            "icon": "external link",
+            "includeVars": False,
+            "keepTime": False,
+            "tags": [],
+            "targetBlank": False,
+            "title": "AirMonitor Status",
+            "type": "link",
+            "url": "https://airmonitor.example.com/",
+        }],
         "panels": panels,
     }
 

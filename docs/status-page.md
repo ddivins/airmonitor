@@ -39,6 +39,12 @@ an exact same-origin check, a custom CSRF header, and a fixed service/action all
 unprivileged status process can invoke only the root-owned
 `/usr/local/sbin/airmonitor-service-control` helper through its dedicated sudoers rule.
 Grafana, nginx, Mosquitto, and the status service cannot be controlled through this API.
+Each service card also exposes the same full, unpaginated text returned by
+`systemctl status --no-pager --full`; action results open that status output immediately.
+
+Successful Grafana password logins return to the appliance landing page. The provisioned
+Grafana dashboards include an `AirMonitor Status` dashboard link back to the appliance, so
+navigation works in both directions without combining the two applications on one host.
 
 ## Password reset email
 

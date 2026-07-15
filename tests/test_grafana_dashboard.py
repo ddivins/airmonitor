@@ -27,6 +27,7 @@ class GrafanaDashboardTests(unittest.TestCase):
         self.assertEqual(dashboard["style"], "light")
         self.assertEqual(dashboard["uid"], "airmonitor-live")
         self.assertFalse(dashboard["editable"])
+        self.assertEqual(dashboard["links"][0]["url"], "https://airmonitor.example.com/")
         for panel in dashboard["panels"]:
             self.assertEqual(panel["datasource"]["uid"], "airmonitor-sqlite")
 
