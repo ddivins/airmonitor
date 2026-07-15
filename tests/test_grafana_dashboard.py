@@ -59,6 +59,13 @@ class GrafanaDashboardTests(unittest.TestCase):
                 dashboard = json.loads(path.read_text(encoding="utf-8"))
                 self.assertFalse(dashboard["editable"])
 
+    def test_print_dashboard_places_environment_after_sensor_graphs(self):
+        path = Path(__file__).parents[1] / "grafana" / "dashboards" / "airmonitor-print-window.json"
+        dashboard = json.loads(path.read_text(encoding="utf-8"))
+        positions = {panel["title"]: panel["gridPos"]["y"] for panel in dashboard["panels"]}
+        self.assertLess(positions["VOC — 30 Minutes Before Through 30 Minutes After"], positions["Temperature and Humidity"])
+        self.assertLess(positions["Particulate Matter"], positions["Temperature and Humidity"])
+
     def test_all_panel_queries_match_schema(self):
         conn = sqlite3.connect(":memory:")
         try:
