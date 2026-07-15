@@ -76,6 +76,7 @@ serve_from_sub_path = true
 [users]
 default_theme = light
 viewers_can_edit = false
+home_page = /
 
 [auth]
 disable_login_form = false
@@ -90,8 +91,6 @@ org_name = $GRAFANA_ANONYMOUS_ORG_NAME
 org_role = Viewer
 hide_version = true
 
-[dashboards]
-default_home_dashboard_path = $DASHBOARD_DIR/airmonitor-live.json
 EOF
 
 sudo chown root:grafana /etc/grafana/grafana.ini.d/airmonitor.ini
@@ -129,6 +128,7 @@ Environment="GF_SERVER_ROOT_URL=$GRAFANA_ROOT_URL"
 Environment="GF_SERVER_SERVE_FROM_SUB_PATH=true"
 Environment="GF_USERS_DEFAULT_THEME=light"
 Environment="GF_USERS_VIEWERS_CAN_EDIT=false"
+Environment="GF_USERS_HOME_PAGE=/"
 Environment="GF_AUTH_DISABLE_LOGIN_FORM=false"
 Environment="GF_SECURITY_COOKIE_SECURE=true"
 Environment="GF_SECURITY_COOKIE_SAMESITE=lax"
@@ -136,7 +136,6 @@ Environment="GF_AUTH_ANONYMOUS_ENABLED=true"
 Environment="GF_AUTH_ANONYMOUS_ORG_NAME=$GRAFANA_ANONYMOUS_ORG_NAME"
 Environment="GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer"
 Environment="GF_AUTH_ANONYMOUS_HIDE_VERSION=true"
-Environment="GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=$DASHBOARD_DIR/airmonitor-live.json"
 EOF
 
 log "Installing AirMonitor brand asset"
@@ -187,6 +186,12 @@ if [[ "$FRESH_AIRMONITOR_GRAFANA" == "1" && -f "$GRAFANA_DB" ]]; then
   log "Backing up Grafana DB before provisioning refresh"
   sudo install -d -o grafana -g grafana -m 0750 /var/lib/grafana/backups
   sudo cp -a "$GRAFANA_DB" "/var/lib/grafana/backups/grafana.db.airmonitor.$(date +%Y%m%d-%H%M%S)"
+fi
+
+if [[ -f "$GRAFANA_DB" ]] && command -v sqlite3 >/dev/null; then
+  log "Clearing the organization dashboard-home override"
+  org_name_sql="${GRAFANA_ANONYMOUS_ORG_NAME//\'/\'\'}"
+  sudo sqlite3 "$GRAFANA_DB" "UPDATE preferences SET home_dashboard_id = 0 WHERE org_id = (SELECT id FROM org WHERE name = '$org_name_sql') AND user_id = 0 AND COALESCE(team_id, 0) = 0;"
 fi
 
 log "Restarting Grafana"
