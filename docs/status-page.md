@@ -11,12 +11,10 @@ The status service reads:
 - a fixed allowlist of systemd service states
 - disk usage, database size, host uptime, and Linux thermal-zone temperature
 
-Nginx sends only the exact `/` route, `/status-api`, and `/status-assets/` to the status
-service. Existing Grafana paths continue to use Grafana, and the landing page links to the
-light-theme kiosk dashboard. The `/grafana-signin` route clears the anonymous Grafana
-session. Anonymous requests to `/` receive the appliance page, while requests carrying a
-Grafana session cookie send Grafana's normal post-login `/` destination back to Grafana.
-The stable `/status` route always serves the appliance page, including for signed-in users.
+Nginx serves the landing page at `airmonitor.example.com` and proxies Grafana on the
+separate `grafana.airmonitor.example.com` virtual host. This keeps Grafana sessions,
+login redirects, and its `/` route independent from the appliance page. Old Grafana paths
+on the appliance hostname redirect to the matching path on the Grafana hostname.
 
 Install or refresh routing with:
 
