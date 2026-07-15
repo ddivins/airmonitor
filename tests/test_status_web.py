@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from airmonitor.status_web import SERVICE_ACTIONS, grafana_user, service_enabled, service_status
+from airmonitor.status_web import SERVICE_ACTIONS, grafana_user, service_enabled, service_status, set_filter_mode
 
 
 class FakeResponse:
@@ -57,6 +57,18 @@ class StatusWebTests(unittest.TestCase):
 
     def test_application_target_has_lifecycle_controls(self):
         self.assertEqual(SERVICE_ACTIONS["airmonitor.target"], ("start", "stop", "restart"))
+
+    def test_filter_mode_is_persisted_and_resolved(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database = str(Path(directory) / "airmonitor.sqlite3")
+            record = set_filter_mode(database, "bento", "on")
+            self.assertEqual(record["manual_mode"], "on")
+            self.assertEqual(record["effective_state"], "on")
+            self.assertEqual(record["reason"], "manual override: on")
+
+    def test_filter_mode_rejects_unknown_values(self):
+        with self.assertRaises(ValueError):
+            set_filter_mode(":memory:", "bento", "turbo")
 
     def test_control_helper_rejects_unknown_service_before_systemctl(self):
         helper = Path(__file__).parents[1] / "tools" / "airmonitor-service-control"

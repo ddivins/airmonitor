@@ -69,6 +69,13 @@ section { margin-top: 30px; }
 .state-list { display: grid; gap: 9px; }
 .state-row, .service-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 12px; background: #f8fafc; }
 .state-name { color: var(--navy); font-weight: 750; text-transform: capitalize; }
+.filter-row { align-items: stretch; flex-direction: column; }
+.filter-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.filter-controls { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; padding-top: 9px; border-top: 1px solid #e5ebf0; }
+.filter-controls button { min-height: 40px; padding: 0 12px; color: var(--navy); background: white; border: 1px solid var(--line); border-radius: 9px; font: inherit; font-size: .75rem; font-weight: 800; text-transform: uppercase; cursor: pointer; }
+.filter-controls button:hover, .filter-controls button:focus-visible { color: var(--blue); border-color: #9bc5e5; outline: 2px solid rgba(22,117,209,.14); }
+.filter-controls button.selected { color: white; background: var(--navy); border-color: var(--navy); }
+.filter-controls button:disabled { cursor: wait; opacity: .55; }
 .state-meta { color: var(--muted); font-size: .78rem; }
 .state-meta.telemetry { margin-top: 4px; color: var(--ink); font-variant-numeric: tabular-nums; }
 .pill { display: inline-flex; align-items: center; gap: 7px; padding: 5px 9px; border-radius: 999px; background: #e5eaf0; font-size: .72rem; font-weight: 800; text-transform: uppercase; }

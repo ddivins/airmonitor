@@ -314,11 +314,9 @@ async def reconcile_external_outlet_change() -> None:
 
     await refresh_outlet_status()
     override_mode = external_override_mode(expected_outlet_state, outlet_is_on)
-    if override_mode is None:
-        return
-
-    record_external_manual_override(bool(outlet_is_on))
-    expected_outlet_state = outlet_is_on
+    if override_mode is not None:
+        record_external_manual_override(bool(outlet_is_on))
+        expected_outlet_state = outlet_is_on
 
     try:
         conn = connect(DATABASE_PATH)
@@ -326,7 +324,7 @@ async def reconcile_external_outlet_change() -> None:
         record = FilterControlRepository(conn).get(FILTER_ID)
         conn.close()
         request = record.automation_request if record.automation_request in {"on", "off"} else "off"
-        await apply_filter_request(request, record.reason or "automation")
+        await apply_filter_request(request, "automation")
     except Exception:
         LOG.warning("Failed to reconcile Bento outlet after external change", exc_info=True)
 

@@ -47,6 +47,13 @@ function serviceControl(name) {
   return `<div class="service-controls"><select aria-label="Action for ${escapeHtml(serviceLabel(name))}" data-service-action="${escapeHtml(name)}">${options}</select><button type="button" data-service-apply="${escapeHtml(name)}">Apply</button><button class="status-button" type="button" data-service-status="${escapeHtml(name)}">Status</button></div>`;
 }
 
+function filterControl(item) {
+  if (!session.user?.admin) return "";
+  return `<div class="filter-controls" role="group" aria-label="Control ${escapeHtml(item.filter_id)}">
+    ${["auto", "on", "off"].map((mode) => `<button type="button" data-filter="${escapeHtml(item.filter_id)}" data-filter-mode="${mode}" class="${item.manual_mode === mode ? "selected" : ""}" aria-pressed="${item.manual_mode === mode}">${mode}</button>`).join("")}
+  </div>`;
+}
+
 function showServiceStatus(service, output) {
   $("service-status-title").textContent = service;
   $("service-status-output").textContent = output || "No systemctl output.";
@@ -92,7 +99,7 @@ function render(data) {
 
   const levoit = data.levoit || {};
   $("filters").innerHTML = (data.filters || []).map((item) => `
-    <div class="state-row"><div><div class="state-name">${escapeHtml(item.filter_id)}</div><div class="state-meta">${escapeHtml(item.manual_mode)} · ${escapeHtml(item.reason || "service reported")}</div>${item.filter_id === "levoit" && levoit.sampled_at ? `<div class="state-meta telemetry">Fan ${escapeHtml(levoit.fan_level ?? "—")} · PM2.5 ${escapeHtml(number(levoit.pm2_5, 0))} µg/m³ · ${escapeHtml(levoit.mode || "unknown mode")} · Filter ${escapeHtml(levoit.filter_life_percent ?? "—")}%</div>` : ""}</div>${pill(escapeHtml(item.effective_state), escapeHtml(item.effective_state))}</div>
+    <div class="state-row filter-row"><div class="filter-summary"><div><div class="state-name">${escapeHtml(item.filter_id)}</div><div class="state-meta">${escapeHtml(item.manual_mode)} · ${escapeHtml(item.reason || "service reported")}</div>${item.filter_id === "levoit" && levoit.sampled_at ? `<div class="state-meta telemetry">Fan ${escapeHtml(levoit.fan_level ?? "—")} · PM2.5 ${escapeHtml(number(levoit.pm2_5, 0))} µg/m³ · ${escapeHtml(levoit.mode || "unknown mode")} · Filter ${escapeHtml(levoit.filter_life_percent ?? "—")}%</div>` : ""}</div>${pill(escapeHtml(item.effective_state), escapeHtml(item.effective_state))}</div>${filterControl(item)}</div>
   `).join("") || '<div class="state-row"><span>No filter state</span></div>';
 
   $("freshness").innerHTML = Object.entries(data.freshness || {}).map(([name, item]) => {
@@ -145,7 +152,32 @@ async function controlService(service, action, button) {
   }
 }
 
+async function controlFilter(filterId, mode, button) {
+  if (!session.user?.admin) return;
+  button.disabled = true;
+  try {
+    const response = await fetch("/filter-control-api", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {"Content-Type": "application/json", "X-AirMonitor-Action": "filter-control"},
+      body: JSON.stringify({filter_id: filterId, mode}),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
+    await refresh();
+  } catch (error) {
+    window.alert(`Filter control failed: ${error.message}`);
+  } finally {
+    button.disabled = false;
+  }
+}
+
 document.addEventListener("click", (event) => {
+  const filterButton = event.target.closest("[data-filter-mode]");
+  if (filterButton) {
+    controlFilter(filterButton.dataset.filter, filterButton.dataset.filterMode, filterButton);
+    return;
+  }
   const statusButton = event.target.closest("[data-service-status]");
   if (statusButton) {
     fetchServiceStatus(statusButton.dataset.serviceStatus, statusButton);

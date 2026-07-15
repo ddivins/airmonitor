@@ -9,12 +9,16 @@ import json
 import mimetypes
 import os
 from pathlib import PurePosixPath
+import sqlite3
 import subprocess
 from typing import Iterable
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, urlsplit
 from urllib.request import Request, urlopen
 
+from airmonitor.database import connect, init_db
+from airmonitor.database.repositories import FilterControlRepository
+from airmonitor.filters.control import resolve_filter_state
 from airmonitor.status import DEFAULT_DATABASE, collect_status
 
 
@@ -43,6 +47,32 @@ SERVICE_ACTIONS = {
     "grafana-server.service": ("restart",),
     "mosquitto.service": ("restart",),
 }
+FILTER_IDS = ("bento", "levoit")
+FILTER_MODES = ("auto", "on", "off")
+
+
+def set_filter_mode(database: str, filter_id: str, mode: str) -> dict:
+    """Persist and resolve an administrator-selected filter mode."""
+    if filter_id not in FILTER_IDS or mode not in FILTER_MODES:
+        raise ValueError("Unsupported filter or mode")
+    conn = connect(database)
+    try:
+        init_db(conn)
+        repo = FilterControlRepository(conn)
+        record = repo.set_manual_mode(filter_id, mode)
+        decision = resolve_filter_state(
+            filter_id=filter_id,
+            manual_mode=mode,
+            automation_request=record.automation_request,
+            automation_reason="automation",
+        )
+        return repo.update(
+            filter_id,
+            effective_state=decision.effective_state.value,
+            reason=decision.reason,
+        ).as_dict()
+    finally:
+        conn.close()
 
 
 def grafana_user(cookie: str | None, api_url: str = GRAFANA_API) -> dict | None:
@@ -184,10 +214,11 @@ class StatusHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = self.path.split("?", 1)[0]
-        if path != "/api/services/control":
+        if path not in {"/api/services/control", "/api/filters/control"}:
             self._json(404, {"error": "Not found"})
             return
-        if self.headers.get("Origin") != self.server.public_origin or self.headers.get("X-AirMonitor-Action") != "service-control":
+        expected_action = "filter-control" if path == "/api/filters/control" else "service-control"
+        if self.headers.get("Origin") != self.server.public_origin or self.headers.get("X-AirMonitor-Action") != expected_action:
             self._json(403, {"error": "Request origin rejected"})
             return
         user = self._current_user()
@@ -205,6 +236,19 @@ class StatusHandler(BaseHTTPRequestHandler):
             payload = json.loads(self.rfile.read(length))
         except (json.JSONDecodeError, UnicodeDecodeError):
             self._json(400, {"error": "Invalid JSON"})
+            return
+        if path == "/api/filters/control":
+            filter_id = payload.get("filter_id") if isinstance(payload, dict) else None
+            mode = payload.get("mode") if isinstance(payload, dict) else None
+            try:
+                record = set_filter_mode(self.server.database, filter_id, mode)
+            except ValueError as error:
+                self._json(400, {"error": str(error)})
+                return
+            except (OSError, sqlite3.Error):
+                self._json(503, {"error": "Filter control database unavailable"})
+                return
+            self._json(200, {"ok": True, "filter": record})
             return
         service = payload.get("service") if isinstance(payload, dict) else None
         action = payload.get("action") if isinstance(payload, dict) else None
