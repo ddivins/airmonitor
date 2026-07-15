@@ -76,6 +76,9 @@ section { margin-top: 30px; }
 .filter-controls button:hover, .filter-controls button:focus-visible { color: var(--blue); border-color: #9bc5e5; outline: 2px solid rgba(22,117,209,.14); }
 .filter-controls button.selected { color: white; background: var(--navy); border-color: var(--navy); }
 .filter-controls button:disabled { cursor: wait; opacity: .55; }
+.freshness-row { align-items: stretch; flex-direction: column; }
+.freshness-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sensor-error { max-height: 150px; margin: 0; padding: 10px 12px; overflow: auto; color: #8f2730; background: #fff3f4; border: 1px solid #f2c8cc; border-radius: 8px; font: .7rem/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
 .state-meta { color: var(--muted); font-size: .78rem; }
 .state-meta.telemetry { margin-top: 4px; color: var(--ink); font-variant-numeric: tabular-nums; }
 .pill { display: inline-flex; align-items: center; gap: 7px; padding: 5px 9px; border-radius: 999px; background: #e5eaf0; font-size: .72rem; font-weight: 800; text-transform: uppercase; }

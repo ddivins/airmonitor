@@ -104,7 +104,7 @@ function render(data) {
 
   $("freshness").innerHTML = Object.entries(data.freshness || {}).map(([name, item]) => {
     const fresh = item.age_seconds != null && item.age_seconds <= 90;
-    return `<div class="state-row"><div><div class="state-name">${escapeHtml(name)}</div><div class="state-meta">${escapeHtml(timeAgo(item.age_seconds))}</div></div>${pill(fresh ? "Fresh" : "Stale", fresh ? "fresh" : "stale")}</div>`;
+    return `<div class="state-row freshness-row"><div class="freshness-summary"><div><div class="state-name">${escapeHtml(name)}</div><div class="state-meta">${escapeHtml(timeAgo(item.age_seconds))}</div></div>${pill(fresh ? "Fresh" : "Stale", fresh ? "fresh" : "stale")}</div>${!fresh && item.error ? `<pre class="sensor-error">${escapeHtml(item.error)}</pre>` : ""}</div>`;
   }).join("");
 
   const host = data.host || {};

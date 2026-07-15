@@ -24,6 +24,10 @@ SERVICES = (
     "grafana-server.service",
     "mosquitto.service",
 )
+SENSOR_SERVICES = {
+    "sgx": "airmonitor-voc.service",
+    "sps30": "airmonitor-sps30.service",
+}
 
 
 def _iso_now(now: datetime | None = None) -> datetime:
@@ -55,6 +59,22 @@ def _service_state(service: str) -> str:
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return "unknown"
     return (result.stdout or result.stderr).strip() or "unknown"
+
+
+def _service_error(service: str) -> str | None:
+    """Return a small, recent warning/error excerpt for a stale sensor."""
+    try:
+        result = subprocess.run(
+            ["journalctl", "-u", service, "-p", "warning", "-n", "6", "--no-pager", "-o", "cat"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=3,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+    output = (result.stdout or result.stderr).strip()
+    return output[-1600:] if output else None
 
 
 def _host_metrics(database: str, disk_path: str = "/var/lib/airmonitor") -> dict[str, Any]:
@@ -92,6 +112,7 @@ def collect_status(
     *,
     now: datetime | None = None,
     service_reader: Callable[[str], str] = _service_state,
+    error_reader: Callable[[str], str | None] = _service_error,
     host_reader: Callable[[str], dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Collect status without talking to sensor hardware or control integrations."""
@@ -139,6 +160,9 @@ def collect_status(
             "age_seconds": _age_seconds(sps30.get("sampled_at"), checked_at) if sps30 else None,
         },
     }
+    for sensor_id, item in sensor_freshness.items():
+        if item["age_seconds"] is None or item["age_seconds"] > SENSOR_STALE_SECONDS:
+            item["error"] = error_reader(SENSOR_SERVICES[sensor_id])
     services = {name: service_reader(name) for name in SERVICES}
     host = (host_reader or (lambda path: _host_metrics(path)))(database)
 

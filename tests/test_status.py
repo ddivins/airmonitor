@@ -62,7 +62,19 @@ class StatusTests(unittest.TestCase):
 
     def test_collect_status_reports_stale_sensors_offline(self):
         build_database(self.database, (self.now - timedelta(minutes=10)).isoformat().replace("+00:00", "Z"))
-        result = collect_status(str(self.database), now=self.now, service_reader=lambda _name: "active", host_reader=host_metrics)
+        errors = {
+            "airmonitor-voc.service": "SGX read failed: timeout",
+            "airmonitor-sps30.service": "SPS30 unavailable: permission denied",
+        }
+        result = collect_status(
+            str(self.database),
+            now=self.now,
+            service_reader=lambda _name: "active",
+            error_reader=errors.get,
+            host_reader=host_metrics,
+        )
 
         self.assertEqual(result["overall"], "offline")
         self.assertIn("One or more sensor streams are stale", result["warnings"])
+        self.assertEqual(result["freshness"]["sgx"]["error"], "SGX read failed: timeout")
+        self.assertEqual(result["freshness"]["sps30"]["error"], "SPS30 unavailable: permission denied")
