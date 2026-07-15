@@ -14,8 +14,9 @@ DEFAULT_DATABASE = "/var/lib/airmonitor/airmonitor.sqlite3"
 SENSOR_STALE_SECONDS = 90
 SENSOR_OFFLINE_SECONDS = 300
 SERVICES = (
+    "airmonitor.target",
     "airmonitor-status.service",
-    "airmonitor.service",
+    "airmonitor-voc.service",
     "airmonitor-sps30.service",
     "airmonitor-printer-mqtt.service",
     "airmonitor-bento.service",
@@ -156,7 +157,7 @@ def collect_status(
     if (host.get("cpu_temperature_c") or 0) >= 75:
         warnings.append("CPU temperature is high")
 
-    if database_error or both_offline or all(services.get(name) != "active" for name in ("airmonitor.service", "airmonitor-sps30.service")):
+    if database_error or both_offline or all(services.get(name) != "active" for name in ("airmonitor-voc.service", "airmonitor-sps30.service")):
         overall = "offline"
     elif warnings:
         overall = "degraded"

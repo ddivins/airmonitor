@@ -165,8 +165,8 @@ AIRMONITOR_SENSOR_SERIAL=SGX-VOC-1000-01
 Restart and verify:
 
 ```bash
-sudo systemctl restart airmonitor.service
-sudo journalctl -u airmonitor.service -n 30 --no-pager
+sudo systemctl restart airmonitor-voc.service
+sudo journalctl -u airmonitor-voc.service -n 30 --no-pager
 sudo /opt/airmonitor/venv/bin/airmonitor-doctor
 ```
 

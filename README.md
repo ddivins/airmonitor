@@ -64,7 +64,8 @@ advanced option for builders using a Raspberry Pi GPIO UART or another embedded 
 The install provides one Python package with separate systemd services:
 
 ```text
-airmonitor.service              SGX VOC / temperature / humidity logger
+airmonitor.target               Umbrella lifecycle for the AirMonitor application
+airmonitor-voc.service          SGX VOC / temperature / humidity logger
 airmonitor-sps30.service        SPS30 particulate logger
 airmonitor-printer-mqtt.service Bambu MQTT normalizer
 airmonitor-bento.service        Bento Box outlet automation
@@ -237,7 +238,8 @@ Check service state:
 
 ```bash
 systemctl --no-pager --full status \
-  airmonitor.service \
+  airmonitor.target \
+  airmonitor-voc.service \
   airmonitor-sps30.service \
   airmonitor-printer-mqtt.service \
   airmonitor-bento.service \
@@ -250,7 +252,7 @@ systemctl --no-pager --full status \
 Follow logs:
 
 ```bash
-sudo journalctl -u airmonitor.service -f
+sudo journalctl -u airmonitor-voc.service -f
 sudo journalctl -u airmonitor-sps30.service -f
 sudo journalctl -u grafana-server.service -f
 ```

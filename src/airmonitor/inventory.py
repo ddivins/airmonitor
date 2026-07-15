@@ -66,7 +66,8 @@ def collect_inventory(
         name: _service_state(name)
         for name in (
             "airmonitor-printer-mqtt.service",
-            "airmonitor.service",
+            "airmonitor.target",
+            "airmonitor-voc.service",
             "airmonitor-bento.service",
             "airmonitor-levoit.service",
             "airmonitor-status.service",

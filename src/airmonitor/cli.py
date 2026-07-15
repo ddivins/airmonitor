@@ -283,8 +283,9 @@ def preserved_env_files() -> tuple[str, ...]:
 
 def service_names() -> tuple[str, ...]:
     return (
+        "airmonitor.target",
         "airmonitor-printer-mqtt.service",
-        "airmonitor.service",
+        "airmonitor-voc.service",
         "airmonitor-sps30.service",
         "airmonitor-bento.service",
         "airmonitor-levoit.service",

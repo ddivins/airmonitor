@@ -2,6 +2,7 @@
 Description=AirMonitor Bambu printer MQTT normalization service
 After=network-online.target mosquitto.service
 Wants=network-online.target
+PartOf=airmonitor.target
 
 [Service]
 Type=simple

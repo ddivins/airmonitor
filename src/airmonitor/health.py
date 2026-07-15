@@ -36,7 +36,8 @@ ENV_FILES = (
 )
 SERVICES = (
     "airmonitor-printer-mqtt.service",
-    "airmonitor.service",
+    "airmonitor.target",
+    "airmonitor-voc.service",
     "airmonitor-sps30.service",
     "airmonitor-bento.service",
     "airmonitor-levoit.service",

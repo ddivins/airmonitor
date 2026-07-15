@@ -1,6 +1,6 @@
 [Unit]
 Description=AirMonitor appliance status page
-After=network-online.target airmonitor.service airmonitor-sps30.service
+After=network-online.target airmonitor-voc.service airmonitor-sps30.service
 Wants=network-online.target
 
 [Service]

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SERVICE_LIST="${SERVICE_LIST:-airmonitor-printer-mqtt.service airmonitor.service airmonitor-sps30.service airmonitor-bento.service airmonitor-levoit.service airmonitor-status.service}"
+SERVICE_LIST="${SERVICE_LIST:-airmonitor.target airmonitor-printer-mqtt.service airmonitor-voc.service airmonitor-sps30.service airmonitor-bento.service airmonitor-levoit.service airmonitor-status.service}"
 APP_DIR="${APP_DIR:-/opt/airmonitor}"
 ENV_FILE="${ENV_FILE:-/etc/airmonitor/sgx-voc.env}"
 REQUIRED_ENV_FILES="${REQUIRED_ENV_FILES:-/etc/airmonitor/sgx-voc.env /etc/airmonitor/sps30.env /etc/airmonitor/printer-mqtt.env /etc/airmonitor/bento.env /etc/airmonitor/levoit.env}"
@@ -100,11 +100,16 @@ else
 fi
 
 log "Installing systemd units"
+if [[ -e /etc/systemd/system/airmonitor.service && ! -L /etc/systemd/system/airmonitor.service ]]; then
+  log "Removing legacy airmonitor.service unit before installing compatibility alias"
+  sudo rm /etc/systemd/system/airmonitor.service
+fi
 for service in $SERVICE_LIST; do
   sudo install -o root -g root -m 0644 "$UNIT_DIR/$service" "/etc/systemd/system/$service"
 done
 sudo systemctl daemon-reload
-sudo systemctl enable $SERVICE_LIST >/dev/null
+sudo systemctl enable airmonitor.target >/dev/null
+sudo systemctl enable airmonitor-voc.service >/dev/null
 
 if command -v nginx >/dev/null || [[ -x /usr/sbin/nginx ]]; then
   log "Installing AirMonitor status page routing"

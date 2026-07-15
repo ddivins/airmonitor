@@ -39,14 +39,16 @@ sudo /opt/airmonitor/venv/bin/pip install .
 sudo systemctl daemon-reload
 sudo systemctl restart \
   airmonitor-printer-mqtt.service \
-  airmonitor.service \
+  airmonitor.target \
+  airmonitor-voc.service \
   airmonitor-bento.service \
   airmonitor-levoit.service
 
 /opt/airmonitor/venv/bin/airmonitor-doctor
 systemctl --no-pager --full status \
   airmonitor-printer-mqtt.service \
-  airmonitor.service \
+  airmonitor.target \
+  airmonitor-voc.service \
   airmonitor-bento.service \
   airmonitor-levoit.service
 ```

@@ -23,7 +23,8 @@ GRAFANA_API = os.environ.get("AIRMONITOR_GRAFANA_API", "http://127.0.0.1:3000")
 PUBLIC_ORIGIN = os.environ.get("AIRMONITOR_PUBLIC_ORIGIN", "https://airmonitor.example.com")
 CONTROL_HELPER = os.environ.get("AIRMONITOR_CONTROL_HELPER", "/usr/local/sbin/airmonitor-service-control")
 CONTROLLED_SERVICES = (
-    "airmonitor.service",
+    "airmonitor.target",
+    "airmonitor-voc.service",
     "airmonitor-sps30.service",
     "airmonitor-printer-mqtt.service",
     "airmonitor-bento.service",
@@ -33,7 +34,8 @@ CONTROLLED_SERVICES = (
 )
 CONTROL_ACTIONS = ("start", "stop", "restart", "enable", "disable")
 SERVICE_ACTIONS = {
-    "airmonitor.service": CONTROL_ACTIONS,
+    "airmonitor.target": ("start", "stop", "restart"),
+    "airmonitor-voc.service": CONTROL_ACTIONS,
     "airmonitor-sps30.service": CONTROL_ACTIONS,
     "airmonitor-printer-mqtt.service": CONTROL_ACTIONS,
     "airmonitor-bento.service": CONTROL_ACTIONS,

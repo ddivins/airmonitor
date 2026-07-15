@@ -33,8 +33,9 @@ cookie to `.airmonitor.example.com`; the landing service validates that opaque c
 against Grafana's loopback `/api/user` endpoint and never reads Grafana's user database or
 stores passwords itself. Logged-out visitors retain full read-only appliance status.
 
-Grafana server administrators receive service controls for the five AirMonitor collection
-and automation services. Every control request requires the shared authenticated session,
+Grafana server administrators receive lifecycle controls for `airmonitor.target` and
+individual controls for the AirMonitor collection and automation services. Every control
+request requires the shared authenticated session,
 an exact same-origin check, a custom CSRF header, and a fixed service/action allowlist. The
 unprivileged status process can invoke only the root-owned
 `/usr/local/sbin/airmonitor-service-control` helper through its dedicated sudoers rule.
@@ -42,8 +43,9 @@ Nginx and the status service cannot be controlled through this API.
 Each service card also exposes the same full, unpaginated text returned by
 `systemctl status --no-pager --full`; action results open that status output immediately.
 
-The status-page service is listed first and remains view-only so the UI cannot disable
-itself. Grafana and Mosquitto expose restart-only controls; stop, enable, and disable are
+The application target is listed first, followed by the view-only status-page service so
+the UI cannot disable itself. Stopping `airmonitor.target` stops its sensor and automation
+members but leaves the status page available to start them again. Grafana and Mosquitto expose restart-only controls; stop, enable, and disable are
 rejected independently by both the HTTP policy and the privileged helper.
 
 Successful Grafana password logins return to the appliance landing page. The provisioned

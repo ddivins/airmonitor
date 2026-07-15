@@ -18,7 +18,9 @@ const duration = (seconds) => {
 const timeAgo = (seconds) => seconds == null ? "No samples" : `${duration(seconds)} ago`;
 const pill = (text, klass) => `<span class="pill ${klass}">${text}</span>`;
 const serviceLabel = (name) => ({
+  "airmonitor.target": "AirMonitor application",
   "airmonitor-status.service": "Status page",
+  "airmonitor-voc.service": "VOC sensor",
   "grafana-server.service": "Grafana server",
   "mosquitto.service": "Mosquitto MQTT",
 })[name] || name.replace(".service", "").replace("airmonitor-", "").replaceAll("-", " ");

@@ -95,7 +95,8 @@ Filters:
 The code lives in one package, but services remain separate so failures are isolated:
 
 ```text
-airmonitor.service                 SGX logger and SQLite writer
+airmonitor.target                  AirMonitor application lifecycle
+airmonitor-voc.service             SGX logger and SQLite writer
 airmonitor-sps30.service           SPS30 logger and SQLite writer
 airmonitor-printer-mqtt.service    Bambu local MQTT normalizer
 airmonitor-bento.service           Kasa-powered Bento Box control

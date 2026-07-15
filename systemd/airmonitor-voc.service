@@ -1,7 +1,8 @@
 [Unit]
-Description=AirMonitor sensor logger
+Description=AirMonitor SGX VOC, temperature, and humidity logger
 After=network-online.target airmonitor-printer-mqtt.service
 Wants=network-online.target
+PartOf=airmonitor.target
 
 [Service]
 Type=simple
@@ -19,4 +20,4 @@ ReadOnlyPaths=/etc/airmonitor/sgx-voc.env
 ReadWritePaths=/var/lib/airmonitor /etc/airmonitor
 
 [Install]
-WantedBy=multi-user.target
+Alias=airmonitor.service

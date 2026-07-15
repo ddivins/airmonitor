@@ -2,6 +2,7 @@
 Description=AirMonitor Bento Box filter automation
 After=network-online.target airmonitor-printer-mqtt.service
 Wants=network-online.target
+PartOf=airmonitor.target
 
 [Service]
 Type=simple

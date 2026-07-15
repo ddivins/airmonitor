@@ -26,7 +26,7 @@ from airmonitor.hardware import (
 )
 
 DEFAULT_ENV_FILE = "/etc/airmonitor/sgx-voc.env"
-DEFAULT_SERVICE = "airmonitor.service"
+DEFAULT_SERVICE = "airmonitor-voc.service"
 DEFAULT_DRIVER = "airmonitor.sensors.sgx.ps1_voc"
 
 

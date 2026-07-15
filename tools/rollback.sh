@@ -4,7 +4,7 @@ set -euo pipefail
 APP_DIR="${APP_DIR:-/opt/airmonitor}"
 REPO_DIR="${REPO_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 STATE_DIR="${STATE_DIR:-/var/lib/airmonitor/update-state}"
-SERVICE_LIST="${SERVICE_LIST:-airmonitor-printer-mqtt.service airmonitor.service airmonitor-sps30.service airmonitor-bento.service airmonitor-levoit.service airmonitor-status.service}"
+SERVICE_LIST="${SERVICE_LIST:-}"
 PIP_BIN="$APP_DIR/venv/bin/pip"
 DOCTOR_BIN="$APP_DIR/venv/bin/airmonitor-doctor"
 TARGET_COMMIT="${1:-}"
@@ -31,6 +31,14 @@ trap cleanup EXIT
 
 log "Preparing rollback worktree at $TARGET_COMMIT"
 git -C "$REPO_DIR" worktree add --detach "$WORKTREE" "$TARGET_COMMIT"
+
+if [[ -z "$SERVICE_LIST" ]]; then
+  if [[ -f "$WORKTREE/systemd/airmonitor-voc.service" ]]; then
+    SERVICE_LIST="airmonitor.target airmonitor-printer-mqtt.service airmonitor-voc.service airmonitor-sps30.service airmonitor-bento.service airmonitor-levoit.service airmonitor-status.service"
+  else
+    SERVICE_LIST="airmonitor-printer-mqtt.service airmonitor.service airmonitor-sps30.service airmonitor-bento.service airmonitor-levoit.service airmonitor-status.service"
+  fi
+fi
 
 log "Installing AirMonitor from rollback commit"
 sudo "$PIP_BIN" install --upgrade "$WORKTREE"
