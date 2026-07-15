@@ -24,7 +24,7 @@ from airmonitor.filters.control import FilterState, resolve_filter_state
 
 
 APP_NAME = "airmonitor-levoit"
-APP_VERSION = "0.1.2"
+APP_VERSION = "0.1.3"
 FILTER_ID = "levoit"
 DEFAULT_ENV_FILE = "/etc/airmonitor/levoit.env"
 LOG = logging.getLogger(APP_NAME)
@@ -214,6 +214,36 @@ def filter_state_value(value: bool | None) -> str:
     if value is None:
         return FilterState.UNKNOWN.value
     return FilterState.ON.value if value else FilterState.OFF.value
+
+
+def external_override_mode(expected: bool | None, actual: bool | None) -> str | None:
+    """Return the manual mode implied by an unexpected external state change."""
+    if expected is None or actual is None or actual == expected:
+        return None
+    return filter_state_value(actual)
+
+
+def record_external_manual_override(actual: bool) -> bool:
+    """Persist a purifier change made outside AirMonitor as a manual override."""
+    state = filter_state_value(actual)
+    reason = f"external manual change detected: {state}"
+    try:
+        conn = connect(DATABASE_PATH)
+        init_db(conn)
+        repo = FilterControlRepository(conn)
+        repo.update(
+            FILTER_ID,
+            manual_mode=state,
+            actual_state=state,
+            effective_state=state,
+            reason=reason,
+        )
+        conn.close()
+        LOG.info("Detected external purifier state change; manual override is now %s", state.upper())
+        return True
+    except Exception:
+        LOG.warning("Failed to persist external Levoit manual override", exc_info=True)
+        return False
 
 
 def record_filter_state(
@@ -420,6 +450,7 @@ def run_service() -> int:
 
     off_deadline: float | None = None
     was_required = False
+    expected_device_state: bool | None = None
 
     try:
         while running:
@@ -442,6 +473,9 @@ def run_service() -> int:
             # database writes, and possible commands reuse this state.
             refresh_device(device)
             current = is_on(device)
+            override_mode = external_override_mode(expected_device_state, current)
+            if override_mode is not None:
+                record_external_manual_override(bool(current))
             actual_state = filter_state_value(current)
             automation_request = FilterState.ON.value if desired.should_run else FilterState.OFF.value
             effective_state, reason = resolve_desired_filter_state(automation_request, desired.reason, actual_state)
@@ -451,6 +485,7 @@ def run_service() -> int:
                 delay_off_until=desired.delay_off_until,
             )
             current = apply_desired_state(device, desired, current)
+            expected_device_state = current
             record_filter_state(
                 actual_state=filter_state_value(current),
                 effective_state=effective_state,
