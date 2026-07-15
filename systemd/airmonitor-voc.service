@@ -18,6 +18,3 @@ ProtectSystem=full
 ProtectHome=true
 ReadOnlyPaths=/etc/airmonitor/sgx-voc.env
 ReadWritePaths=/var/lib/airmonitor /etc/airmonitor
-
-[Install]
-Alias=airmonitor.service

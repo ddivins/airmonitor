@@ -33,5 +33,5 @@ def test_application_members_follow_target_lifecycle_but_status_survives():
     assert "PartOf=airmonitor.target" not in unit("airmonitor-status.service")
 
 
-def test_legacy_service_name_is_voc_alias():
-    assert "Alias=airmonitor.service" in unit("airmonitor-voc.service")
+def test_voc_unit_is_managed_only_by_target():
+    assert "[Install]" not in unit("airmonitor-voc.service")
