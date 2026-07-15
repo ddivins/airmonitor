@@ -7,8 +7,8 @@ def test_external_on_change_becomes_manual_on() -> None:
     assert external_override_mode(False, True) == "on"
 
 
-def test_external_off_change_becomes_manual_off() -> None:
-    assert external_override_mode(True, False) == "off"
+def test_external_off_change_releases_control_to_auto() -> None:
+    assert external_override_mode(True, False) == "auto"
 
 
 def test_unchanged_and_unknown_states_do_not_create_override() -> None:

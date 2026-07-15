@@ -24,7 +24,7 @@ from airmonitor.filters.control import FilterState, resolve_filter_state
 
 
 APP_NAME = "airmonitor-levoit"
-APP_VERSION = "0.1.4"
+APP_VERSION = "0.1.5"
 FILTER_ID = "levoit"
 DEFAULT_ENV_FILE = "/etc/airmonitor/levoit.env"
 LOG = logging.getLogger(APP_NAME)
@@ -217,29 +217,30 @@ def filter_state_value(value: bool | None) -> str:
 
 
 def external_override_mode(expected: bool | None, actual: bool | None) -> str | None:
-    """Return the manual mode implied by an unexpected external state change."""
+    """Latch external ON, while external OFF releases control back to auto."""
     if expected is None or actual is None or actual == expected:
         return None
-    return filter_state_value(actual)
+    return FilterState.ON.value if actual else "auto"
 
 
 def record_external_manual_override(actual: bool) -> bool:
-    """Persist a purifier change made outside AirMonitor as a manual override."""
+    """Persist external ON or release an existing override on external OFF."""
     state = filter_state_value(actual)
-    reason = f"external manual change detected: {state}"
+    manual_mode = FilterState.ON.value if actual else "auto"
+    reason = "external manual change detected: on" if actual else "external off returned control to auto"
     try:
         conn = connect(DATABASE_PATH)
         init_db(conn)
         repo = FilterControlRepository(conn)
         repo.update(
             FILTER_ID,
-            manual_mode=state,
+            manual_mode=manual_mode,
             actual_state=state,
             effective_state=state,
             reason=reason,
         )
         conn.close()
-        LOG.info("Detected external purifier state change; manual override is now %s", state.upper())
+        LOG.info("Detected external purifier state change; control mode is now %s", str(manual_mode).upper())
         return True
     except Exception:
         LOG.warning("Failed to persist external Levoit manual override", exc_info=True)
