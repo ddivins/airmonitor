@@ -40,7 +40,7 @@ function renderSession() {
   const user = session.user;
   if (!session.authenticated || !user) {
     stopServiceStatusStream();
-    panel.innerHTML = `<a class="grafana-signin" href="/grafana/login">Sign in <span aria-hidden="true">→</span><small>Administration and dashboards</small></a><a class="password-reset" href="/grafana/user/password/send-reset-email">Forgot password?</a>`;
+    panel.innerHTML = `<a class="grafana-signin" href="/sign-in">Sign in <span aria-hidden="true">→</span><small>Administration and dashboards</small></a><a class="password-reset" href="/grafana/user/password/send-reset-email">Forgot password?</a>`;
     $("admin-notice").hidden = true;
     $("services-caption").textContent = "Systemd state";
     return;

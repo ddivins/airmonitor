@@ -208,7 +208,7 @@ class StatusHandler(BaseHTTPRequestHandler):
         if path.startswith("/assets/"):
             path = path.removeprefix("/assets")
         name = PurePosixPath(path).name
-        if name not in {"index.html", "app.js", "style.css", "airmonitor-logo-300px.webp", "favicon.ico"}:
+        if name not in {"index.html", "login.html", "app.js", "login.js", "style.css", "airmonitor-logo-300px.webp", "favicon.ico"}:
             self._send(404, b"Not found\n", "text/plain; charset=utf-8")
             return
         resource = STATIC.joinpath(name)

@@ -133,3 +133,20 @@ section { margin-top: 30px; }
   .service-controls { grid-template-columns: 1fr auto; }
   .service-controls .status-button { grid-column: 1 / -1; }
 }
+
+.login-page { min-height: 100vh; display: grid; place-items: center; padding: 20px; background: var(--canvas); }
+.login-card { width: min(430px,100%); padding: 28px; background: white; border: 1px solid var(--line); border-radius: 22px; box-shadow: 0 20px 60px rgba(6,29,73,.1); }
+.login-card .brand { width: 170px; margin-bottom: 22px; }
+.login-card h1 { margin: 5px 0 6px; color: var(--navy); font-size: 1.65rem; }
+.login-card > p { margin: 0 0 20px; color: var(--muted); line-height: 1.5; }
+.login-form { display: grid; gap: 14px; }
+.login-form label { display: grid; gap: 6px; color: var(--ink); font-size: .78rem; font-weight: 750; }
+.login-form input { width: 100%; min-height: 48px; padding: 0 12px; color: var(--navy); background: white; border: 1px solid var(--line); border-radius: 10px; font: inherit; }
+.login-form input:focus { border-color: var(--blue); outline: 3px solid rgba(22,117,209,.14); }
+.login-submit { min-height: 50px; color: white; background: var(--navy); border: 0; border-radius: 11px; font: inherit; font-weight: 800; cursor: pointer; }
+.login-submit:hover, .login-submit:focus-visible { background: var(--blue); outline: 3px solid rgba(22,117,209,.18); outline-offset: 2px; }
+.login-submit:disabled { cursor: wait; opacity: .6; }
+.login-error { margin: 0; padding: 10px 12px; color: #8f2730; background: #fff3f4; border: 1px solid #f2c8cc; border-radius: 9px; font-size: .78rem; }
+.login-links { display: flex; justify-content: space-between; gap: 16px; margin-top: 18px; }
+.login-links a { color: var(--blue); font-size: .75rem; font-weight: 700; text-decoration: none; }
+.login-links a:hover, .login-links a:focus-visible { text-decoration: underline; }

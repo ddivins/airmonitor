@@ -18,6 +18,7 @@ def test_grafana_is_configured_under_appliance_subpath() -> None:
 def test_nginx_routes_grafana_and_shared_session_on_one_origin() -> None:
     config = (ROOT / "nginx" / "airmonitor.conf").read_text(encoding="utf-8")
     assert "location /grafana/" in config
+    assert "location = /sign-in" in config
     assert "proxy_cookie_path /grafana" in config
     assert '\"redirectUrl\":\"/grafana/\"' in config
     assert '\"redirectUrl\":\"/\"' in config
@@ -29,4 +30,10 @@ def test_landing_page_uses_same_origin_grafana_links() -> None:
         content = (ROOT / "src" / "airmonitor" / "status_static" / name).read_text(encoding="utf-8")
         assert 'href="/grafana/' in content
         assert "https://grafana.airmonitor.example.com" not in content
-        assert 'href="/grafana/login"' in content
+        assert 'href="/sign-in"' in content
+
+
+def test_airmonitor_login_submits_to_grafana_then_returns_home() -> None:
+    script = (ROOT / "src" / "airmonitor" / "status_static" / "login.js").read_text(encoding="utf-8")
+    assert 'fetch("/grafana/login"' in script
+    assert 'window.location.replace("/")' in script

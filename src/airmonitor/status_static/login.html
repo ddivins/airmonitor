@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#f4f8fb">
+  <title>Sign in — AirMonitor</title>
+  <link rel="icon" href="/status-assets/favicon.ico">
+  <link rel="stylesheet" href="/status-assets/style.css?v=10">
+</head>
+<body class="login-page">
+  <main class="login-card">
+    <a class="brand-link" href="/" aria-label="Return to AirMonitor status">
+      <img class="brand" src="/status-assets/airmonitor-logo-300px.webp" alt="AirMonitor — Monitor. Understand. Don't Die.">
+    </a>
+    <div class="eyebrow">AirMonitor account</div>
+    <h1>Sign in</h1>
+    <p>Use your Grafana account for dashboards and administration.</p>
+    <form id="login-form" class="login-form">
+      <label>Username or email<input id="login-user" name="user" autocomplete="username" required autofocus></label>
+      <label>Password<input id="login-password" name="password" type="password" autocomplete="current-password" required></label>
+      <p id="login-error" class="login-error" role="alert" hidden></p>
+      <button id="login-submit" class="login-submit" type="submit">Sign in</button>
+    </form>
+    <div class="login-links"><a href="/">Back to status</a><a href="/grafana/user/password/send-reset-email">Forgot password?</a></div>
+  </main>
+  <script src="/status-assets/login.js?v=1" defer></script>
+</body>
+</html>
