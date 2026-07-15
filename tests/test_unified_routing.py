@@ -24,3 +24,4 @@ def test_landing_page_uses_same_origin_grafana_links() -> None:
         content = (ROOT / "src" / "airmonitor" / "status_static" / name).read_text(encoding="utf-8")
         assert 'href="/grafana/' in content
         assert "https://grafana.airmonitor.example.com" not in content
+        assert "/grafana/login?redirectTo=%2F" in content
