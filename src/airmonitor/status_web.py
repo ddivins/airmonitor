@@ -28,8 +28,19 @@ CONTROLLED_SERVICES = (
     "airmonitor-printer-mqtt.service",
     "airmonitor-bento.service",
     "airmonitor-levoit.service",
+    "grafana-server.service",
+    "mosquitto.service",
 )
 CONTROL_ACTIONS = ("start", "stop", "restart", "enable", "disable")
+SERVICE_ACTIONS = {
+    "airmonitor.service": CONTROL_ACTIONS,
+    "airmonitor-sps30.service": CONTROL_ACTIONS,
+    "airmonitor-printer-mqtt.service": CONTROL_ACTIONS,
+    "airmonitor-bento.service": CONTROL_ACTIONS,
+    "airmonitor-levoit.service": CONTROL_ACTIONS,
+    "grafana-server.service": ("restart",),
+    "mosquitto.service": ("restart",),
+}
 
 
 def grafana_user(cookie: str | None, api_url: str = GRAFANA_API) -> dict | None:
@@ -126,7 +137,10 @@ class StatusHandler(BaseHTTPRequestHandler):
                     "role": "Admin" if admin else user.get("orgRole", "Viewer"),
                     "admin": admin,
                 },
-                "services": {name: service_enabled(name) for name in CONTROLLED_SERVICES} if admin else {},
+                "services": {
+                    name: {"enabled": service_enabled(name), "actions": SERVICE_ACTIONS[name]}
+                    for name in CONTROLLED_SERVICES
+                } if admin else {},
             })
             return
         if path == "/api/services/status":
@@ -192,7 +206,7 @@ class StatusHandler(BaseHTTPRequestHandler):
             return
         service = payload.get("service") if isinstance(payload, dict) else None
         action = payload.get("action") if isinstance(payload, dict) else None
-        if service not in CONTROLLED_SERVICES or action not in CONTROL_ACTIONS:
+        if service not in SERVICE_ACTIONS or action not in SERVICE_ACTIONS[service]:
             self._json(400, {"error": "Unsupported service or action"})
             return
         try:

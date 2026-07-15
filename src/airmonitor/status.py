@@ -14,12 +14,12 @@ DEFAULT_DATABASE = "/var/lib/airmonitor/airmonitor.sqlite3"
 SENSOR_STALE_SECONDS = 90
 SENSOR_OFFLINE_SECONDS = 300
 SERVICES = (
+    "airmonitor-status.service",
     "airmonitor.service",
     "airmonitor-sps30.service",
     "airmonitor-printer-mqtt.service",
     "airmonitor-bento.service",
     "airmonitor-levoit.service",
-    "airmonitor-status.service",
     "grafana-server.service",
     "mosquitto.service",
 )

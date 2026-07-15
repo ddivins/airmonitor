@@ -17,7 +17,11 @@ const duration = (seconds) => {
 };
 const timeAgo = (seconds) => seconds == null ? "No samples" : `${duration(seconds)} ago`;
 const pill = (text, klass) => `<span class="pill ${klass}">${text}</span>`;
-const serviceLabel = (name) => name.replace(".service", "").replace("airmonitor-", "").replaceAll("-", " ");
+const serviceLabel = (name) => ({
+  "airmonitor-status.service": "Status page",
+  "grafana-server.service": "Grafana server",
+  "mosquitto.service": "Mosquitto MQTT",
+})[name] || name.replace(".service", "").replace("airmonitor-", "").replaceAll("-", " ");
 let session = {authenticated: false, services: {}};
 
 function renderSession() {
@@ -36,7 +40,9 @@ function renderSession() {
 
 function serviceControl(name) {
   if (!session.user?.admin || !(name in session.services)) return "";
-  return `<div class="service-controls"><select aria-label="Action for ${escapeHtml(serviceLabel(name))}" data-service-action="${escapeHtml(name)}"><option value="restart">Restart</option><option value="start">Start</option><option value="stop">Stop</option><option value="enable">Enable and start</option><option value="disable">Disable and stop</option></select><button type="button" data-service-apply="${escapeHtml(name)}">Apply</button><button class="status-button" type="button" data-service-status="${escapeHtml(name)}">Status</button></div>`;
+  const labels = {restart: "Restart", start: "Start", stop: "Stop", enable: "Enable and start", disable: "Disable and stop"};
+  const options = session.services[name].actions.map((action) => `<option value="${action}">${labels[action]}</option>`).join("");
+  return `<div class="service-controls"><select aria-label="Action for ${escapeHtml(serviceLabel(name))}" data-service-action="${escapeHtml(name)}">${options}</select><button type="button" data-service-apply="${escapeHtml(name)}">Apply</button><button class="status-button" type="button" data-service-status="${escapeHtml(name)}">Status</button></div>`;
 }
 
 function showServiceStatus(service, output) {
@@ -99,7 +105,7 @@ function render(data) {
   $("cpu-temperature").textContent = host.cpu_temperature_c == null ? "Unavailable" : `${number(host.cpu_temperature_c, 1)} °C`;
 
   $("services").innerHTML = Object.entries(data.services || {}).map(([name, state]) => `
-    <div class="service-item"><div class="service-summary"><span class="service-label" title="${escapeHtml(name)}">${escapeHtml(serviceLabel(name))}</span><span>${session.user?.admin && name in session.services ? `<span class="enabled-state">${escapeHtml(session.services[name])}</span> ` : ""}${pill(escapeHtml(state), escapeHtml(state))}</span></div>${serviceControl(name)}</div>
+    <div class="service-item"><div class="service-summary"><span class="service-label" title="${escapeHtml(name)}">${escapeHtml(serviceLabel(name))}</span><span>${session.user?.admin && name in session.services ? `<span class="enabled-state">${escapeHtml(session.services[name].enabled)}</span> ` : ""}${pill(escapeHtml(state), escapeHtml(state))}</span></div>${serviceControl(name)}</div>
   `).join("");
 }
 

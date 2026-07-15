@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from airmonitor.status_web import grafana_user, service_enabled, service_status
+from airmonitor.status_web import SERVICE_ACTIONS, grafana_user, service_enabled, service_status
 
 
 class FakeResponse:
@@ -50,6 +50,10 @@ class StatusWebTests(unittest.TestCase):
     def test_service_status_rejects_non_airmonitor_service(self):
         with self.assertRaises(ValueError):
             service_status("ssh.service")
+
+    def test_infrastructure_services_are_restart_only(self):
+        self.assertEqual(SERVICE_ACTIONS["grafana-server.service"], ("restart",))
+        self.assertEqual(SERVICE_ACTIONS["mosquitto.service"], ("restart",))
 
     def test_control_helper_rejects_unknown_service_before_systemctl(self):
         helper = Path(__file__).parents[1] / "tools" / "airmonitor-service-control"
