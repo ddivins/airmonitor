@@ -43,6 +43,8 @@ body { margin: 0; color: var(--ink); background: var(--canvas); }
 .signed-in { padding: 11px 14px; color: var(--navy); background: #f7fafc; border: 1px solid var(--line); border-radius: 12px; text-align: left; }
 .signed-in strong, .signed-in small { display: block; }
 .signed-in small { margin-top: 2px; color: var(--muted); font-size: .7rem; }
+.dashboard-browser-link { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 9px; padding: 8px 10px; color: white; background: var(--blue); border-radius: 8px; font-size: .75rem; font-weight: 800; text-decoration: none; }
+.dashboard-browser-link:hover, .dashboard-browser-link:focus-visible { background: var(--navy); outline: 3px solid rgba(22,117,209,.16); outline-offset: 2px; }
 .account-links { display: flex; justify-content: center; gap: 14px; margin-top: 6px; }
 .account-links a { color: var(--blue); font-size: .7rem; font-weight: 700; text-decoration: none; }
 .account-links a:hover, .account-links a:focus-visible { text-decoration: underline; }

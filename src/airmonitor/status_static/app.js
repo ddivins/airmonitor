@@ -45,7 +45,7 @@ function renderSession() {
     $("services-caption").textContent = "Systemd state";
     return;
   }
-  panel.innerHTML = `<div class="signed-in"><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(user.role)} · ${escapeHtml(user.email || user.login)}</small><div class="account-links"><a href="https://grafana.airmonitor.example.com/profile">Account</a><a href="https://grafana.airmonitor.example.com/logout">Sign out</a></div></div>`;
+  panel.innerHTML = `<div class="signed-in"><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(user.role)} · ${escapeHtml(user.email || user.login)}</small><a class="dashboard-browser-link" href="https://grafana.airmonitor.example.com/dashboards">Browse dashboards <span aria-hidden="true">→</span></a><div class="account-links"><a href="https://grafana.airmonitor.example.com/profile">Account</a><a href="https://grafana.airmonitor.example.com/logout">Sign out</a></div></div>`;
   $("admin-notice").hidden = !user.admin;
   $("services-caption").textContent = user.admin ? "Administrator controls" : "Systemd state";
 }
