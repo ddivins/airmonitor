@@ -65,7 +65,7 @@ def _service_error(service: str) -> str | None:
     """Return a small, recent warning/error excerpt for a stale sensor."""
     try:
         result = subprocess.run(
-            ["journalctl", "-u", service, "-p", "warning", "-n", "6", "--no-pager", "-o", "cat"],
+            ["sudo", "/usr/local/sbin/airmonitor-service-control", "errors", service],
             check=False,
             capture_output=True,
             text=True,

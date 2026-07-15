@@ -15,6 +15,15 @@ case "$service" in
     *) echo "Unsupported service" >&2; exit 64 ;;
 esac
 
+if [ "$action" = errors ]; then
+    case "$service" in
+        airmonitor-voc.service|airmonitor-sps30.service)
+            exec journalctl -u "$service" -p warning -n 6 --no-pager -o cat
+            ;;
+        *) echo "Error output is limited to sensor services" >&2; exit 64 ;;
+    esac
+fi
+
 case "$action" in
     start|stop|restart) systemctl "$action" "$service" ;;
     enable) systemctl enable --now "$service" ;;

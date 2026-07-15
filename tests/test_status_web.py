@@ -104,6 +104,17 @@ class StatusWebTests(unittest.TestCase):
             self.assertEqual(result.returncode, 64)
             self.assertFalse(marker.exists())
 
+    def test_control_helper_limits_error_output_to_sensor_services(self):
+        helper = Path(__file__).parents[1] / "tools" / "airmonitor-service-control"
+        result = subprocess.run(
+            ["/bin/sh", str(helper), "errors", "airmonitor-printer-mqtt.service"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 64)
+        self.assertIn("limited to sensor services", result.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()
