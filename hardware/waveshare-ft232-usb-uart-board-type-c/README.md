@@ -24,12 +24,12 @@ All Air Monitor UART sensor interfaces should use:
 
 - USB-C externally
 - FT232 USB-UART internally
-- 3.3 V TTL UART logic
+- Sensor-appropriate TTL UART logic: 3.3 V for SGX and 5 V for the validated SPS30 build
 - 5 V sensor power when required by the sensor
 - One USB-UART board per sensor
 - FTDI EEPROM descriptors programmed to identify the attached sensor
 
-Set the Waveshare logic-level selector to **3.3 V** for Air Monitor sensors.
+Set the Waveshare logic-level selector to **3.3 V for SGX** and **5 V for SPS30**.
 
 ## Important electrical warning
 
@@ -76,7 +76,9 @@ Use 3.3 V UART logic and 5 V sensor power.
 
 ### Sensirion SPS30
 
-Use 3.3 V UART logic and 5 V sensor power. Leave `SEL` floating for UART mode.
+Use 5 V UART logic (**VCCIO selector at 5 V**) and 5 V sensor power. Leave `SEL`
+floating for UART mode. The validated AirMonitor build produced implausibly large but
+parseable PM readings with VCCIO at 3.3 V; switching VCCIO to 5 V corrected them.
 
 | Waveshare board | SPS30 pin | SPS30 signal |
 |---|---:|---|

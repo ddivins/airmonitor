@@ -16,6 +16,24 @@ Leave `SEL` floating for UART mode. Connecting `SEL` to ground selects I2C mode 
 
 The SPS30 supply is 5 V. Its UART interface accepts both TTL 5 V and LVTTL 3.3 V levels, so the FTDI `TTL-232R-5V` cable can be connected directly without a level shifter.
 
+### AirMonitor Waveshare FT232 VCCIO setting
+
+For the tested AirMonitor build using the Waveshare FT232 USB UART Board (Type-C), set
+the board's **VCCIO/logic-level selector to 5 V** as well as supplying the SPS30 from
+5 V. With VCCIO set to 3.3 V, the sensor still returned parseable SHDLC frames, but its
+PM mass values were implausibly large (tens of thousands of µg/m³). Moving VCCIO to
+5 V restored credible readings.
+
+This is an observed requirement of the validated AirMonitor adapter and wiring, not a
+software scaling issue. Do not compensate for the bad values with a divisor or database
+normalization. Verify the following first when SPS30 readings are several orders of
+magnitude too high:
+
+- SPS30 VDD is connected to 5 V.
+- Waveshare FT232 VCCIO is selected to 5 V.
+- TX and RX are crossed correctly and share ground.
+- `SEL` is left floating for UART mode.
+
 ## Connector
 
 Sensor connector:
