@@ -24,7 +24,7 @@ See the [Hardware Guide](docs/hardware-registry.md) for the current USB architec
 EEPROM identification, supported sensor modules, enclosure plans, and advanced UART notes.
 
 > **DIY project notice:** AirMonitor is not a certified air-quality instrument and should
-> not be relied upon for regulatory, medical, or life-safety decisions.
+> not be relied upon for regulatory, medical, occupational-exposure, or life-safety decisions.
 
 ## Project Overview
 
@@ -38,6 +38,28 @@ AirMonitor currently provides:
 - Bambu printer-state integration
 - Bento Box and Levoit filter automation
 - Planned 3D-printable enclosures, with printable releases to be linked from MakerWorld
+
+## Project Philosophy
+
+- Open hardware whenever practical
+- Reproducible experiments
+- Repeatability over claims of absolute accuracy
+- Engineering decisions backed by measurements
+- AI-assisted development with human review and real-world validation
+- Documentation as a first-class project deliverable
+
+## AI-Assisted Development
+
+AirMonitor was developed with extensive AI assistance. The majority of the software and
+documentation, along with portions of the CAD and project-planning work, were generated
+collaboratively with AI tools and then reviewed, tested, modified, and integrated by the
+project author.
+
+AI accelerates implementation and documentation, but it is not treated as a source of
+experimental truth. Hardware behavior, sensor communications, installation procedures,
+and reported results are validated against physical devices and collected measurements.
+The repository and repeatable real-world testing remain the sources of truth for the
+project.
 
 ## Hardware Model
 
@@ -58,6 +80,32 @@ SQLite / Grafana / automation
 
 USB is the recommended connection method. Native UART wiring remains documented as an
 advanced option for builders using a Raspberry Pi GPIO UART or another embedded host.
+
+## Why the Amphenol SGX PS1-VOC-1000-MOD?
+
+AirMonitor is intended for comparative indoor-air-quality testing during FDM 3D printing.
+The Amphenol SGX `PS1-VOC-1000-MOD` occupies a useful middle ground between the inexpensive
+metal-oxide-semiconductor (MOS) sensors commonly used in hobbyist air-quality monitors and
+professional photoionization-detector (PID) instruments.
+
+Unlike those inexpensive MOS sensors, the SGX PS1 uses **Solid Polymer Electrolyte (SPE)**
+electrochemical sensing technology. The manufacturer specifies fast response, low power
+consumption, repeatability, and a long expected service life. The complete MOD assembly
+combines the sensing element with onboard processing, temperature and humidity measurement,
+environmental compensation, factory-matched calibration, and a UART interface. This avoids
+the analog-front-end design and initial calibration work required by a bare sensing element.
+
+A primary reason for selecting the SGX module is its unusually explicit published
+cross-sensitivity table. The listed gases include **styrene**, a compound of particular
+interest when printing materials such as ABS and ASA. Published characterization of a
+sensor's response to styrene is uncommon in practical integrated VOC modules. This does not
+make the device a selective styrene analyzer, but it gives AirMonitor a documented reason to
+expect a response to a VOC that is directly relevant to its intended application.
+
+The module is calibrated with isobutylene and reports a cross-sensitive TVOC value. See the
+[SGX hardware notes](hardware/sgx-ps1-voc-1000-mod/README.md) and the
+[manufacturer datasheet](https://www.mouser.com/catalog/specsheets/Amphenol_5262023_DS_0425_PS1_PS4_VOC_1000_MOD.pdf)
+for its specifications, cross-sensitivity table, and operating guidance.
 
 ## What Runs
 
@@ -262,11 +310,28 @@ sudo journalctl -u grafana-server.service -f
 Do not commit populated environment files, printer serial numbers, printer access codes,
 device IP addresses, private hostnames, logs containing secrets, or local-only credentials.
 
-## Safety and Interpretation
+## Interpreting VOC Measurements
 
-The SGX reading is cross-sensitive TVOC calibrated with isobutylene. It is useful for
-trends, ventilation, and filter control, but it is not compound-selective or life-safety
-instrumentation.
+AirMonitor is designed to produce **repeatable comparative measurements**, not laboratory
+chemical analysis or regulatory occupational-exposure measurements. The SGX module is
+factory calibrated with isobutylene, but it is cross-sensitive to multiple VOCs and cannot
+identify which individual compound or mixture produced a reading.
+
+The project therefore treats reported VOC values primarily as **relative measurements**.
+Controlled experiments aim to change one variable at a time while keeping other conditions
+as consistent as practical. Useful questions include:
+
+- Does a filter reduce the VOC peak or total response compared with no filtration?
+- Does opening a window reduce the peak or shorten the return to baseline?
+- How do different filament materials compare under similar print conditions?
+- How quickly does the room return toward its pre-print baseline?
+
+The displayed ppm value must not be interpreted as a compound-specific styrene
+concentration or compared directly with OSHA, NIOSH, or other exposure limits. Regulatory
+limits apply to specific compounds, defined sampling periods, and validated measurement
+methods. AirMonitor's value is in trends, controlled comparisons, and documenting the
+relative effect of ventilation, filtration, materials, and operating conditions.
 
 The SPS30 readings are particulate measurements reported as PM mass concentrations and
-particle counts. They complement the SGX VOC signal; they do not replace gas sensing.
+particle counts. They complement the SGX VOC signal; they do not replace gas sensing or
+certified occupational-exposure instrumentation.
