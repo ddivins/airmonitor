@@ -111,7 +111,11 @@ if command -v nginx >/dev/null || [[ -x /usr/sbin/nginx ]]; then
   bash tools/install-status-page.sh
 fi
 
-if [[ "$INSTALL_GRAFANA" == "1" ]] || { [[ "$INSTALL_GRAFANA" == "auto" ]] && command -v grafana >/dev/null && systemctl list-unit-files grafana-server.service >/dev/null 2>&1; }; then
+if [[ "$INSTALL_GRAFANA" == "1" ]] || {
+  [[ "$INSTALL_GRAFANA" == "auto" ]] &&
+  { command -v grafana >/dev/null || [[ -x /usr/sbin/grafana ]] || command -v grafana-cli >/dev/null || [[ -x /usr/sbin/grafana-cli ]]; } &&
+  systemctl list-unit-files grafana-server.service >/dev/null 2>&1
+}; then
   log "Installing Grafana datasource and dashboards"
   bash tools/install-grafana.sh
 fi
