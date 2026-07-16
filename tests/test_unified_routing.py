@@ -25,6 +25,20 @@ def test_nginx_routes_grafana_and_shared_session_on_one_origin() -> None:
     assert "https://airmonitor.example.com/grafana$request_uri" in config
 
 
+def test_nginx_routes_public_exports_to_bounded_export_service() -> None:
+    config = (ROOT / "nginx" / "airmonitor.conf").read_text(encoding="utf-8")
+    assert "location /exports/" in config
+    assert "proxy_pass http://127.0.0.1:8081/" in config
+    assert "proxy_read_timeout 180s" in config
+
+
+def test_export_page_is_light_theme_and_mobile_responsive() -> None:
+    css = (ROOT / "src" / "airmonitor" / "export_static" / "export.css").read_text(encoding="utf-8")
+    assert "color-scheme: light" in css
+    assert "@media (max-width:720px)" in css
+    assert ".download-grid" in css
+
+
 def test_landing_page_uses_same_origin_grafana_links() -> None:
     for name in ("index.html", "app.js"):
         content = (ROOT / "src" / "airmonitor" / "status_static" / name).read_text(encoding="utf-8")

@@ -51,6 +51,7 @@ class StatusWebTests(unittest.TestCase):
             service_status("ssh.service")
 
     def test_infrastructure_services_are_restart_only(self):
+        self.assertEqual(SERVICE_ACTIONS["airmonitor-export.service"], ("restart",))
         self.assertEqual(SERVICE_ACTIONS["grafana-server.service"], ("restart",))
         self.assertEqual(SERVICE_ACTIONS["mosquitto.service"], ("restart",))
 

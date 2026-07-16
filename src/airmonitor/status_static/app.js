@@ -20,6 +20,7 @@ const pill = (text, klass) => `<span class="pill ${klass}">${text}</span>`;
 const serviceLabel = (name) => ({
   "airmonitor.target": "AirMonitor application",
   "airmonitor-status.service": "Status page",
+  "airmonitor-export.service": "Print exports",
   "airmonitor-voc.service": "VOC sensor",
   "grafana-server.service": "Grafana server",
   "mosquitto.service": "Mosquitto MQTT",
@@ -28,7 +29,7 @@ const serviceRuntime = (value) => typeof value === "object" && value !== null
   ? {active: value.active_state || "unknown", sub: value.sub_state || "unknown"}
   : {active: value || "unknown", sub: value || "unknown"};
 const targetManagedServices = new Set([
-  "airmonitor-status.service", "airmonitor-voc.service", "airmonitor-sps30.service",
+  "airmonitor-status.service", "airmonitor-export.service", "airmonitor-voc.service", "airmonitor-sps30.service",
   "airmonitor-printer-mqtt.service", "airmonitor-bento.service", "airmonitor-levoit.service",
 ]);
 let session = {authenticated: false, services: {}};

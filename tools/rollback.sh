@@ -4,7 +4,7 @@ set -euo pipefail
 APP_DIR="${APP_DIR:-/opt/airmonitor}"
 REPO_DIR="${REPO_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 STATE_DIR="${STATE_DIR:-/var/lib/airmonitor/update-state}"
-SERVICE_LIST="${SERVICE_LIST:-airmonitor.target airmonitor-printer-mqtt.service airmonitor-voc.service airmonitor-sps30.service airmonitor-bento.service airmonitor-levoit.service airmonitor-status.service}"
+SERVICE_LIST="${SERVICE_LIST:-airmonitor.target airmonitor-printer-mqtt.service airmonitor-voc.service airmonitor-sps30.service airmonitor-bento.service airmonitor-levoit.service airmonitor-status.service airmonitor-export.service}"
 PIP_BIN="$APP_DIR/venv/bin/pip"
 DOCTOR_BIN="$APP_DIR/venv/bin/airmonitor-doctor"
 TARGET_COMMIT="${1:-}"
@@ -36,19 +36,27 @@ log "Installing AirMonitor from rollback commit"
 sudo "$PIP_BIN" install --upgrade "$WORKTREE"
 
 log "Restoring systemd units from rollback commit"
+RESTORE_SERVICES=""
 for service in $SERVICE_LIST; do
-  [[ -f "$WORKTREE/systemd/$service" ]] || fail "rollback commit lacks systemd/$service"
-  sudo install -o root -g root -m 0644 "$WORKTREE/systemd/$service" "/etc/systemd/system/$service"
+  if [[ -f "$WORKTREE/systemd/$service" ]]; then
+    sudo install -o root -g root -m 0644 "$WORKTREE/systemd/$service" "/etc/systemd/system/$service"
+    RESTORE_SERVICES="$RESTORE_SERVICES $service"
+  else
+    # A rollback may predate a newly introduced optional service. Stop and
+    # remove that unit instead of making the older commit impossible to restore.
+    sudo systemctl stop "$service" 2>/dev/null || true
+    sudo rm -f "/etc/systemd/system/$service"
+  fi
 done
 sudo systemctl daemon-reload
 
 log "Restarting services"
-for service in $SERVICE_LIST; do
+for service in $RESTORE_SERVICES; do
   sudo systemctl restart "$service"
 done
 
 sleep 2
-for service in $SERVICE_LIST; do
+for service in $RESTORE_SERVICES; do
   systemctl is-active --quiet "$service" || fail "$service failed after rollback"
 done
 

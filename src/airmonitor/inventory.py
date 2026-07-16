@@ -71,6 +71,7 @@ def collect_inventory(
             "airmonitor-bento.service",
             "airmonitor-levoit.service",
             "airmonitor-status.service",
+            "airmonitor-export.service",
             "grafana-server.service",
             "mosquitto.service",
         )

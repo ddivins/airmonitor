@@ -16,6 +16,7 @@ SENSOR_OFFLINE_SECONDS = 300
 SERVICES = (
     "airmonitor.target",
     "airmonitor-status.service",
+    "airmonitor-export.service",
     "airmonitor-voc.service",
     "airmonitor-sps30.service",
     "airmonitor-printer-mqtt.service",

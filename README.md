@@ -119,6 +119,7 @@ airmonitor-printer-mqtt.service Bambu MQTT normalizer
 airmonitor-bento.service        Bento Box outlet automation
 airmonitor-levoit.service       Levoit/Core room-filter automation
 airmonitor-status.service       Read-only appliance status landing page
+airmonitor-export.service       Read-only print report and data exports
 mosquitto.service               Local MQTT broker
 grafana-server.service          Grafana dashboard
 ```
@@ -192,6 +193,18 @@ filter_control_state persisted filter manual/automation state
 The appliance root URL presents a read-only status landing page built from normalized
 AirMonitor service state. It links to the detailed Grafana dashboard and never accesses
 sensor hardware directly. See [Status Page](docs/status-page.md).
+
+The provisioned AirMonitor Print Window dashboard includes an **Export Selected Print**
+link. Public exports are served at:
+
+```text
+/exports/print?print_id=<print-id>
+```
+
+Available formats are a publication PNG, multipage PDF report, Excel workbook, raw CSV
+ZIP, and complete experiment ZIP. Every format is generated from SQLite without contacting
+sensor hardware. The selected window starts 30 minutes before the print and ends 30 minutes
+after `ended_at`, or `last_seen_at` for an active print. See [Print Exports](docs/print-exports.md).
 
 Grafana is provisioned from this repository:
 
@@ -293,6 +306,7 @@ systemctl --no-pager --full status \
   airmonitor-bento.service \
   airmonitor-levoit.service \
   airmonitor-status.service \
+  airmonitor-export.service \
   grafana-server.service \
   mosquitto.service
 ```

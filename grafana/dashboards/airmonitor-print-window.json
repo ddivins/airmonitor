@@ -31,6 +31,17 @@
   "links": [
     {
       "asDropdown": false,
+      "icon": "download-alt",
+      "includeVars": false,
+      "keepTime": false,
+      "tags": [],
+      "targetBlank": false,
+      "title": "Export Selected Print",
+      "type": "link",
+      "url": "/exports/print?print_id=${print_id}"
+    },
+    {
+      "asDropdown": false,
       "icon": "external link",
       "includeVars": false,
       "keepTime": false,

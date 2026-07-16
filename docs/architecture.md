@@ -101,7 +101,15 @@ airmonitor-sps30.service           SPS30 logger and SQLite writer
 airmonitor-printer-mqtt.service    Bambu local MQTT normalizer
 airmonitor-bento.service           Kasa-powered Bento Box control
 airmonitor-levoit.service          VeSync/Levoit room-purifier control
+airmonitor-status.service          Appliance landing page and administration
+airmonitor-export.service          Read-only bounded report generation
 ```
+
+The export service is isolated from the landing page and sensor processes because large
+PNG, PDF, and workbook generation can temporarily consume significant CPU and memory.
+Nginx exposes it beneath `/exports/` on the unified appliance origin. It opens SQLite in
+read-only/query-only mode, allows one report generation at a time, and never talks to
+sensor, printer, or filter hardware.
 
 ## Configuration
 

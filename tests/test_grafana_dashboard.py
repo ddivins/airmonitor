@@ -66,6 +66,12 @@ class GrafanaDashboardTests(unittest.TestCase):
         self.assertLess(positions["VOC — 30 Minutes Before Through 30 Minutes After"], positions["Temperature and Humidity"])
         self.assertLess(positions["Particulate Matter"], positions["Temperature and Humidity"])
 
+    def test_print_dashboard_links_selected_print_to_public_export_page(self):
+        path = Path(__file__).parents[1] / "grafana" / "dashboards" / "airmonitor-print-window.json"
+        dashboard = json.loads(path.read_text(encoding="utf-8"))
+        export_link = next(link for link in dashboard["links"] if link["title"] == "Export Selected Print")
+        self.assertEqual(export_link["url"], "/exports/print?print_id=${print_id}")
+
     def test_all_panel_queries_match_schema(self):
         conn = sqlite3.connect(":memory:")
         try:
