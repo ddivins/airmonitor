@@ -38,7 +38,7 @@
       "targetBlank": false,
       "title": "Export Selected Print",
       "type": "link",
-      "url": "/exports/print?print_id=${print_id}"
+      "url": "https://airmonitor.example.com/exports/print?print_id=${print_id}"
     },
     {
       "asDropdown": false,

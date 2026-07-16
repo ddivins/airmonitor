@@ -28,6 +28,10 @@ class GrafanaDashboardTests(unittest.TestCase):
         self.assertEqual(dashboard["uid"], "airmonitor-live")
         self.assertFalse(dashboard["editable"])
         self.assertEqual(dashboard["links"][0]["url"], "https://airmonitor.example.com/")
+        self.assertEqual(
+            dashboard["links"][1]["url"],
+            "https://airmonitor.example.com/grafana/d/airmonitor-print-window/airmonitor-print-window",
+        )
         for panel in dashboard["panels"]:
             self.assertEqual(panel["datasource"]["uid"], "airmonitor-sqlite")
 
@@ -70,7 +74,10 @@ class GrafanaDashboardTests(unittest.TestCase):
         path = Path(__file__).parents[1] / "grafana" / "dashboards" / "airmonitor-print-window.json"
         dashboard = json.loads(path.read_text(encoding="utf-8"))
         export_link = next(link for link in dashboard["links"] if link["title"] == "Export Selected Print")
-        self.assertEqual(export_link["url"], "/exports/print?print_id=${print_id}")
+        self.assertEqual(
+            export_link["url"],
+            "https://airmonitor.example.com/exports/print?print_id=${print_id}",
+        )
 
     def test_all_panel_queries_match_schema(self):
         conn = sqlite3.connect(":memory:")
