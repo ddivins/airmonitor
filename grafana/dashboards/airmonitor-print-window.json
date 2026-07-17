@@ -312,7 +312,7 @@
     {
       "id": 3,
       "type": "trend",
-      "title": "Temperature and Humidity",
+      "title": "Temperature, Humidity, and Chamber",
       "datasource": {
         "type": "frser-sqlite-datasource",
         "uid": "airmonitor-sqlite"
@@ -330,8 +330,8 @@
             "type": "frser-sqlite-datasource",
             "uid": "airmonitor-sqlite"
           },
-          "queryText": "SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.temperature_c, s.humidity_rh FROM sgx_voc_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') ORDER BY s.sampled_at;",
-          "rawQueryText": "SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.temperature_c, s.humidity_rh FROM sgx_voc_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') ORDER BY s.sampled_at;",
+          "queryText": "SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.temperature_c, s.humidity_rh, s.chamber_temperature_c FROM sgx_voc_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') ORDER BY s.sampled_at;",
+          "rawQueryText": "SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.temperature_c, s.humidity_rh, s.chamber_temperature_c FROM sgx_voc_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') ORDER BY s.sampled_at;",
           "queryType": "table",
           "timeColumns": [],
           "format": "table"

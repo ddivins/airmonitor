@@ -67,8 +67,12 @@ class GrafanaDashboardTests(unittest.TestCase):
         path = Path(__file__).parents[1] / "grafana" / "dashboards" / "airmonitor-print-window.json"
         dashboard = json.loads(path.read_text(encoding="utf-8"))
         positions = {panel["title"]: panel["gridPos"]["y"] for panel in dashboard["panels"]}
-        self.assertLess(positions["VOC — 30 Minutes Before Through 30 Minutes After"], positions["Temperature and Humidity"])
-        self.assertLess(positions["Particulate Matter"], positions["Temperature and Humidity"])
+        environment = "Temperature, Humidity, and Chamber"
+        self.assertLess(positions["VOC — 30 Minutes Before Through 30 Minutes After"], positions[environment])
+        self.assertLess(positions["Particulate Matter"], positions[environment])
+
+        panel = next(panel for panel in dashboard["panels"] if panel["title"] == environment)
+        self.assertIn("chamber_temperature_c", panel["targets"][0]["queryText"])
 
     def test_print_dashboard_links_selected_print_to_public_export_page(self):
         path = Path(__file__).parents[1] / "grafana" / "dashboards" / "airmonitor-print-window.json"
@@ -90,6 +94,7 @@ class GrafanaDashboardTests(unittest.TestCase):
                     gas_ppm REAL,
                     temperature_c REAL,
                     humidity_rh REAL,
+                    chamber_temperature_c REAL,
                     print_id INTEGER
                 );
                 CREATE TABLE sps30_samples (

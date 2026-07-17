@@ -27,11 +27,12 @@ PRINT_COLUMNS = (
     "filament_odor_class", "filament_particle_class", "bento_recommended",
     "room_filter_recommended", "nozzle_diameter", "nozzle_type",
     "nozzle_target_temperature_c", "bed_target_temperature_c",
+    "chamber_temperature_c",
 )
 SGX_COLUMNS = (
     "id", "sampled_at", "sensor_id", "session_id", "print_id",
     "sensor_protocol", "sensor_port", "gas_ppm", "gas_mass", "full_scale",
-    "temperature_c", "humidity_rh",
+    "temperature_c", "humidity_rh", "chamber_temperature_c",
 )
 SPS30_COLUMNS = (
     "id", "sampled_at", "sensor_id", "session_id", "sensor_port",
