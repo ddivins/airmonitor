@@ -1,0 +1,4 @@
+# Silicon Labs CP2105 dual UART, serial 00B9A86D.
+# Interface 00 is the SGX VOC sensor; interface 01 is the SPS30 sensor.
+SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea70", ATTRS{serial}=="00B9A86D", ENV{ID_USB_INTERFACE_NUM}=="00", SYMLINK+="airmonitor-sgx", GROUP="dialout", MODE="0660"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea70", ATTRS{serial}=="00B9A86D", ENV{ID_USB_INTERFACE_NUM}=="01", SYMLINK+="airmonitor-sps30", GROUP="dialout", MODE="0660"

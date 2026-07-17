@@ -9,6 +9,8 @@ POLICY_SRC="${POLICY_SRC:-config/filament-policy.yaml}"
 POLICY_DST="${POLICY_DST:-/etc/airmonitor/filament-policy.yaml}"
 HARDWARE_SRC="${HARDWARE_SRC:-config/hardware.yaml.example}"
 HARDWARE_DST="${HARDWARE_DST:-/etc/airmonitor/hardware.yaml}"
+UDEV_RULE_SRC="${UDEV_RULE_SRC:-config/udev/99-airmonitor-serial.rules}"
+UDEV_RULE_DST="${UDEV_RULE_DST:-/etc/udev/rules.d/99-airmonitor-serial.rules}"
 UNIT_DIR="${UNIT_DIR:-systemd}"
 DATA_DIR="${DATA_DIR:-/var/lib/airmonitor}"
 STATE_DIR="${STATE_DIR:-$DATA_DIR/update-state}"
@@ -43,6 +45,7 @@ command -v systemctl >/dev/null || fail "systemctl is not available"
 [[ -f "$REPO_DIR/pyproject.toml" ]] || fail "missing pyproject.toml in $REPO_DIR"
 [[ -f "$REPO_DIR/$POLICY_SRC" ]] || fail "missing filament policy: $REPO_DIR/$POLICY_SRC"
 [[ -f "$REPO_DIR/$HARDWARE_SRC" ]] || fail "missing hardware registry template: $REPO_DIR/$HARDWARE_SRC"
+[[ -f "$REPO_DIR/$UDEV_RULE_SRC" ]] || fail "missing udev rules: $REPO_DIR/$UDEV_RULE_SRC"
 [[ -x "$PIP_BIN" ]] || fail "missing virtualenv pip: $PIP_BIN"
 for env_file in $REQUIRED_ENV_FILES; do
   [[ -f "$env_file" ]] || fail "missing env file: $env_file"
@@ -98,6 +101,12 @@ if [[ ! -f "$HARDWARE_DST" ]]; then
 else
   echo "Preserving existing hardware registry: $HARDWARE_DST"
 fi
+
+log "Installing stable AirMonitor serial device names"
+sudo install -o root -g root -m 0644 "$UDEV_RULE_SRC" "$UDEV_RULE_DST"
+sudo udevadm control --reload-rules
+sudo udevadm trigger --subsystem-match=tty
+sudo udevadm settle
 
 log "Installing systemd units"
 for service in $SERVICE_LIST; do

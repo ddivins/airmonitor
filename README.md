@@ -265,9 +265,15 @@ be preserved across updates:
 
 ## Hardware Configuration
 
-The recommended build uses FTDI USB-UART adapters with distinct EEPROM identities. Linux
-creates stable `/dev/serial/by-id/...` symlinks, while the AirMonitor hardware registry
-matches the configured manufacturer, product, and serial values.
+The appliance uses a Silicon Labs CP2105 dual USB-UART adapter. Repository-managed udev
+rules identify serial `00B9A86D` and assign each interface a stable sensor name:
+
+```text
+/dev/airmonitor-sgx   -> CP2105 interface 00
+/dev/airmonitor-sps30 -> CP2105 interface 01
+```
+
+These aliases remain stable if Linux assigns different `/dev/ttyUSB*` numbers.
 
 Example hardware registry entries:
 
@@ -277,17 +283,11 @@ devices:
   sgx-voc-01:
     driver: airmonitor.sensors.sgx.ps1_voc
     transport: usb-uart
-    match:
-      vendor: DSD
-      product: AirMonitor
-      serial: SGX-VOC-EXAMPLE
+    device: /dev/airmonitor-sgx
   sps30-01:
     driver: airmonitor.sensors.sensirion.sps30
     transport: usb-uart
-    match:
-      vendor: DSD
-      product: AirMonitor
-      serial: SPS30-EXAMPLE
+    device: /dev/airmonitor-sps30
 ```
 
 See the [Hardware Guide](docs/hardware-registry.md) for build architecture, EEPROM
