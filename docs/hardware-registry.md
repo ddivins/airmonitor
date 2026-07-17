@@ -1,172 +1,120 @@
 # AirMonitor Hardware Guide
 
-AirMonitor Sensors are DIY-built assemblies based on commercially available sensing
-modules. The recommended design uses USB for host connectivity and an EEPROM-programmed
-USB-UART interface for reliable hardware identification.
+AirMonitor Sensors are DIY-built assemblies based on commercially available sensing modules.
+The recommended design uses USB for host connectivity through ordinary USB-UART interfaces.
+
+The project is primarily intended to compare **filter effectiveness** during controlled
+3D-printing experiments. The sensors provide repeatable signals that can be compared between
+filtered and unfiltered runs; they are not presented as certified exposure instruments.
 
 Current sensor modules:
 
 | AirMonitor Sensor | Sensor module | Measurements |
 | --- | --- | --- |
-| AirMonitor VOC Sensor | Amphenol SGX Sensortech `PS1-VOC-1000-MOD` | TVOC, temperature, humidity |
+| AirMonitor VOC Sensor | Amphenol SGX Sensortech `PS1-VOC-1000-MOD` | Cross-sensitive VOC response, temperature, humidity |
 | AirMonitor PM Sensor | Sensirion `SPS30` | PM mass, particle counts, typical particle size |
 
 AirMonitor is not a certified air-quality instrument and should not be used for regulatory,
-medical, or life-safety decisions.
+medical, occupational-exposure, or life-safety decisions.
 
 ## Recommended USB Architecture
 
 ```text
 Sensor module
     │ TTL UART
-USB-UART Interface
-    │ EEPROM identity
-USB cable
-    │
+USB-UART interface
+    │ USB cable
 Raspberry Pi or Linux host
-    │
-AirMonitor hardware registry and driver
+    │ configured serial device path
+AirMonitor sensor service and driver
 ```
 
 USB is the primary supported build because it provides:
 
 - power and communications over a standard external connection
-- stable discovery independent of `/dev/ttyUSB*` numbering
 - support for hubs and multiple sensors
 - easier replacement, testing, and troubleshooting
 - no dependency on a specific Raspberry Pi GPIO header
+- clean routing through a purpose-built enclosure
 
-The underlying sensor protocols remain UART-based. USB-UART interfaces bridge those
-protocols to the host.
+The underlying sensor protocols remain UART-based. USB-UART interfaces bridge those protocols
+to the host.
 
-## EEPROM-Based Identification
+## Device Identification and Configuration
 
-Each recommended FTDI USB-UART interface is programmed with identifying strings in its
-EEPROM. AirMonitor uses those values to associate a physical USB device with the correct
-sensor driver and logical hardware ID.
+The current recommended design uses an explicitly configured Linux serial device path for each
+sensor. Suitable paths include:
 
-Example identity:
+- a stable `/dev/serial/by-id/...` symlink supplied by Linux
+- a project-specific udev symlink
+- a known `/dev/ttyUSB*` or `/dev/ttyACM*` device on a fixed installation
+- `/dev/serial0` for an advanced native GPIO UART installation
 
-```text
-Manufacturer: DSD
-Product:      AirMonitor
-Serial:       SGX-VOC-1000-01
-```
+A stable by-id or custom udev path is preferable when the host has multiple serial devices.
+The selected path is configured in the corresponding AirMonitor service environment file.
 
-The serial must be unique for each physical AirMonitor Sensor. A useful convention is:
-
-```text
-<SENSOR-TYPE>-<MODEL>-<INSTANCE>
-```
-
-Examples:
+Example:
 
 ```text
-SGX-VOC-1000-01
-SPS30-01
+AIRMONITOR_PORT=/dev/serial/by-id/usb-Silicon_Labs_CP2105_Dual_USB_to_UART_Bridge_Controller_EXAMPLE-if00-port0
+AIRMONITOR_SENSOR_TRANSPORT=usb-uart
 ```
 
-EEPROM identity avoids assumptions such as `/dev/ttyUSB0`. Sensors may be moved between
-USB ports or hubs without changing AirMonitor configuration.
+Use the actual path reported by the target host. Do not copy example serial strings verbatim.
 
-## Hardware Registry
-
-AirMonitor can identify serial sensors in two ways:
-
-1. Match a USB serial adapter by its USB EEPROM identity.
-2. Use an explicit device path for native UARTs or adapters with unhelpful or unwritable EEPROMs.
-
-The persistent registry is:
-
-```text
-/etc/airmonitor/hardware.yaml
-```
-
-The sensor service reads `AIRMONITOR_HARDWARE_ID` from its environment file. When
-`AIRMONITOR_PORT=auto`, it resolves that hardware ID at startup.
-
-## Discover Connected Devices
+Useful discovery commands include:
 
 ```bash
-airmonitor-hardware discover
+ls -l /dev/serial/by-id/
+udevadm info --query=property --name=/dev/ttyUSB0
 ```
 
-The output includes the device path, real tty, manufacturer, product, serial, VID, and PID
-reported by udev.
+## EEPROM and Automatic Discovery Status
 
-## Register an EEPROM-Identified USB Interface
+Earlier AirMonitor development explored reprogramming FTDI EEPROM manufacturer, product, and
+serial strings, then matching those values through `/etc/airmonitor/hardware.yaml`.
 
-```bash
-sudo /opt/airmonitor/venv/bin/airmonitor-hardware \
-  --registry /etc/airmonitor/hardware.yaml \
-  add sgx-voc-01 \
-  --driver airmonitor.sensors.sgx.ps1_voc \
-  --transport usb-uart \
-  --usb-vendor DSD \
-  --usb-product AirMonitor \
-  --usb-serial SGX-VOC-1000-01 \
-  --fallback-device /dev/airmonitor-sgx \
-  --force
-```
+That approach is **not part of the recommended public build**. Builders do not need to flash an
+FTDI EEPROM, assign AirMonitor-specific USB metadata, or rely on automatic registry matching.
+The additional provisioning complexity did not provide enough practical benefit for the
+current fixed-appliance design.
 
-Verify:
+Some EEPROM provisioning scripts, hardware-registry code, or configuration fields may remain
+in the repository for development history, compatibility, or future experimentation. Their
+presence should not be interpreted as a required installation step.
 
-```bash
-sudo /opt/airmonitor/venv/bin/airmonitor-hardware --registry /etc/airmonitor/hardware.yaml list
-sudo /opt/airmonitor/venv/bin/airmonitor-hardware --registry /etc/airmonitor/hardware.yaml resolve sgx-voc-01
-```
+For current builds:
 
-## FTDI EEPROM Provisioning
-
-`tools/provision-ftdi.sh` safely:
-
-1. reads and preserves an EEPROM backup
-2. builds a replacement image
-3. refuses to flash unless `FLASH=1`
-4. writes the selected manufacturer, product, and serial strings
-5. installs a serial-specific udev rule
-
-Build and back up without flashing:
-
-```bash
-CURRENT_SERIAL=BG02D9OG \
-SERIAL=SGX-VOC-1000-01 \
-bash tools/provision-ftdi.sh
-```
-
-After reviewing the backup and generated image:
-
-```bash
-CURRENT_SERIAL=BG02D9OG \
-SERIAL=SGX-VOC-1000-01 \
-FLASH=1 \
-bash tools/provision-ftdi.sh
-```
-
-The defaults are `MANUFACTURER=DSD`, `PRODUCT=AirMonitor`, and
-`SYMLINK_NAME=airmonitor-sgx`.
-
-EEPROMs can be reprogrammed when naming or metadata conventions change, but always retain
-a backup of the original image and verify that the selected adapter is the intended device
-before flashing.
+1. connect each sensor through its USB-UART interface
+2. identify a reliable Linux device path
+3. set that path explicitly in the sensor service configuration
+4. restart and verify the service
 
 ## Service Configuration
 
-Recommended `/etc/airmonitor/sgx-voc.env` settings:
+Configure the applicable sensor environment file with an explicit port.
+
+Example SGX settings:
 
 ```text
-AIRMONITOR_PORT=auto
-AIRMONITOR_HARDWARE_ID=sgx-voc-01
-AIRMONITOR_HARDWARE_REGISTRY=/etc/airmonitor/hardware.yaml
+AIRMONITOR_PORT=/dev/serial/by-id/<actual-sgx-adapter-path>
 AIRMONITOR_SENSOR_TRANSPORT=usb-uart
-AIRMONITOR_SENSOR_SERIAL=SGX-VOC-1000-01
+```
+
+Example SPS30 settings:
+
+```text
+AIRMONITOR_PORT=/dev/serial/by-id/<actual-sps30-adapter-path>
+AIRMONITOR_SENSOR_TRANSPORT=usb-uart
 ```
 
 Restart and verify:
 
 ```bash
 sudo systemctl restart airmonitor-voc.service
+sudo systemctl restart airmonitor-sps30.service
 sudo journalctl -u airmonitor-voc.service -n 30 --no-pager
+sudo journalctl -u airmonitor-sps30.service -n 30 --no-pager
 sudo /opt/airmonitor/venv/bin/airmonitor-doctor
 ```
 
@@ -182,7 +130,7 @@ wiring information, and any available CAD source files.
 Planned enclosure documentation will include:
 
 - MakerWorld print-file and profile link
-- supported sensor and USB Interface revision
+- supported sensor and USB-interface revision
 - bill of materials
 - assembly instructions
 - airflow and mounting notes
@@ -190,45 +138,25 @@ Planned enclosure documentation will include:
 
 ## Advanced: Native UART Connections
 
-AirMonitor sensor modules communicate internally using TTL UART. Advanced builders may
-connect a module directly to a Raspberry Pi GPIO UART or another embedded host instead of
-using the recommended USB Interface.
+AirMonitor sensor modules communicate internally using TTL UART. Advanced builders may connect
+a module directly to a Raspberry Pi GPIO UART or another embedded host instead of using the
+recommended USB interface.
 
 Native UART operation has important tradeoffs:
 
-- EEPROM-based automatic identification is unavailable.
-- The device path must be configured explicitly.
-- Voltage levels, grounding, pinout, and power requirements must be verified by the builder.
-- Host UART configuration may be platform-specific.
-- A direct GPIO connection is less portable than a USB-connected AirMonitor Sensor.
+- the device path must be configured explicitly
+- voltage levels, grounding, pinout, and power requirements must be verified by the builder
+- host UART configuration may be platform-specific
+- a direct GPIO connection is less portable than a USB-connected AirMonitor Sensor
 
 Use native UART wiring as an advanced integration option, not as the default public build.
 Retain the sensor-specific wiring and pinout notes under `hardware/` for this purpose.
 
-### Manually Register a Native UART
+Example configuration:
 
-```bash
-sudo /opt/airmonitor/venv/bin/airmonitor-hardware \
-  --registry /etc/airmonitor/hardware.yaml \
-  add sgx-voc-01 \
-  --driver airmonitor.sensors.sgx.ps1_voc \
-  --transport gpio-uart \
-  --device /dev/serial0 \
-  --force
+```text
+AIRMONITOR_PORT=/dev/serial0
+AIRMONITOR_SENSOR_TRANSPORT=gpio-uart
 ```
 
-### Register a Generic USB Adapter by Device Path
-
-Use this when an adapter EEPROM cannot be programmed or does not provide a unique identity:
-
-```bash
-sudo /opt/airmonitor/venv/bin/airmonitor-hardware \
-  --registry /etc/airmonitor/hardware.yaml \
-  add sgx-voc-01 \
-  --transport usb-uart \
-  --device /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_ABC123-if00-port0 \
-  --force
-```
-
-An explicit `AIRMONITOR_PORT` always bypasses registry discovery. Set it to `auto` to use
-the hardware registry.
+The sensor-specific hardware pages contain the relevant pinout and wiring information.
