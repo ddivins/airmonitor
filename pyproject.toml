@@ -9,11 +9,14 @@ description = "Raspberry Pi air-quality monitoring and printer filter automation
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "matplotlib>=3.8,<4",
+    "openpyxl>=3.1,<4",
     "pyserial>=3.5,<4",
     "paho-mqtt>=2,<3",
     "PyYAML>=6,<7",
     "python-kasa>=0.10,<1",
     "pyvesync>=2,<3",
+    "reportlab>=4,<5",
 ]
 
 [project.scripts]
@@ -29,6 +32,7 @@ airmonitor-bento = "airmonitor.cli:run_bento_service"
 airmonitor-levoit = "airmonitor.cli:run_levoit_service"
 airmonitor-levoit-service = "airmonitor.filters.levoit.supervisor:main"
 airmonitor-status = "airmonitor.status_web:main"
+airmonitor-export = "airmonitor.exports.web:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/airmonitor"]

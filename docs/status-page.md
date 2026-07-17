@@ -47,6 +47,10 @@ the UI cannot disable itself. Stopping `airmonitor.target` stops its sensor and 
 members but leaves the status page available to start them again. Grafana and Mosquitto expose restart-only controls; stop, enable, and disable are
 rejected independently by both the HTTP policy and the privileged helper.
 
+The print-export service is also shown in service status and exposes a restart-only
+administrator control. It remains isolated from the status process so report generation
+cannot block landing-page refreshes.
+
 Grafana and the appliance landing page now share one origin. The provisioned dashboards
 include an `AirMonitor Status` link back to the appliance root.
 

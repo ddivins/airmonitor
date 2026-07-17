@@ -16,7 +16,7 @@ def build_database(path, sampled_at: str) -> None:
         CREATE TABLE sps30_samples (id INTEGER PRIMARY KEY, sampled_at TEXT, mass_pm1_0 REAL, mass_pm2_5 REAL, mass_pm4_0 REAL, mass_pm10 REAL);
         CREATE TABLE prints (id INTEGER PRIMARY KEY, started_at TEXT, last_seen_at TEXT, printer_available TEXT,
             printer_connected INTEGER, printer_active INTEGER, last_gcode_state TEXT, filament_type TEXT,
-            filament_name TEXT, subtask_name TEXT);
+            filament_name TEXT, subtask_name TEXT, chamber_temperature_c REAL);
         CREATE TABLE filter_control_state (filter_id TEXT, manual_mode TEXT, automation_request TEXT,
             actual_state TEXT, effective_state TEXT, reason TEXT, updated_at TEXT);
         CREATE TABLE levoit_samples (id INTEGER PRIMARY KEY, sampled_at TEXT, device_name TEXT, power_state TEXT,
@@ -24,7 +24,7 @@ def build_database(path, sampled_at: str) -> None:
     """)
     conn.execute("INSERT INTO sgx_voc_samples VALUES (1, ?, 0.42, 23.5, 45.0)", (sampled_at,))
     conn.execute("INSERT INTO sps30_samples VALUES (1, ?, 1.1, 3.2, 4.3, 5.4)", (sampled_at,))
-    conn.execute("INSERT INTO prints VALUES (1, ?, ?, 'online', 1, 0, 'IDLE', 'PETG', 'Blue PETG', NULL)", (sampled_at, sampled_at))
+    conn.execute("INSERT INTO prints VALUES (1, ?, ?, 'online', 1, 0, 'IDLE', 'PETG', 'Blue PETG', NULL, 36.5)", (sampled_at, sampled_at))
     conn.execute("INSERT INTO filter_control_state VALUES ('bento', 'auto', 'off', 'off', 'off', 'idle', ?)", (sampled_at,))
     conn.execute("INSERT INTO levoit_samples VALUES (1, ?, '400S', 'on', 'manual', 2, 4.0, 1, 93)", (sampled_at,))
     conn.commit()
@@ -57,6 +57,7 @@ class StatusTests(unittest.TestCase):
         self.assertEqual(result["levoit"]["fan_level"], 2)
         self.assertEqual(result["levoit"]["pm2_5"], 4.0)
         self.assertEqual(result["printer"]["filament_type"], "PETG")
+        self.assertEqual(result["printer"]["chamber_temperature_c"], 36.5)
         self.assertEqual(result["freshness"]["sgx"]["age_seconds"], 10)
         self.assertEqual(set(result["services"]), set(SERVICES))
 

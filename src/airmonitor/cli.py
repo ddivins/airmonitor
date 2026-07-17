@@ -403,6 +403,7 @@ def log_samples(args: argparse.Namespace) -> int:
                         sensor_protocol=protocol,
                         sensor_port=args.port,
                         measurement=measurement,
+                        printer_state=printer_state,
                         frame_hex=response.hex(" "),
                     )
                     LOG.info(

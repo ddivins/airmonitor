@@ -1,0 +1,23 @@
+[Unit]
+Description=AirMonitor print report export service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=automation
+Group=automation
+Environment=MPLCONFIGDIR=/tmp/airmonitor-matplotlib
+ExecStart=/opt/airmonitor/venv/bin/airmonitor-export
+Restart=always
+RestartSec=5
+Nice=5
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ReadOnlyPaths=/var/lib/airmonitor
+MemoryMax=768M
+TasksMax=64

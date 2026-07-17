@@ -16,6 +16,7 @@ SENSOR_OFFLINE_SECONDS = 300
 SERVICES = (
     "airmonitor.target",
     "airmonitor-status.service",
+    "airmonitor-export.service",
     "airmonitor-voc.service",
     "airmonitor-sps30.service",
     "airmonitor-printer-mqtt.service",
@@ -143,7 +144,8 @@ def collect_status(
         """)
         printer = _row(conn, """
             SELECT last_seen_at, printer_available, printer_connected, printer_active,
-                   last_gcode_state, filament_type, filament_name, subtask_name
+                   last_gcode_state, filament_type, filament_name, subtask_name,
+                   chamber_temperature_c
             FROM prints ORDER BY COALESCE(last_seen_at, started_at) DESC LIMIT 1
         """)
         filters = [dict(row) for row in conn.execute("""

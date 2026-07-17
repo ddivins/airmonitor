@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 
 
 DDL = """
@@ -85,6 +85,7 @@ CREATE TABLE IF NOT EXISTS prints (
     nozzle_type TEXT,
     nozzle_target_temperature_c REAL,
     bed_target_temperature_c REAL,
+    chamber_temperature_c REAL,
 
     printer_state_json TEXT
 );
@@ -104,6 +105,7 @@ CREATE TABLE IF NOT EXISTS sgx_voc_samples (
     full_scale INTEGER,
     temperature_c REAL,
     humidity_rh REAL,
+    chamber_temperature_c REAL,
     frame_hex TEXT
 );
 
@@ -185,6 +187,11 @@ PRINT_COLUMN_MIGRATIONS = {
     "nozzle_type": "TEXT",
     "nozzle_target_temperature_c": "REAL",
     "bed_target_temperature_c": "REAL",
+    "chamber_temperature_c": "REAL",
+}
+
+SGX_SAMPLE_COLUMN_MIGRATIONS = {
+    "chamber_temperature_c": "REAL",
 }
 
 POST_MIGRATION_DDL = """
@@ -206,6 +213,7 @@ def connect(path: str | Path) -> sqlite3.Connection:
 def init_db(conn: sqlite3.Connection) -> None:
     conn.executescript(DDL)
     ensure_columns(conn, "prints", PRINT_COLUMN_MIGRATIONS)
+    ensure_columns(conn, "sgx_voc_samples", SGX_SAMPLE_COLUMN_MIGRATIONS)
     conn.executescript(POST_MIGRATION_DDL)
     conn.execute(
         "INSERT OR IGNORE INTO schema_version(version) VALUES (?)",
@@ -304,8 +312,9 @@ def start_or_update_print(
                 policy_version, filament_policy_material, filament_emission_class,
                 filament_odor_class, filament_particle_class, bento_recommended,
                 room_filter_recommended, nozzle_diameter, nozzle_type,
-                nozzle_target_temperature_c, bed_target_temperature_c, printer_state_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                nozzle_target_temperature_c, bed_target_temperature_c,
+                chamber_temperature_c, printer_state_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             _print_values(printer_state, printer_available, started_state, started_state),
         )
@@ -345,6 +354,7 @@ def start_or_update_print(
             nozzle_type = COALESCE(?, nozzle_type),
             nozzle_target_temperature_c = COALESCE(?, nozzle_target_temperature_c),
             bed_target_temperature_c = COALESCE(?, bed_target_temperature_c),
+            chamber_temperature_c = COALESCE(?, chamber_temperature_c),
             printer_state_json = ?
         WHERE id = ?
         """,
@@ -397,6 +407,7 @@ def finish_print(
             nozzle_type = COALESCE(?, nozzle_type),
             nozzle_target_temperature_c = COALESCE(?, nozzle_target_temperature_c),
             bed_target_temperature_c = COALESCE(?, bed_target_temperature_c),
+            chamber_temperature_c = COALESCE(?, chamber_temperature_c),
             printer_state_json = ?
         WHERE id = ?
         """,
@@ -414,14 +425,16 @@ def insert_sgx_voc_sample(
     sensor_protocol: str | None,
     sensor_port: str | None,
     measurement: Any,
+    printer_state: Mapping[str, Any] | None,
     frame_hex: str | None,
 ) -> None:
     conn.execute(
         """
         INSERT INTO sgx_voc_samples (
             sensor_id, session_id, print_id, sensor_protocol, sensor_port,
-            gas_ppm, gas_mass, full_scale, temperature_c, humidity_rh, frame_hex
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            gas_ppm, gas_mass, full_scale, temperature_c, humidity_rh,
+            chamber_temperature_c, frame_hex
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             sensor_id,
@@ -434,6 +447,7 @@ def insert_sgx_voc_sample(
             _value(measurement, "full_scale"),
             _value(measurement, "temperature_c"),
             _value(measurement, "humidity_rh"),
+            _value(printer_state, "chamber_temperature_c"),
             frame_hex,
         ),
     )
@@ -547,6 +561,7 @@ def _print_values(
         printer_state.get("nozzle_type"),
         printer_state.get("nozzle_target_temperature_c"),
         printer_state.get("bed_target_temperature_c"),
+        printer_state.get("chamber_temperature_c"),
         _state_json(printer_state),
     )
 
@@ -584,6 +599,7 @@ def _print_update_values(
         printer_state.get("nozzle_type"),
         printer_state.get("nozzle_target_temperature_c"),
         printer_state.get("bed_target_temperature_c"),
+        printer_state.get("chamber_temperature_c"),
         _state_json(printer_state),
     )
 
@@ -624,6 +640,7 @@ def _print_finish_values(
         printer_state.get("nozzle_type"),
         printer_state.get("nozzle_target_temperature_c"),
         printer_state.get("bed_target_temperature_c"),
+        printer_state.get("chamber_temperature_c"),
         _state_json(printer_state),
     )
 

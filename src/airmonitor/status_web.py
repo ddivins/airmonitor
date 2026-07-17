@@ -33,6 +33,7 @@ CONTROLLED_SERVICES = (
     "airmonitor-printer-mqtt.service",
     "airmonitor-bento.service",
     "airmonitor-levoit.service",
+    "airmonitor-export.service",
     "grafana-server.service",
     "mosquitto.service",
 )
@@ -43,6 +44,7 @@ TARGET_MANAGED_SERVICES = (
     "airmonitor-bento.service",
     "airmonitor-levoit.service",
     "airmonitor-status.service",
+    "airmonitor-export.service",
 )
 SERVICE_ACTIONS = {
     "airmonitor.target": ("start", "stop", "restart"),
@@ -51,6 +53,7 @@ SERVICE_ACTIONS = {
     "airmonitor-printer-mqtt.service": ("start", "stop", "restart"),
     "airmonitor-bento.service": ("start", "stop", "restart"),
     "airmonitor-levoit.service": ("start", "stop", "restart"),
+    "airmonitor-export.service": ("restart",),
     "grafana-server.service": ("restart",),
     "mosquitto.service": ("restart",),
 }

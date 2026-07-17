@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SERVICE_LIST="${SERVICE_LIST:-airmonitor.target airmonitor-printer-mqtt.service airmonitor-voc.service airmonitor-sps30.service airmonitor-bento.service airmonitor-levoit.service airmonitor-status.service}"
+SERVICE_LIST="${SERVICE_LIST:-airmonitor.target airmonitor-printer-mqtt.service airmonitor-voc.service airmonitor-sps30.service airmonitor-bento.service airmonitor-levoit.service airmonitor-status.service airmonitor-export.service}"
 APP_DIR="${APP_DIR:-/opt/airmonitor}"
 ENV_FILE="${ENV_FILE:-/etc/airmonitor/sgx-voc.env}"
 REQUIRED_ENV_FILES="${REQUIRED_ENV_FILES:-/etc/airmonitor/sgx-voc.env /etc/airmonitor/sps30.env /etc/airmonitor/printer-mqtt.env /etc/airmonitor/bento.env /etc/airmonitor/levoit.env}"
@@ -9,6 +9,8 @@ POLICY_SRC="${POLICY_SRC:-config/filament-policy.yaml}"
 POLICY_DST="${POLICY_DST:-/etc/airmonitor/filament-policy.yaml}"
 HARDWARE_SRC="${HARDWARE_SRC:-config/hardware.yaml.example}"
 HARDWARE_DST="${HARDWARE_DST:-/etc/airmonitor/hardware.yaml}"
+UDEV_RULE_SRC="${UDEV_RULE_SRC:-config/udev/99-airmonitor-serial.rules}"
+UDEV_RULE_DST="${UDEV_RULE_DST:-/etc/udev/rules.d/99-airmonitor-serial.rules}"
 UNIT_DIR="${UNIT_DIR:-systemd}"
 DATA_DIR="${DATA_DIR:-/var/lib/airmonitor}"
 STATE_DIR="${STATE_DIR:-$DATA_DIR/update-state}"
@@ -43,6 +45,7 @@ command -v systemctl >/dev/null || fail "systemctl is not available"
 [[ -f "$REPO_DIR/pyproject.toml" ]] || fail "missing pyproject.toml in $REPO_DIR"
 [[ -f "$REPO_DIR/$POLICY_SRC" ]] || fail "missing filament policy: $REPO_DIR/$POLICY_SRC"
 [[ -f "$REPO_DIR/$HARDWARE_SRC" ]] || fail "missing hardware registry template: $REPO_DIR/$HARDWARE_SRC"
+[[ -f "$REPO_DIR/$UDEV_RULE_SRC" ]] || fail "missing udev rules: $REPO_DIR/$UDEV_RULE_SRC"
 [[ -x "$PIP_BIN" ]] || fail "missing virtualenv pip: $PIP_BIN"
 for env_file in $REQUIRED_ENV_FILES; do
   [[ -f "$env_file" ]] || fail "missing env file: $env_file"
@@ -99,6 +102,12 @@ else
   echo "Preserving existing hardware registry: $HARDWARE_DST"
 fi
 
+log "Installing stable AirMonitor serial device names"
+sudo install -o root -g root -m 0644 "$UDEV_RULE_SRC" "$UDEV_RULE_DST"
+sudo udevadm control --reload-rules
+sudo udevadm trigger --subsystem-match=tty
+sudo udevadm settle
+
 log "Installing systemd units"
 for service in $SERVICE_LIST; do
   sudo install -o root -g root -m 0644 "$UNIT_DIR/$service" "/etc/systemd/system/$service"
@@ -111,7 +120,11 @@ if command -v nginx >/dev/null || [[ -x /usr/sbin/nginx ]]; then
   bash tools/install-status-page.sh
 fi
 
-if [[ "$INSTALL_GRAFANA" == "1" ]] || { [[ "$INSTALL_GRAFANA" == "auto" ]] && command -v grafana >/dev/null && systemctl list-unit-files grafana-server.service >/dev/null 2>&1; }; then
+if [[ "$INSTALL_GRAFANA" == "1" ]] || {
+  [[ "$INSTALL_GRAFANA" == "auto" ]] &&
+  { command -v grafana >/dev/null || [[ -x /usr/sbin/grafana ]] || command -v grafana-cli >/dev/null || [[ -x /usr/sbin/grafana-cli ]]; } &&
+  systemctl list-unit-files grafana-server.service >/dev/null 2>&1
+}; then
   log "Installing Grafana datasource and dashboards"
   bash tools/install-grafana.sh
 fi

@@ -9,7 +9,7 @@ case "$service" in
         case "$action" in start|stop|restart) ;; *) echo "Unsupported action for $service" >&2; exit 64 ;; esac
         ;;
     airmonitor-voc.service|airmonitor-sps30.service|airmonitor-printer-mqtt.service|airmonitor-bento.service|airmonitor-levoit.service) ;;
-    grafana-server.service|mosquitto.service)
+    airmonitor-export.service|grafana-server.service|mosquitto.service)
         [ "$action" = restart ] || { echo "Only restart is allowed for $service" >&2; exit 64; }
         ;;
     *) echo "Unsupported service" >&2; exit 64 ;;
