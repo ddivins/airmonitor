@@ -1,11 +1,16 @@
 # AirMonitor Architecture
 
-AirMonitor is an open-source DIY air-quality monitoring platform for 3D-printing spaces.
-The project uses commercially available sensor modules packaged as USB-connected
-AirMonitor Sensors, with local collection, storage, dashboards, printer awareness, and
-filter automation running on a Raspberry Pi or other Linux host.
+AirMonitor is an open-source DIY measurement platform for evaluating air-filtration
+performance in 3D-printing spaces. It uses commercially available sensor modules packaged as
+USB-connected AirMonitor Sensors, with local collection, storage, dashboards, printer
+awareness, and filter automation running on a Raspberry Pi or other Linux host.
 
-The model is one repository, one Python package, one shared database, one shared
+The system is designed around comparative experiments rather than claims of laboratory-grade
+VOC analysis or certified particulate exposure monitoring. Sensor readings are collected with
+print and filter context so filtered and unfiltered runs can be compared for peak response,
+total response, and time to return toward baseline.
+
+The software model is one repository, one Python package, one shared database, one shared
 configuration model, and multiple optional integrations.
 
 ## End-to-End Data Path
@@ -13,35 +18,60 @@ configuration model, and multiple optional integrations.
 ```text
 Commercial sensor module
         │ TTL UART
-USB Interface
-(USB-UART bridge + EEPROM identity)
+USB-UART interface
         │ USB
-Linux / udev discovery
-        │
-AirMonitor hardware registry
+Configured Linux serial device
         │
 Sensor driver and service
         │
-SQLite database
+SQLite database + print/filter context
         │
-Grafana / filter automation / operating tools
+Grafana / filter-efficacy analysis / automation
 ```
 
 USB is the recommended physical connection. Native UART remains available as an advanced
-integration path, but it bypasses EEPROM-based identity and normally requires an explicit
-device path.
+integration path. Current installations use explicit device-path configuration rather than a
+custom EEPROM identity and automatic hardware-registry matching scheme.
 
-## Hardware Discovery
+## Measurement and Experiment Context
 
-Each recommended USB Interface is assigned a unique EEPROM identity containing manufacturer,
-product, and serial strings. AirMonitor matches those values through
-`/etc/airmonitor/hardware.yaml` rather than relying on changing `/dev/ttyUSB*` numbers.
+Sensor samples are most useful when interpreted alongside the conditions under which they were
+collected. AirMonitor associates measurements with information such as:
 
-This separates three concepts:
+- pre-print baseline period
+- active print and post-print recovery windows
+- printer and filament state
+- Bento Box and room-filter operating state
+- manual filter overrides
+- timestamps suitable for aligning multiple sensor signals
+
+This structure supports comparisons such as:
+
+- filtered versus unfiltered runs
+- one filter medium versus another
+- different fan speeds or filter placements
+- enclosure open versus closed
+- different filament materials under otherwise similar conditions
+
+The architecture preserves raw reported measurements, but downstream interpretation should
+focus on repeatable relative differences rather than treating a single VOC ppm value as a
+compound-specific exposure measurement.
+
+## Hardware Connection
+
+The physical hardware concepts are:
 
 - **AirMonitor Sensor** — the complete DIY physical device
 - **sensor module** — the commercial sensing component, such as the SPS30
-- **USB Interface** — the USB-UART bridge and EEPROM identity associated with the device
+- **USB interface** — the USB-UART bridge used to connect the module to the host
+- **configured device path** — the Linux serial path selected for the sensor service
+
+A stable `/dev/serial/by-id/...` path or custom udev symlink is preferred when available. The
+project does not require builders to reprogram FTDI EEPROM strings or provision an
+AirMonitor-specific USB identity.
+
+Earlier EEPROM and registry-based discovery work may remain in the codebase for compatibility,
+history, or future experimentation, but it is not the recommended installation architecture.
 
 ## Package Layout
 
@@ -117,6 +147,10 @@ Keep local environment files outside the repository and preserve them across upd
 /etc/airmonitor/filament-policy.yaml
 ```
 
+Sensor environment files should specify the selected serial device path explicitly. The
+hardware registry may remain available for compatibility, but automatic EEPROM-based matching
+is not required for the current design.
+
 ## Database
 
 SQLite remains the default local database:
@@ -125,20 +159,20 @@ SQLite remains the default local database:
 /var/lib/airmonitor/airmonitor.sqlite3
 ```
 
-The application manages schema migrations and exposes normalized tables or views for
-Grafana. SQL should live behind repository helpers where practical. Filter manual override
-state is persisted in `filter_control_state` and accessed through
-`FilterControlRepository`.
+The application manages schema migrations and exposes normalized tables or views for Grafana.
+SQL should live behind repository helpers where practical. Filter manual override state is
+persisted in `filter_control_state` and accessed through `FilterControlRepository`.
 
 ## Grafana
 
-Grafana dashboards are generated and imported through the Grafana API. Manual dashboard
-edits are temporary and should be overwritten by the installer or update scripts.
+Grafana dashboards are generated and imported through the Grafana API. Manual dashboard edits
+are temporary and should be overwritten by the installer or update scripts.
 
 Planned dashboard areas include:
 
 - live appliance status
 - print history
-- air-quality history
 - filter activity
-- exposure and return-to-baseline analysis
+- filtered-versus-unfiltered comparisons
+- peak and total sensor response
+- return-to-baseline analysis
