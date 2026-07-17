@@ -41,7 +41,8 @@ SQL = {
     "temperature_humidity": """
         SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time,
                temperature_c,
-               humidity_rh
+               humidity_rh,
+               chamber_temperature_c
         FROM sgx_voc_samples
         WHERE CAST(strftime('%s', sampled_at) AS INTEGER) >= $__from / 1000
           AND CAST(strftime('%s', sampled_at) AS INTEGER) < $__to / 1000
@@ -310,7 +311,7 @@ def build() -> dict[str, Any]:
     panels = [
         brand_panel(12),
         timeseries(1, "SGX VOC History", 0, 6, 12, 8, "voc", "ppm", 5),
-        timeseries(2, "SGX Temperature / Humidity", 12, 6, 12, 8, "temperature_humidity"),
+        timeseries(2, "Ambient Temperature / Humidity / Chamber", 12, 6, 12, 8, "temperature_humidity"),
         timeseries(3, "SPS30 PM Mass", 0, 14, 24, 8, "sps30_mass", "ug/m3"),
         timeseries(4, "SPS30 Particle Count", 0, 22, 12, 8, "sps30_counts", "#/cm3"),
         timeseries(5, "SPS30 Typical Particle Size", 12, 22, 12, 8, "sps30_particle_size", "um"),

@@ -146,7 +146,7 @@
     {
       "id": 2,
       "type": "timeseries",
-      "title": "SGX Temperature / Humidity",
+      "title": "Ambient Temperature / Humidity / Chamber",
       "datasource": {
         "type": "frser-sqlite-datasource",
         "uid": "airmonitor-sqlite"
@@ -164,8 +164,8 @@
             "type": "frser-sqlite-datasource",
             "uid": "airmonitor-sqlite"
           },
-          "queryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, temperature_c, humidity_rh FROM sgx_voc_samples WHERE CAST(strftime('%s', sampled_at) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', sampled_at) AS INTEGER) < $__to / 1000 ORDER BY sampled_at",
-          "rawQueryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, temperature_c, humidity_rh FROM sgx_voc_samples WHERE CAST(strftime('%s', sampled_at) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', sampled_at) AS INTEGER) < $__to / 1000 ORDER BY sampled_at",
+          "queryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, temperature_c, humidity_rh, chamber_temperature_c FROM sgx_voc_samples WHERE CAST(strftime('%s', sampled_at) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', sampled_at) AS INTEGER) < $__to / 1000 ORDER BY sampled_at",
+          "rawQueryText": "SELECT CAST(strftime('%s', sampled_at) AS INTEGER) AS time, temperature_c, humidity_rh, chamber_temperature_c FROM sgx_voc_samples WHERE CAST(strftime('%s', sampled_at) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', sampled_at) AS INTEGER) < $__to / 1000 ORDER BY sampled_at",
           "queryType": "time series",
           "timeColumns": [
             "time"

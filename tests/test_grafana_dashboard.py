@@ -39,6 +39,10 @@ class GrafanaDashboardTests(unittest.TestCase):
         self.assertEqual(brand["type"], "text")
         self.assertIn("airmonitor-brand-300.png", brand["options"]["content"])
 
+        environment = next(panel for panel in dashboard["panels"] if panel["id"] == 2)
+        self.assertEqual(environment["title"], "Ambient Temperature / Humidity / Chamber")
+        self.assertIn("chamber_temperature_c", environment["targets"][0]["queryText"])
+
     def test_dashboard_uses_explicit_sqlite_plugin_query_model(self):
         dashboard = self.generator.build()
 

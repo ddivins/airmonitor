@@ -133,6 +133,7 @@ function render(data) {
   const printer = data.printer || {};
   $("printer-state").textContent = printer.last_gcode_state || "Unknown";
   $("printer-availability").textContent = printer.printer_connected === 1 ? "Connected" : (printer.printer_available || "Unknown");
+  $("chamber-temperature").textContent = printer.chamber_temperature_c == null ? "—" : `${number(printer.chamber_temperature_c, 1)} °C`;
   $("filament").textContent = [printer.filament_type, printer.filament_name].filter(Boolean).join(" · ") || "—";
   $("print-job").textContent = printer.subtask_name || "No active job";
 
