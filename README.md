@@ -267,17 +267,18 @@ git pull --ff-only
 bash tools/update.sh
 ```
 
-Fresh install outline:
+Supported fresh install:
 
 ```bash
-sudo apt update
-sudo apt install -y git python3 python3-venv sqlite3
-id automation || sudo useradd --system --no-create-home --shell /usr/sbin/nologin automation
-
+sudo apt update && sudo apt install -y git
 git clone https://github.com/ddivins/airmonitor.git
 cd airmonitor
-bash tools/update.sh
+bash tools/install.sh --core
 ```
+
+Use `--full` to add Grafana, nginx, Certbot, and the Cloudflare DNS plugin. The installer is
+idempotent, preserves existing configuration, and will not enable public nginx routing until
+both expected TLS certificates exist. See [Fresh Host Installation](docs/install.md).
 
 Local secret and host-specific configuration files live outside the repository and should be
 preserved across updates:

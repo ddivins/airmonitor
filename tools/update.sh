@@ -18,6 +18,8 @@ SERVICE_USER="${SERVICE_USER:-automation}"
 SERVICE_GROUP="${SERVICE_GROUP:-automation}"
 REPO_DIR="${REPO_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 INSTALL_GRAFANA="${INSTALL_GRAFANA:-auto}"
+INSTALL_STATUS_PAGE="${INSTALL_STATUS_PAGE:-auto}"
+RUN_DOCTOR="${RUN_DOCTOR:-1}"
 PIP_BIN="$APP_DIR/venv/bin/pip"
 DOCTOR_BIN="$APP_DIR/venv/bin/airmonitor-doctor"
 
@@ -115,7 +117,10 @@ done
 sudo systemctl daemon-reload
 sudo systemctl enable airmonitor.target >/dev/null
 
-if command -v nginx >/dev/null || [[ -x /usr/sbin/nginx ]]; then
+if [[ "$INSTALL_STATUS_PAGE" == "1" ]] || {
+  [[ "$INSTALL_STATUS_PAGE" == "auto" ]] &&
+  { command -v nginx >/dev/null || [[ -x /usr/sbin/nginx ]]; }
+}; then
   log "Installing AirMonitor status page routing"
   bash tools/install-status-page.sh
 fi
@@ -151,7 +156,7 @@ for service in $SERVICE_LIST; do
   sudo journalctl -u "$service" -n 20 --no-pager
 done
 
-if [[ -x "$DOCTOR_BIN" ]]; then
+if [[ "$RUN_DOCTOR" == "1" && -x "$DOCTOR_BIN" ]]; then
   log "Running AirMonitor health check"
   sudo "$DOCTOR_BIN"
 fi
