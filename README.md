@@ -267,17 +267,23 @@ git pull --ff-only
 bash tools/update.sh
 ```
 
-Fresh install outline:
+Supported fresh install:
 
 ```bash
-sudo apt update
-sudo apt install -y git python3 python3-venv sqlite3
-id automation || sudo useradd --system --no-create-home --shell /usr/sbin/nologin automation
-
+sudo apt update && sudo apt install -y git
 git clone https://github.com/ddivins/airmonitor.git
 cd airmonitor
-bash tools/update.sh
+bash tools/install.sh
 ```
+
+With no arguments and nothing configured yet, the installer asks a few short questions (core
+or full, and — for full — a domain and Let's Encrypt contact email) and saves the answers to
+`/etc/airmonitor/install.conf` for future reruns. Pass `--config path/to/install.conf` for an
+unattended install from a file (see
+[`config/install.conf.example`](config/install.conf.example)); a full install adds Grafana,
+nginx, Certbot, and the Cloudflare DNS plugin. The installer is idempotent, preserves existing
+configuration, and will not enable public nginx routing until a TLS certificate exists for the
+configured domain. See [Fresh Host Installation](docs/install.md).
 
 Local secret and host-specific configuration files live outside the repository and should be
 preserved across updates:
@@ -290,6 +296,8 @@ preserved across updates:
 /etc/airmonitor/levoit.env
 /etc/airmonitor/hardware.yaml
 /etc/airmonitor/filament-policy.yaml
+/etc/airmonitor/install.conf
+/etc/airmonitor/airmonitor.env
 ```
 
 ## Hardware Configuration

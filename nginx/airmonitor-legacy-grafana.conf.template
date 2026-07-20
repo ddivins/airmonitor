@@ -1,0 +1,20 @@
+server {
+    listen 80;
+    listen [::]:80;
+    server_name grafana.__DOMAIN__;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name grafana.__DOMAIN__;
+
+    ssl_certificate /etc/letsencrypt/live/grafana.__DOMAIN__/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/grafana.__DOMAIN__/privkey.pem;
+
+    # Compatibility host: old bookmarks move permanently into the unified app.
+    location / {
+        return 301 https://__DOMAIN__/grafana$request_uri;
+    }
+}

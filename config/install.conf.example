@@ -1,0 +1,33 @@
+# AirMonitor installer configuration.
+#
+# Copy this file, edit the values below, then run:
+#   bash tools/install.sh --config /path/to/install.conf
+#
+# Running the installer without --config falls back to whatever is already
+# saved at /etc/airmonitor/install.conf (written automatically after the
+# first run), or a short interactive prompt if nothing is saved yet.
+
+# core: sensors, MQTT, filter automation, and local SQLite storage only.
+# full: also installs Grafana, nginx, Certbot, and public HTTPS routing.
+MODE=core
+
+# Public domain for the appliance and its Grafana dashboard, served at
+# https://DOMAIN/grafana/. Required when MODE=full. Leave blank for core.
+DOMAIN=
+
+# Contact address for Let's Encrypt. Required when MODE=full.
+CERT_EMAIL=
+
+# Path to a Certbot Cloudflare DNS credentials file (mode 600) used for
+# unattended certificate issuance. Optional; leave blank to skip automatic
+# issuance and configure TLS certificates yourself before rerunning --full.
+CERTBOT_CLOUDFLARE_CREDENTIALS=
+
+# user@host of an existing AirMonitor appliance to import configuration and
+# data from. Leave blank for a fresh install.
+MIGRATE_FROM=
+
+# Also route the historical grafana.DOMAIN hostname to the unified app.
+# Only useful when migrating from an older AirMonitor host that used a
+# separate Grafana subdomain. Leave false for a new install.
+LEGACY_GRAFANA_REDIRECT=false

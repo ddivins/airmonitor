@@ -347,7 +347,7 @@ def build() -> dict[str, Any]:
                 "targetBlank": False,
                 "title": "AirMonitor Status",
                 "type": "link",
-                "url": "https://airmonitor.example.com/",
+                "url": "/",
             },
             {
                 "asDropdown": False,
@@ -358,7 +358,7 @@ def build() -> dict[str, Any]:
                 "targetBlank": False,
                 "title": "Print Window",
                 "type": "link",
-                "url": "https://airmonitor.example.com/grafana/d/airmonitor-print-window/airmonitor-print-window",
+                "url": "/grafana/d/airmonitor-print-window/airmonitor-print-window",
             },
         ],
         "panels": panels,

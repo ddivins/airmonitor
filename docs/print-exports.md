@@ -4,7 +4,7 @@ The provisioned **AirMonitor Print Window** Grafana dashboard includes an
 **Export Selected Print** link. It passes the selected Grafana `print_id` to:
 
 ```text
-https://airmonitor.example.com/exports/print?print_id=<print-id>
+https://<DOMAIN>/exports/print?print_id=<print-id>
 ```
 
 The page is public and read-only, matching the appliance's anonymous Grafana Viewer
