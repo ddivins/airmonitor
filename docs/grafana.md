@@ -41,24 +41,24 @@ Provisioning files are installed to:
 ## Dashboard URL
 
 ```text
-https://airmonitor.example.com/grafana/d/airmonitor-live/airmonitor-live
+https://<DOMAIN>/grafana/d/airmonitor-live/airmonitor-live
 ```
 
 For a navigation-free kiosk display that is pinned to the light theme:
 
 ```text
-https://airmonitor.example.com/grafana/d/airmonitor-live/airmonitor-live?kiosk&theme=light
+https://<DOMAIN>/grafana/d/airmonitor-live/airmonitor-live?kiosk&theme=light
 ```
 
 Anonymous access is enabled with the Grafana `Viewer` role. The landing page links to the
 Grafana login for authenticated access, while the provisioned dashboard cannot be edited
 or deleted in the UI and the repository
 remains the source of truth. Anyone who can reach the Grafana site can view dashboards
-and datasources available to the configured Grafana organization. If its name is not
-`Example Org`, pass it when provisioning, for example:
+and datasources available to the configured Grafana organization. It defaults to
+`AirMonitor`; override it when provisioning, for example:
 
 ```bash
-GRAFANA_ANONYMOUS_ORG_NAME='Example Org' bash tools/install-grafana.sh
+GRAFANA_ANONYMOUS_ORG_NAME='My Org' bash tools/install-grafana.sh
 ```
 
 ## Dashboard behavior

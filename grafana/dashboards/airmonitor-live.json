@@ -40,7 +40,7 @@
       "targetBlank": false,
       "title": "AirMonitor Status",
       "type": "link",
-      "url": "https://airmonitor.example.com/"
+      "url": "/"
     },
     {
       "asDropdown": false,
@@ -51,7 +51,7 @@
       "targetBlank": false,
       "title": "Print Window",
       "type": "link",
-      "url": "https://airmonitor.example.com/grafana/d/airmonitor-print-window/airmonitor-print-window"
+      "url": "/grafana/d/airmonitor-print-window/airmonitor-print-window"
     }
   ],
   "panels": [

@@ -22,6 +22,26 @@ INSTALL_STATUS_PAGE="${INSTALL_STATUS_PAGE:-auto}"
 RUN_DOCTOR="${RUN_DOCTOR:-1}"
 PIP_BIN="$APP_DIR/venv/bin/pip"
 DOCTOR_BIN="$APP_DIR/venv/bin/airmonitor-doctor"
+INSTALL_CONF="${INSTALL_CONF:-/etc/airmonitor/install.conf}"
+AIRMONITOR_ENV_DST="${AIRMONITOR_ENV_DST:-/etc/airmonitor/airmonitor.env}"
+DOMAIN=""
+LEGACY_GRAFANA_REDIRECT=false
+
+load_install_conf() {
+  local file="$1" line key value
+  [[ -f "$file" ]] || return 0
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ "$line" =~ ^[[:space:]]*(#.*)?$ ]] && continue
+    if [[ "$line" =~ ^[[:space:]]*([A-Z_]+)=(.*)$ ]]; then
+      key="${BASH_REMATCH[1]}"
+      value="${BASH_REMATCH[2]}"
+      case "$key" in
+        DOMAIN|LEGACY_GRAFANA_REDIRECT) printf -v "$key" '%s' "$value" ;;
+      esac
+    fi
+  done < "$file"
+}
+load_install_conf "$INSTALL_CONF"
 
 log() {
   printf '\n==> %s\n' "$*"
@@ -117,12 +137,19 @@ done
 sudo systemctl daemon-reload
 sudo systemctl enable airmonitor.target >/dev/null
 
+if [[ -n "$DOMAIN" ]]; then
+  log "Writing appliance public origin: https://$DOMAIN"
+  sudo install -d -o root -g root -m 0755 "$(dirname "$AIRMONITOR_ENV_DST")"
+  printf 'AIRMONITOR_PUBLIC_ORIGIN=https://%s\n' "$DOMAIN" | sudo tee "$AIRMONITOR_ENV_DST" >/dev/null
+  sudo chmod 0644 "$AIRMONITOR_ENV_DST"
+fi
+
 if [[ "$INSTALL_STATUS_PAGE" == "1" ]] || {
   [[ "$INSTALL_STATUS_PAGE" == "auto" ]] &&
   { command -v nginx >/dev/null || [[ -x /usr/sbin/nginx ]]; }
 }; then
   log "Installing AirMonitor status page routing"
-  bash tools/install-status-page.sh
+  DOMAIN="$DOMAIN" LEGACY_GRAFANA_REDIRECT="$LEGACY_GRAFANA_REDIRECT" bash tools/install-status-page.sh
 fi
 
 if [[ "$INSTALL_GRAFANA" == "1" ]] || {
@@ -131,7 +158,7 @@ if [[ "$INSTALL_GRAFANA" == "1" ]] || {
   systemctl list-unit-files grafana-server.service >/dev/null 2>&1
 }; then
   log "Installing Grafana datasource and dashboards"
-  bash tools/install-grafana.sh
+  GRAFANA_DOMAIN="$DOMAIN" GRAFANA_ROOT_URL="${DOMAIN:+https://$DOMAIN/grafana/}" bash tools/install-grafana.sh
 fi
 
 log "Restarting services"

@@ -1,7 +1,8 @@
 # AirMonitor Status Page
 
-The appliance landing page is served at `https://airmonitor.example.com/` by
-`airmonitor-status.service`. It reads only normalized state produced by AirMonitor
+The appliance landing page is served at `https://<DOMAIN>/` by `airmonitor-status.service`,
+where `DOMAIN` is the value configured during installation (see
+[Fresh Host Installation](install.md)). It reads only normalized state produced by AirMonitor
 services. It never opens serial ports, resolves sensor hardware, subscribes to printer
 MQTT, or calls filter integrations.
 
@@ -11,15 +12,19 @@ The status service reads:
 - a fixed allowlist of systemd service states
 - disk usage, database size, host uptime, and Linux thermal-zone temperature
 
-Nginx serves the landing page at `airmonitor.example.com` and proxies Grafana beneath
-`/grafana/` on that same hostname. The historical `grafana.airmonitor.example.com`
-host redirects old bookmarks into the corresponding unified-app path.
+Nginx serves the landing page at `DOMAIN` and proxies Grafana beneath `/grafana/` on that
+same hostname. Set `LEGACY_GRAFANA_REDIRECT=true` in `/etc/airmonitor/install.conf` to also
+route a historical `grafana.DOMAIN` host into the corresponding unified-app path.
 
 Install or refresh routing with:
 
 ```bash
-bash tools/install-status-page.sh
+DOMAIN=airmonitor.example.com bash tools/install-status-page.sh
 ```
+
+`tools/install.sh` and `tools/update.sh` pass `DOMAIN` (and `LEGACY_GRAFANA_REDIRECT`)
+automatically from `/etc/airmonitor/install.conf`; running the script directly requires
+setting `DOMAIN` yourself.
 
 The page refreshes every ten seconds. Sensor freshness is derived from persisted sample
 timestamps. It is degraded after 90 seconds without a sample and offline when both sensor

@@ -24,7 +24,7 @@ from airmonitor.status import DEFAULT_DATABASE, collect_status
 
 STATIC = files("airmonitor").joinpath("status_static")
 GRAFANA_API = os.environ.get("AIRMONITOR_GRAFANA_API", "http://127.0.0.1:3000")
-PUBLIC_ORIGIN = os.environ.get("AIRMONITOR_PUBLIC_ORIGIN", "https://airmonitor.example.com")
+PUBLIC_ORIGIN = os.environ.get("AIRMONITOR_PUBLIC_ORIGIN", "http://localhost:8080")
 CONTROL_HELPER = os.environ.get("AIRMONITOR_CONTROL_HELPER", "/usr/local/sbin/airmonitor-service-control")
 CONTROLLED_SERVICES = (
     "airmonitor.target",
