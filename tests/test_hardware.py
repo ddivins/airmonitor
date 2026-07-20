@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pytest
-import yaml
 
 from airmonitor.hardware import SerialDevice, load_registry, resolve_device, save_registry
 
