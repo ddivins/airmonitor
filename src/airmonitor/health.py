@@ -20,6 +20,8 @@ from typing import Iterable
 
 from airmonitor.database import SCHEMA_VERSION, connect, init_db
 from airmonitor.hardware import DEFAULT_HARDWARE_ID, DEFAULT_REGISTRY, resolve_device
+from airmonitor.state_freshness import assess_timestamp
+from airmonitor.status import SENSOR_OFFLINE_SECONDS, SENSOR_STALE_SECONDS
 
 DEFAULT_DATABASE = "/var/lib/airmonitor/airmonitor.sqlite3"
 DEFAULT_SERIAL = "auto"
@@ -44,6 +46,10 @@ SERVICES = (
     "airmonitor-status.service",
     "airmonitor-export.service",
 )
+SENSOR_FRESHNESS_QUERIES = {
+    "sgx": "SELECT sampled_at FROM sgx_voc_samples ORDER BY id DESC LIMIT 1",
+    "sps30": "SELECT sampled_at FROM sps30_samples ORDER BY id DESC LIMIT 1",
+}
 
 
 @dataclass(frozen=True)
@@ -126,6 +132,43 @@ def check_database(path: str) -> list[Check]:
     return checks
 
 
+def check_sensor_freshness(database: str) -> list[Check]:
+    """Report last-good-reading age per sensor, independent of service state.
+
+    A missing or stale sample here means the doctor can flag a service that is
+    "active" but silently not producing data, which systemd status alone would miss.
+    """
+
+    try:
+        conn = sqlite3.connect(f"file:{database}?mode=ro", uri=True, timeout=2)
+        conn.row_factory = sqlite3.Row
+    except (OSError, sqlite3.Error) as exc:
+        return [Check(f"{sensor_id}_freshness", "warn", str(exc), False) for sensor_id in SENSOR_FRESHNESS_QUERIES]
+
+    rows: dict[str, sqlite3.Row | None] = {}
+    for sensor_id, query in SENSOR_FRESHNESS_QUERIES.items():
+        try:
+            rows[sensor_id] = conn.execute(query).fetchone()
+        except sqlite3.Error:
+            rows[sensor_id] = None
+    conn.close()
+
+    checks: list[Check] = []
+    for sensor_id, row in rows.items():
+        sampled_at = row["sampled_at"] if row else None
+        if sampled_at is None:
+            checks.append(Check(f"{sensor_id}_freshness", "warn", "no samples recorded yet", False))
+            continue
+        result = assess_timestamp(sampled_at, max_age_seconds=SENSOR_STALE_SECONDS)
+        if result.fresh:
+            checks.append(Check(f"{sensor_id}_freshness", "ok", f"last sample {result.age_seconds:.1f}s ago", False))
+            continue
+        offline = result.age_seconds is not None and result.age_seconds > SENSOR_OFFLINE_SECONDS
+        state = "offline" if offline else "stale"
+        checks.append(Check(f"{sensor_id}_freshness", "warn", f"{state}: last sample at {sampled_at} ({result.reason})", False))
+    return checks
+
+
 def check_systemd_service(service: str) -> Check:
     try:
         proc = subprocess.run(
@@ -152,6 +195,7 @@ def run_checks(
     grafana_host: str = DEFAULT_GRAFANA_HOST,
     grafana_port: int = DEFAULT_GRAFANA_PORT,
     include_systemd: bool = True,
+    include_sensor_freshness: bool = True,
 ) -> dict[str, object]:
     checks: list[Check] = [
         Check("python", "ok", sys.version.split()[0], True),
@@ -162,6 +206,8 @@ def run_checks(
     checks.extend(check_database(database))
     checks.append(check_tcp("mqtt", mqtt_host, mqtt_port, required=False))
     checks.append(check_tcp("grafana", grafana_host, grafana_port, required=False))
+    if include_sensor_freshness:
+        checks.extend(check_sensor_freshness(database))
     if include_systemd:
         checks.extend(check_systemd_service(service) for service in SERVICES)
 
@@ -189,6 +235,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--grafana-host", default=DEFAULT_GRAFANA_HOST)
     parser.add_argument("--grafana-port", type=int, default=DEFAULT_GRAFANA_PORT)
     parser.add_argument("--systemd", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--sensor-freshness", action=argparse.BooleanOptionalAction, default=True)
     return parser
 
 
@@ -204,6 +251,7 @@ def main(argv: Iterable[str] | None = None) -> int:
         grafana_host=args.grafana_host,
         grafana_port=args.grafana_port,
         include_systemd=args.systemd,
+        include_sensor_freshness=args.sensor_freshness,
     )
     print(json.dumps(report, indent=2, sort_keys=True))
     return 0 if report["ok"] else 1

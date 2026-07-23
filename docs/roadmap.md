@@ -24,14 +24,14 @@ This roadmap is ordered by dependency and operational value. Items near the top 
 - [ ] Add sensor freshness and last-good-reading checks to `airmonitor-doctor`.
 - [ ] Add simulator/fake serial fixtures so sensor behavior is testable without physical hardware.
 
-## Phase 3 — Multiple sensors and service instances
+## Phase 3 — Safety alerting and notifications
 
-- [ ] Replace the single sensor service assumption with a registry-driven multi-sensor supervisor.
-- [ ] Support multiple SGX and SPS30 units simultaneously.
-- [ ] Add templated or generated systemd units per hardware id.
-- [ ] Store sensor location and role, such as room, enclosure, exhaust, or chamber.
-- [ ] Make dashboards filterable by sensor id and location.
-- [ ] Add duplicate USB identity and conflicting device-path detection.
+Promoted ahead of multi-sensor and UX work: the project's core promise ("Monitor. Understand. Don't Die.") depends on someone being told when air quality is bad, not just able to look it up.
+
+- [ ] Add VOC/PM safety warnings while preserving explicit user override policy.
+- [ ] Add a notification channel (webhook, ntfy, or Pushover) for dangerous air-quality conditions, stale sensors, and failed filters.
+- [ ] Add configurable thresholds per sensor/metric, stored alongside hardware config.
+- [ ] Add a notification-history/acknowledgment record so alerts are auditable, not just fire-and-forget.
 
 ## Phase 4 — Filter control and observability
 
@@ -41,9 +41,25 @@ This roadmap is ordered by dependency and operational value. Items near the top 
 - [ ] Detect and honor external/manual device changes without immediately fighting the user.
 - [ ] Add stale printer-state handling directly into filter controllers.
 - [ ] Add filter state/reason panels to Grafana.
-- [ ] Add VOC/PM safety warnings while preserving explicit user override policy.
 
-## Phase 5 — Appliance management UX
+## Phase 5 — Release hygiene
+
+New phase covering reproducibility gaps that matter more now that the fresh-host installer is meant for others to use.
+
+- [ ] Pin dependency versions with a lockfile (e.g. `uv.lock` or pip-compile output) instead of open version ranges in `pyproject.toml`.
+- [ ] Add a committed ruff configuration and enforce it in CI (currently run ad hoc, not gated).
+- [ ] Add a `CHANGELOG.md` and start recording notable changes per release.
+
+## Phase 6 — Multiple sensors and service instances
+
+- [ ] Replace the single sensor service assumption with a registry-driven multi-sensor supervisor.
+- [ ] Support multiple SGX and SPS30 units simultaneously.
+- [ ] Add templated or generated systemd units per hardware id.
+- [ ] Store sensor location and role, such as room, enclosure, exhaust, or chamber.
+- [ ] Make dashboards filterable by sensor id and location.
+- [ ] Add duplicate USB identity and conflicting device-path detection.
+
+## Phase 7 — Appliance management UX
 
 - [ ] Add `airmonitor inventory` and `airmonitor hardware ...` aliases to the main CLI.
 - [ ] Add `sudo airmonitor update` as the supported wrapper around the update lifecycle.
@@ -53,27 +69,26 @@ This roadmap is ordered by dependency and operational value. Items near the top 
 - [ ] Add structured human-readable doctor output in addition to JSON.
 - [ ] Add service log collection for support bundles with secrets redacted.
 
-## Phase 6 — Reliability and releases
+## Phase 8 — Reliability and releases
 
 - [ ] Add end-to-end tests covering MQTT printer state through policy, filter decisions, database writes, and Grafana query generation.
 - [ ] Add database backup/restore commands and documented retention policy.
-- [ ] Add release tags, changelog generation, and installed Git commit reporting.
+- [ ] Add release tags and installed Git commit reporting.
 - [ ] Add automatic rollback when install, update, service startup, or doctor fails.
 - [ ] Add documented recovery from a damaged SQLite database or missing configuration.
 - [ ] Define and test the v1.0 supported hardware and upgrade path.
 
-## Phase 7 — Optional future expansion
+## Phase 9 — Optional future expansion
 
 - [ ] Additional particulate, CO2, temperature, humidity, and gas sensors through the plugin interfaces.
 - [ ] Additional printer families through normalized MQTT or API adapters.
 - [ ] Home Assistant and generic MQTT discovery integration.
-- [ ] Notifications for dangerous air-quality conditions, stale sensors, and failed filters.
 - [ ] Remote appliance status without exposing secrets or control endpoints by default.
 
 ## Current next actions
 
 1. Add sensor freshness and last-good-reading checks to `airmonitor-doctor`.
-2. Finish persisted filter override integration.
-3. Add automatic rollback on failed update health checks.
-4. Add main-CLI aliases for inventory and hardware management.
-5. Add service log collection for support bundles with secrets redacted.
+2. Add VOC/PM safety warnings and a basic notification channel (webhook/ntfy/Pushover).
+3. Finish persisted filter override integration.
+4. Pin dependencies with a lockfile and enforce ruff in CI.
+5. Add automatic rollback on failed update health checks.
