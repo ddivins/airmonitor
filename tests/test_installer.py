@@ -8,6 +8,7 @@ import subprocess
 ROOT = Path(__file__).parents[1]
 INSTALLER = ROOT / "tools" / "install.sh"
 UPDATER = ROOT / "tools" / "update.sh"
+ROLLBACK = ROOT / "tools" / "rollback.sh"
 CONFIG_EXAMPLE = ROOT / "config" / "install.conf.example"
 
 
@@ -92,6 +93,42 @@ def test_installer_never_persists_migrate_from() -> None:
     text = INSTALLER.read_text(encoding="utf-8")
     save_config = text[text.index("save_config() {") : text.index("prompt_for_missing_config() {")]
     assert "printf 'MIGRATE_FROM=\\n'" in save_config
+
+
+def test_updater_and_rollback_are_valid_bash() -> None:
+    subprocess.run(["bash", "-n", str(UPDATER)], check=True)
+    subprocess.run(["bash", "-n", str(ROLLBACK)], check=True)
+
+
+def test_updater_automatically_rolls_back_on_failed_service_start() -> None:
+    text = UPDATER.read_text(encoding="utf-8")
+    assert 'AUTO_ROLLBACK="${AUTO_ROLLBACK:-1}"' in text
+    assert 'auto_rollback "$service failed to start after update"' in text
+
+
+def test_updater_automatically_rolls_back_on_failed_doctor_check() -> None:
+    text = UPDATER.read_text(encoding="utf-8")
+    assert 'if ! sudo "$DOCTOR_BIN"; then' in text
+    assert 'auto_rollback "airmonitor-doctor reported a required check failure after update"' in text
+
+
+def test_updater_auto_rollback_can_be_disabled() -> None:
+    text = UPDATER.read_text(encoding="utf-8")
+    auto_rollback_fn = text[text.index("auto_rollback() {") : text.index("trap 'rc=$?")]
+    assert 'if [[ "$AUTO_ROLLBACK" != "1" ]]; then' in auto_rollback_fn
+    assert 'APP_DIR="$APP_DIR" REPO_DIR="$REPO_DIR" SERVICE_LIST="$SERVICE_LIST"' in auto_rollback_fn
+    assert 'bash "$REPO_DIR/tools/rollback.sh" "$PREVIOUS_COMMIT"' in auto_rollback_fn
+
+
+def test_updater_exit_trap_does_not_double_suggest_after_auto_rollback() -> None:
+    text = UPDATER.read_text(encoding="utf-8")
+    assert 'ROLLED_BACK=0' in text
+    assert '$rc -ne 0 && "$ROLLED_BACK" != "1"' in text
+
+
+def test_rollback_service_list_includes_alerts_service() -> None:
+    text = ROLLBACK.read_text(encoding="utf-8")
+    assert "airmonitor-alerts.service" in text
 
 
 def test_install_conf_example_documents_all_recognized_keys() -> None:

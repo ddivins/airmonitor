@@ -78,8 +78,9 @@ New phase covering reproducibility gaps that matter more now that the fresh-host
 
 - [ ] Add end-to-end tests covering MQTT printer state through policy, filter decisions, database writes, and Grafana query generation.
 - [ ] Add database backup/restore commands and documented retention policy.
-- [ ] Add release tags and installed Git commit reporting.
-- [ ] Add automatic rollback when install, update, service startup, or doctor fails.
+- [x] Add installed Git commit reporting (`installed-commit`/`previous-commit`/`target-commit` under `/var/lib/airmonitor/update-state/`, already tracked by `tools/update.sh`/`tools/rollback.sh`).
+- [ ] Add release tags and changelog generation (no Git tags exist yet).
+- [x] Add automatic rollback when update, service startup, or doctor fails: `tools/update.sh` now runs `tools/rollback.sh` automatically if any service fails to (re)start or `airmonitor-doctor` reports a required failure, rather than only suggesting a manual rollback. Opt out with `AUTO_ROLLBACK=0` (see `docs/update-rollback.md`). Fresh `tools/install.sh` runs are not covered yet — a failure there still requires manual cleanup.
 - [ ] Add documented recovery from a damaged SQLite database or missing configuration.
 - [ ] Define and test the v1.0 supported hardware and upgrade path.
 
@@ -92,9 +93,10 @@ New phase covering reproducibility gaps that matter more now that the fresh-host
 
 ## Current next actions
 
-1. Add automatic rollback on failed update health checks.
-2. Write `/etc/airmonitor/install.conf` on hosts that predate the config-driven installer (see Operations note below) so plain `bash tools/update.sh` doesn't need env-var overrides.
-3. Add a `CHANGELOG.md`.
+1. Write `/etc/airmonitor/install.conf` on hosts that predate the config-driven installer (see Operations note below) so plain `bash tools/update.sh` doesn't need env-var overrides.
+2. Add a `CHANGELOG.md` and release tags.
+3. Add database backup/restore commands.
+4. Begin Phase 6 (multiple sensors and service instances) or Phase 7 (appliance management UX), whichever hardware/usage need arrives first.
 
 ## Operations note (2026-07-22)
 

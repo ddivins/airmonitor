@@ -26,6 +26,26 @@ bash tools/update.sh
 
 The updater installs the package, systemd units, Grafana configuration, restarts services, and runs `airmonitor-doctor`.
 
+## Automatic rollback on failure
+
+If, after an update, any service in `SERVICE_LIST` fails to become active, or
+`airmonitor-doctor` reports a required check failure, `tools/update.sh`
+automatically runs `tools/rollback.sh` back to the commit that was installed
+before the update, rather than leaving the appliance on a broken commit
+until someone notices and rolls back by hand.
+
+This is on by default. To disable it (for example, to leave a failed update
+in place for debugging) and get the previous behavior of a rollback
+suggestion only:
+
+```bash
+AUTO_ROLLBACK=0 bash tools/update.sh
+```
+
+As with a manual rollback, the main repository checkout stays on the newer,
+failing commit — only the installed package and systemd units are reverted.
+Investigate before running `tools/update.sh` again.
+
 ## Roll back to the previous installed commit
 
 ```bash

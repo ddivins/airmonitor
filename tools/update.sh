@@ -20,6 +20,7 @@ REPO_DIR="${REPO_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 INSTALL_GRAFANA="${INSTALL_GRAFANA:-auto}"
 INSTALL_STATUS_PAGE="${INSTALL_STATUS_PAGE:-auto}"
 RUN_DOCTOR="${RUN_DOCTOR:-1}"
+AUTO_ROLLBACK="${AUTO_ROLLBACK:-1}"
 PIP_BIN="$APP_DIR/venv/bin/pip"
 DOCTOR_BIN="$APP_DIR/venv/bin/airmonitor-doctor"
 INSTALL_CONF="${INSTALL_CONF:-/etc/airmonitor/install.conf}"
@@ -58,7 +59,32 @@ show_failure_logs() {
   sudo journalctl -u "$service" -n 60 --no-pager >&2 || true
 }
 
-trap 'rc=$?; if [[ $rc -ne 0 ]]; then printf "\nUpdate failed with exit code %s\n" "$rc" >&2; printf "Rollback with: cd %s && bash tools/rollback.sh\n" "$REPO_DIR" >&2; fi' EXIT
+ROLLED_BACK=0
+
+auto_rollback() {
+  local trigger="$1"
+  printf '\nERROR: %s\n' "$trigger" >&2
+
+  if [[ "$AUTO_ROLLBACK" != "1" ]]; then
+    printf 'Automatic rollback disabled (AUTO_ROLLBACK=%s).\n' "$AUTO_ROLLBACK" >&2
+    printf 'Roll back manually: cd %s && bash tools/rollback.sh %s\n' "$REPO_DIR" "$PREVIOUS_COMMIT" >&2
+    exit 1
+  fi
+
+  printf '==> Automatically rolling back to previous commit %s\n' "$PREVIOUS_COMMIT" >&2
+  ROLLED_BACK=1
+  if APP_DIR="$APP_DIR" REPO_DIR="$REPO_DIR" SERVICE_LIST="$SERVICE_LIST" \
+      bash "$REPO_DIR/tools/rollback.sh" "$PREVIOUS_COMMIT"; then
+    printf '\nUpdate failed and was automatically rolled back to %s.\n' "$PREVIOUS_COMMIT" >&2
+    printf 'The repository checkout is still on the newer, failing commit; investigate before updating again.\n' >&2
+  else
+    printf '\nERROR: automatic rollback itself failed. Manual intervention required.\n' >&2
+    printf 'Try: cd %s && bash tools/rollback.sh %s\n' "$REPO_DIR" "$PREVIOUS_COMMIT" >&2
+  fi
+  exit 1
+}
+
+trap 'rc=$?; if [[ $rc -ne 0 && "$ROLLED_BACK" != "1" ]]; then printf "\nUpdate failed with exit code %s\n" "$rc" >&2; printf "Rollback with: cd %s && bash tools/rollback.sh\n" "$REPO_DIR" >&2; fi' EXIT
 
 log "Validating environment"
 command -v git >/dev/null || fail "git is not installed"
@@ -175,7 +201,7 @@ sleep 2
 for service in $SERVICE_LIST; do
   if ! systemctl is-active --quiet "$service"; then
     show_failure_logs "$service"
-    exit 1
+    auto_rollback "$service failed to start after update"
   fi
 done
 
@@ -189,7 +215,9 @@ done
 
 if [[ "$RUN_DOCTOR" == "1" && -x "$DOCTOR_BIN" ]]; then
   log "Running AirMonitor health check"
-  sudo "$DOCTOR_BIN"
+  if ! sudo "$DOCTOR_BIN"; then
+    auto_rollback "airmonitor-doctor reported a required check failure after update"
+  fi
 fi
 
 printf '%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" | sudo tee "$STATE_DIR/last-update-succeeded" >/dev/null

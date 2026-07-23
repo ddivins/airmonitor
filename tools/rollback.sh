@@ -4,7 +4,7 @@ set -euo pipefail
 APP_DIR="${APP_DIR:-/opt/airmonitor}"
 REPO_DIR="${REPO_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 STATE_DIR="${STATE_DIR:-/var/lib/airmonitor/update-state}"
-SERVICE_LIST="${SERVICE_LIST:-airmonitor.target airmonitor-printer-mqtt.service airmonitor-voc.service airmonitor-sps30.service airmonitor-bento.service airmonitor-levoit.service airmonitor-status.service airmonitor-export.service}"
+SERVICE_LIST="${SERVICE_LIST:-airmonitor.target airmonitor-printer-mqtt.service airmonitor-voc.service airmonitor-sps30.service airmonitor-bento.service airmonitor-levoit.service airmonitor-status.service airmonitor-export.service airmonitor-alerts.service}"
 PIP_BIN="$APP_DIR/venv/bin/pip"
 DOCTOR_BIN="$APP_DIR/venv/bin/airmonitor-doctor"
 TARGET_COMMIT="${1:-}"
