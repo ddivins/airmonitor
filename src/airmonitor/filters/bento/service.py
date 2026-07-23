@@ -117,6 +117,7 @@ last_printer_available: Optional[str] = None
 off_task: Optional[asyncio.Future] = None
 off_scheduled_at_epoch: Optional[float] = None
 off_due_at_epoch: Optional[float] = None
+stale_hold_active = False
 
 
 # ----------------------------
@@ -154,6 +155,17 @@ def outlet_state_value() -> str:
     if outlet_is_on is None:
         return FilterState.UNKNOWN.value
     return FilterState.ON.value if outlet_is_on else FilterState.OFF.value
+
+
+def printer_state_is_stale(age_seconds: Optional[float], *, threshold_seconds: float) -> bool:
+    """Whether the local MQTT printer-state feed is too old to trust for a new decision.
+
+    A stale feed must not be silently read as "printer idle": we hold the last
+    commanded outlet state (including canceling a pending OFF timer) rather than
+    risk cutting filtration mid-print because the state signal, not the print,
+    went away.
+    """
+    return age_seconds is not None and age_seconds > threshold_seconds
 
 
 def external_override_mode(expected: bool | None, actual: bool | None) -> str | None:
@@ -454,9 +466,10 @@ def schedule_off_timer() -> None:
 
 
 async def handle_printer_state(gcode_state: str, active: Optional[bool] = None) -> None:
-    global last_printer_state, last_printer_active, last_mqtt_seen
+    global last_printer_state, last_printer_active, last_mqtt_seen, stale_hold_active
 
     last_mqtt_seen = time.time()
+    stale_hold_active = False
     state = gcode_state.strip().upper()
     is_active = bool(active) if active is not None else state in ON_STATES
 
@@ -523,7 +536,7 @@ async def outlet_poll_runner() -> None:
 
 
 async def watchdog_runner() -> None:
-    global force_mqtt_reconnect
+    global force_mqtt_reconnect, stale_hold_active
 
     while running:
         await asyncio.sleep(10)
@@ -532,7 +545,16 @@ async def watchdog_runner() -> None:
             continue
 
         age = time.time() - last_mqtt_seen
-        if age > MQTT_WATCHDOG_SECONDS:
+        if printer_state_is_stale(age, threshold_seconds=MQTT_WATCHDOG_SECONDS):
+            if not stale_hold_active:
+                stale_hold_active = True
+                cancel_off_timer()
+                record_filter_state(
+                    reason=f"printer state stale ({int(age)}s); off-timer suspended, holding last commanded state"
+                )
+                LOG.warning(
+                    "Printer state stale for %ss; holding filter state and canceling any pending OFF timer", int(age)
+                )
             LOG.warning(
                 "MQTT watchdog triggered: no local printer state for %s seconds; forcing reconnect",
                 int(age),

@@ -31,6 +31,7 @@ LOG = logging.getLogger(APP_NAME)
 
 running = True
 last_printer_state: Optional[dict[str, Any]] = None
+last_printer_state_at: Optional[float] = None
 last_action_signature: Optional[tuple[Any, ...]] = None
 
 
@@ -114,6 +115,7 @@ LOCAL_MQTT_PASSWORD = os.environ.get("LOCAL_MQTT_PASSWORD") or None
 LOCAL_MQTT_KEEPALIVE = getenv_int("LOCAL_MQTT_KEEPALIVE", 60, minimum=10)
 
 AUTO_OFF_DELAY_SECONDS = getenv_int("LEVOIT_AUTO_OFF_DELAY_SECONDS", 1800, minimum=0)
+PRINTER_STATE_STALE_SECONDS = getenv_int("PRINTER_STATE_STALE_SECONDS", 300, minimum=30)
 TURN_OFF_WHEN_NOT_RECOMMENDED = getenv_bool("LEVOIT_TURN_OFF_WHEN_NOT_RECOMMENDED", False)
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
 DATABASE_PATH = os.environ.get("AIRMONITOR_DATABASE", "/var/lib/airmonitor/airmonitor.sqlite3")
@@ -455,7 +457,7 @@ def on_mqtt_connect(client, userdata, flags, reason_code, properties=None):
 
 
 def on_mqtt_message(client, userdata, msg):
-    global last_printer_state
+    global last_printer_state, last_printer_state_at
     try:
         data = json.loads(msg.payload.decode("utf-8", errors="replace"))
     except json.JSONDecodeError:
@@ -464,6 +466,21 @@ def on_mqtt_message(client, userdata, msg):
     if not isinstance(data, dict):
         return
     last_printer_state = data
+    last_printer_state_at = time.time()
+
+
+def printer_state_is_fresh(last_seen_at: Optional[float], *, now: float, stale_after_seconds: float) -> bool:
+    """Whether the local MQTT printer-state feed is fresh enough to trust for a new decision.
+
+    A feed that was never received is treated as not-fresh (the pre-existing
+    "no printer state" fallback below already handles that safely at startup).
+    A feed that *was* received and then went silent must not be silently reread
+    as still-current: we hold the last automation decision instead of deriving
+    a new one from a stale snapshot.
+    """
+    if last_seen_at is None:
+        return False
+    return (now - last_seen_at) <= stale_after_seconds
 
 
 def build_mqtt_client() -> mqtt.Client:
@@ -507,19 +524,21 @@ def run_service() -> int:
     try:
         while running:
             state = last_printer_state
-            active_required = bool(state and state.get("active") and state.get("room_filter_recommended"))
+            now = time.time()
+            state_is_stale = state is not None and not printer_state_is_fresh(
+                last_printer_state_at, now=now, stale_after_seconds=PRINTER_STATE_STALE_SECONDS
+            )
 
-            if active_required:
-                off_deadline = None
-                was_required = True
-            elif was_required and off_deadline is None:
-                off_deadline = time.time() + AUTO_OFF_DELAY_SECONDS
-                was_required = False
-                LOG.info("Starting purifier cooldown timer: %ss", AUTO_OFF_DELAY_SECONDS)
+            if not state_is_stale:
+                active_required = bool(state and state.get("active") and state.get("room_filter_recommended"))
 
-            desired = desired_from_printer_state(state, off_deadline)
-            if desired.delay_off_until is None and off_deadline is not None and not desired.should_run:
-                off_deadline = None
+                if active_required:
+                    off_deadline = None
+                    was_required = True
+                elif was_required and off_deadline is None:
+                    off_deadline = now + AUTO_OFF_DELAY_SECONDS
+                    was_required = False
+                    LOG.info("Starting purifier cooldown timer: %ss", AUTO_OFF_DELAY_SECONDS)
 
             # Exactly one VeSync device refresh per service cycle. All decisions,
             # database writes, and possible commands reuse this state.
@@ -529,6 +548,24 @@ def run_service() -> int:
             if override_mode is not None:
                 record_external_manual_override(bool(current))
             actual_state = filter_state_value(current)
+
+            if state_is_stale:
+                # A feed that was fresh and went silent must not be reread as
+                # still-current: hold whatever automation_request/effective_state
+                # is already persisted instead of deriving a new one from a stale
+                # snapshot (see printer_state_is_fresh).
+                reason = f"printer state stale (>{PRINTER_STATE_STALE_SECONDS}s); holding last automation request"
+                LOG.warning(reason)
+                record_filter_state(actual_state=actual_state, reason=reason)
+                expected_device_state = current
+                record_levoit_telemetry(device, current)
+                sleep_until_next_poll(LEVOIT_POLL_INTERVAL_SECONDS)
+                continue
+
+            desired = desired_from_printer_state(state, off_deadline)
+            if desired.delay_off_until is None and off_deadline is not None and not desired.should_run:
+                off_deadline = None
+
             automation_request = FilterState.ON.value if desired.should_run else FilterState.OFF.value
             effective_state, reason = resolve_desired_filter_state(automation_request, desired.reason, actual_state)
             desired = DesiredState(

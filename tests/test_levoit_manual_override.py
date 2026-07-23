@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from airmonitor.filters.levoit.service import external_override_mode, telemetry_from_device
+from airmonitor.filters.levoit.service import (
+    external_override_mode,
+    printer_state_is_fresh,
+    telemetry_from_device,
+)
 
 
 def test_external_on_change_becomes_manual_on() -> None:
@@ -32,3 +36,15 @@ def test_normalizes_400s_telemetry_fields() -> None:
     assert telemetry["fan_level"] == 2
     assert telemetry["pm2_5"] == 4
     assert telemetry["filter_life_percent"] == 93
+
+
+def test_printer_state_never_received_is_not_fresh() -> None:
+    assert printer_state_is_fresh(None, now=1000.0, stale_after_seconds=300) is False
+
+
+def test_printer_state_within_window_is_fresh() -> None:
+    assert printer_state_is_fresh(1000.0, now=1200.0, stale_after_seconds=300) is True
+
+
+def test_printer_state_past_window_is_not_fresh() -> None:
+    assert printer_state_is_fresh(1000.0, now=1301.0, stale_after_seconds=300) is False

@@ -37,12 +37,15 @@ Promoted ahead of multi-sensor and UX work: the project's core promise ("Monitor
 
 ## Phase 4 — Filter control and observability
 
-- [ ] Wire persisted `auto`, `on`, and `off` control modes into the Bento and Levoit services.
-- [ ] Add CLI commands for filter status and override control.
-- [ ] Record automation request, manual mode, effective state, actual state, reason, and command timestamp.
-- [ ] Detect and honor external/manual device changes without immediately fighting the user.
-- [ ] Add stale printer-state handling directly into filter controllers.
-- [ ] Add filter state/reason panels to Grafana.
+This phase turned out to be largely complete already; the checklist below
+just hadn't been updated to reflect it.
+
+- [x] Wire persisted `auto`, `on`, and `off` control modes into the Bento and Levoit services (`resolve_and_record_filter` / `resolve_desired_filter_state`).
+- [x] Add CLI commands for filter status and override control (`airmonitor filter status | {bento,levoit,all} {status,auto,on,off}`).
+- [x] Record automation request, manual mode, effective state, actual state, reason, and command timestamp (`filter_control_state` table, `updated_at`).
+- [x] Detect and honor external/manual device changes without immediately fighting the user (`external_override_mode` / `record_external_manual_override` in both services).
+- [x] Add stale printer-state handling directly into filter controllers: Bento now suspends any pending OFF timer and holds the last commanded outlet state once the local MQTT feed has been silent past `MQTT_WATCHDOG_SECONDS`; Levoit holds the last automation request once its feed has been silent past `PRINTER_STATE_STALE_SECONDS`, instead of either silently reading staleness as "printer idle."
+- [x] Add filter state/reason panels to Grafana (`tools/generate-grafana-dashboard.py`'s "Filter Control" table: manual_mode, automation_request, actual_state, effective_state, reason, updated_at).
 
 ## Phase 5 — Release hygiene
 
@@ -89,10 +92,9 @@ New phase covering reproducibility gaps that matter more now that the fresh-host
 
 ## Current next actions
 
-1. Finish persisted filter override integration.
-2. Pin dependencies with a lockfile and enforce ruff in CI.
-3. Add automatic rollback on failed update health checks.
-4. Write `/etc/airmonitor/install.conf` on hosts that predate the config-driven installer (see Operations note below) so plain `bash tools/update.sh` doesn't need env-var overrides.
+1. Pin dependencies with a lockfile and enforce ruff in CI.
+2. Add automatic rollback on failed update health checks.
+3. Write `/etc/airmonitor/install.conf` on hosts that predate the config-driven installer (see Operations note below) so plain `bash tools/update.sh` doesn't need env-var overrides.
 
 ## Operations note (2026-07-22)
 
