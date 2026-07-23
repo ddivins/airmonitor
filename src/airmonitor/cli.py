@@ -584,6 +584,11 @@ def build_parser() -> argparse.ArgumentParser:
         "hardware",
         help="alias for airmonitor-hardware (see `airmonitor-hardware --help` for its subcommands)",
     )
+    setup_parser = subparsers.add_parser(
+        "setup",
+        help="interactively configure printer/sensor/filter/MQTT credentials (requires sudo)",
+    )
+    setup_parser.add_argument("--config-dir", default="/etc/airmonitor")
 
     subparsers.add_parser("printer-mqtt", help="run the Bambu printer MQTT normalization service")
     subparsers.add_parser("bento-service", help="run the Bento filter service")
@@ -651,6 +656,10 @@ def main(argv: list[str] | None = None) -> int:
         from airmonitor import hardware as hardware_module
 
         return hardware_module.main(args.passthrough_args)
+    if args.command == "setup":
+        from airmonitor import setup_wizard
+
+        return setup_wizard.run_setup(config_dir=args.config_dir)
     if args.command == "printer-mqtt":
         return run_printer_mqtt_service()
     if args.command == "bento-service":

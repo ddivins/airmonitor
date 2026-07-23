@@ -69,7 +69,7 @@ New phase covering reproducibility gaps that matter more now that the fresh-host
 - [x] Add `airmonitor inventory` and `airmonitor hardware ...` aliases to the main CLI, forwarding to the existing `airmonitor-inventory`/`airmonitor-hardware` entry points via `parse_known_args` passthrough (the same leading-flag-safe mechanism as `install`, not a REMAINDER positional).
 - [x] Add `airmonitor update` as the supported wrapper around the update lifecycle. Deliberately **not** run via `sudo`: it locates the checkout via a new `REPO_DIR` key in `/etc/airmonitor/install.conf` (written automatically by `tools/install.sh`), then runs `git pull --ff-only` followed by `tools/update.sh` as the invoking user — running the whole thing as root would break `git pull` for a user whose SSH credentials root doesn't have, a bug hit directly this session. `--dry-run` by default; `--no-dry-run` executes.
 - [x] Add `airmonitor install` for rerunning the installer (not the very first bootstrap, which unavoidably still needs `git clone && bash tools/install.sh` before any `airmonitor` binary exists to invoke). Extra flags (`--full`, `--non-interactive`, etc.) pass through to `tools/install.sh`.
-- [ ] Add an interactive `airmonitor setup` flow for printer, sensors, filters, Grafana, and MQTT.
+- [x] Add an interactive `airmonitor setup` flow for printer, sensors, filters, and MQTT (`sudo airmonitor setup` / `airmonitor-setup`). Grafana is reported (current mode/domain) rather than configured here — enabling it is `tools/install.sh`'s job (`airmonitor install --full`), not a credential-entry concern, so this doesn't duplicate that prompt flow.
 - [ ] Add EEPROM provisioning behind a guarded AirMonitor CLI command while retaining factory backup requirements.
 - [x] Add structured human-readable doctor output in addition to JSON (`airmonitor-doctor --format text`).
 - [ ] Add service log collection for support bundles with secrets redacted.
@@ -93,11 +93,15 @@ New phase covering reproducibility gaps that matter more now that the fresh-host
 
 ## Current next actions
 
-Phase 8 is now fully complete. What's left:
+Phase 8 is fully complete. Phase 7 has two items left, both deliberately
+skipped in the pass that did the rest of it: EEPROM provisioning (low value —
+the project's own docs already call that path not part of the recommended
+build) and a secrets-redacted support-bundle command.
 
 1. Update `docs/hardware-bom.md`'s host section once the planned Raspberry Pi 5 migration completes.
 2. Decide when to actually cut the `1.0.0` release (the definition is written; the version bump is a separate decision).
-3. Begin Phase 6 (multiple sensors and service instances) or Phase 7 (appliance management UX), whichever hardware/usage need arrives first.
+3. Add a support-bundle CLI command (doctor output + recent service logs, secrets redacted) if needed, or the EEPROM CLI command if it comes up.
+4. Begin Phase 6 (multiple sensors and service instances) — bigger, and only worth it once a second sensor unit exists.
 
 ## Operations note (2026-07-23)
 

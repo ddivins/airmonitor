@@ -298,6 +298,17 @@ nginx, Certbot, and the Cloudflare DNS plugin. The installer is idempotent, pres
 configuration, and will not enable public nginx routing until a TLS certificate exists for the
 configured domain. See [Fresh Host Installation](docs/install.md).
 
+`tools/install.sh` leaves the per-integration credential files below as blank templates
+(printer, Kasa, VeSync). Fill them in interactively instead of hand-editing each file:
+
+```bash
+sudo airmonitor setup
+```
+
+It walks through the printer, sensors, filters, and local MQTT broker connection, showing the
+current value in `[brackets]` — press Enter to keep it. Requires a real terminal and root
+(it writes root-owned files under `/etc/airmonitor`).
+
 Local secret and host-specific configuration files live outside the repository and should be
 preserved across updates:
 
