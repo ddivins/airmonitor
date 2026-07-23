@@ -163,7 +163,7 @@ server {
         # location serves the login page's HTML too, which the prefix
         # location below never sees.
         sub_filter '</head>' '<link rel="stylesheet" href="/status-assets/grafana-banner.css?v=1"></head>';
-        sub_filter '<div id="reactRoot"></div>' '<a href="/" class="airmonitor-grafana-banner" aria-label="Back to AirMonitor status"><img src="/status-assets/airmonitor-logo-300px.webp" alt="AirMonitor"></a><div id="reactRoot"></div>';
+        sub_filter '<div id="reactRoot"></div>' '<a href="https://__DOMAIN__/" class="airmonitor-grafana-banner" aria-label="Back to AirMonitor status"><img src="/status-assets/airmonitor-logo-300px.webp" alt="AirMonitor"></a><div id="reactRoot"></div>';
     }
 
     location /grafana/ {
@@ -196,7 +196,7 @@ server {
         # just silently disappear, not break anything else).
         proxy_set_header Accept-Encoding "";
         sub_filter '</head>' '<link rel="stylesheet" href="/status-assets/grafana-banner.css?v=1"></head>';
-        sub_filter '<div id="reactRoot"></div>' '<a href="/" class="airmonitor-grafana-banner" aria-label="Back to AirMonitor status"><img src="/status-assets/airmonitor-logo-300px.webp" alt="AirMonitor"></a><div id="reactRoot"></div>';
+        sub_filter '<div id="reactRoot"></div>' '<a href="https://__DOMAIN__/" class="airmonitor-grafana-banner" aria-label="Back to AirMonitor status"><img src="/status-assets/airmonitor-logo-300px.webp" alt="AirMonitor"></a><div id="reactRoot"></div>';
     }
 
     # Preserve historical same-host Grafana bookmarks beneath the new subpath.
