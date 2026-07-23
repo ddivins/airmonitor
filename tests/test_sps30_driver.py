@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import struct
 
-from airmonitor.sensors.sensirion.sps30 import SPS30Measurement, build_frame, parse_response
+from airmonitor.sensors.sensirion.sps30 import SPS30, SPS30Error, SPS30Measurement, build_frame, parse_response
+
+from fake_serial import FakeSPS30Serial
 
 
 def _response(command: int, data: bytes = b"", state: int = 0) -> bytes:
@@ -38,3 +40,54 @@ def test_frame_escaping_round_trip() -> None:
     frame = _response(0x03, data)
     _, decoded = parse_response(frame, 0x03)
     assert decoded == data
+
+
+# The tests below exercise the actual SPS30 command/response cycle (framing,
+# escaping, checksum) against a simulated serial port, instead of only the
+# frame encode/decode helpers above.
+
+
+def test_product_type_round_trips_through_the_command_cycle() -> None:
+    sensor = SPS30(FakeSPS30Serial(product_type="00080000"))
+    assert sensor.product_type() == "00080000"
+
+
+def test_serial_number_round_trips_through_the_command_cycle() -> None:
+    sensor = SPS30(FakeSPS30Serial(serial_number="SPS30-ABC-123"))
+    assert sensor.serial_number() == "SPS30-ABC-123"
+
+
+def test_start_and_stop_measurement_toggle_sensor_state() -> None:
+    serial_port = FakeSPS30Serial()
+    sensor = SPS30(serial_port)
+    sensor.start_measurement()
+    assert serial_port.measuring is True
+    sensor.stop_measurement()
+    assert serial_port.measuring is False
+
+
+def test_read_measurement_decodes_all_ten_fields() -> None:
+    expected = (1.0, 2.5, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 0.75)
+    sensor = SPS30(FakeSPS30Serial(measurement=expected))
+    measurement = sensor.read_measurement()
+    assert measurement == SPS30Measurement(*expected)
+
+
+def test_data_ready_reflects_simulated_sensor_state() -> None:
+    assert SPS30(FakeSPS30Serial(data_ready_sequence=(False,))).data_ready() is False
+    assert SPS30(FakeSPS30Serial(data_ready_sequence=(True,))).data_ready() is True
+
+
+def test_wait_until_ready_polls_until_a_later_response_is_ready() -> None:
+    sensor = SPS30(FakeSPS30Serial(data_ready_sequence=(False, False, True)))
+    sensor.wait_until_ready(timeout=1.0, interval=0.01)  # does not raise
+
+
+def test_wait_until_ready_times_out_if_never_ready() -> None:
+    sensor = SPS30(FakeSPS30Serial(data_ready_sequence=(False,)))
+    try:
+        sensor.wait_until_ready(timeout=0.05, interval=0.01)
+    except SPS30Error as exc:
+        assert "not ready" in str(exc)
+    else:
+        raise AssertionError("expected SPS30Error")

@@ -21,8 +21,8 @@ This roadmap is ordered by dependency and operational value. Items near the top 
 - [x] Add particulate sample tables and repository methods for PM1.0, PM2.5, PM4, PM10, particle counts, and typical particle size.
 - [x] Add an SPS30 service entry point with hot-plug behavior equivalent to the SGX service.
 - [x] Add SPS30 panels and combined environmental dashboards in Grafana.
-- [ ] Add sensor freshness and last-good-reading checks to `airmonitor-doctor`.
-- [ ] Add simulator/fake serial fixtures so sensor behavior is testable without physical hardware.
+- [x] Add sensor freshness and last-good-reading checks to `airmonitor-doctor` (`check_sensor_freshness`, `--sensor-freshness`; this landed earlier alongside the SPS30 dashboard work but the checklist above was never updated to reflect it).
+- [x] Add simulator/fake serial fixtures so sensor behavior is testable without physical hardware (`tests/fake_serial.py`'s `FakeSGXSerial`/`FakeSPS30Serial`). Both sensor drivers (`cli.read_sgx_once`, `sensirion.sps30.SPS30`) already only require a duck-typed serial object, so the fixtures exercise the real protocol-driving code -- framing, checksum validation, protocol fallback, measurement decoding -- rather than just the frame encode/decode helpers that were tested before.
 
 ## Phase 3 — Safety alerting and notifications
 
