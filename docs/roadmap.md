@@ -71,7 +71,7 @@ New phase covering reproducibility gaps that matter more now that the fresh-host
 - [x] Add `airmonitor install` for rerunning the installer (not the very first bootstrap, which unavoidably still needs `git clone && bash tools/install.sh` before any `airmonitor` binary exists to invoke). Extra flags (`--full`, `--non-interactive`, etc.) pass through to `tools/install.sh`.
 - [ ] Add an interactive `airmonitor setup` flow for printer, sensors, filters, Grafana, and MQTT.
 - [ ] Add EEPROM provisioning behind a guarded AirMonitor CLI command while retaining factory backup requirements.
-- [ ] Add structured human-readable doctor output in addition to JSON.
+- [x] Add structured human-readable doctor output in addition to JSON (`airmonitor-doctor --format text`).
 - [ ] Add service log collection for support bundles with secrets redacted.
 
 ## Phase 8 — Reliability and releases

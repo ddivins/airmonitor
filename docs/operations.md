@@ -8,7 +8,7 @@ After install or update, run:
 /opt/airmonitor/venv/bin/airmonitor-doctor
 ```
 
-The command returns JSON and exits nonzero only for required failures. Optional integrations that are absent or stopped are reported as warnings.
+The command returns JSON and exits nonzero only for required failures. Optional integrations that are absent or stopped are reported as warnings. Add `--format text` for a short human-readable summary instead of JSON.
 
 Checks include:
 

@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from airmonitor.database import connect, init_db, start_sensor_session
-from airmonitor.health import _package_version, check_sensor_freshness, run_checks
+from airmonitor.health import _package_version, check_sensor_freshness, format_text, run_checks
 from airmonitor.sps30_service import ensure_schema as ensure_sps30_schema
 
 
@@ -97,3 +97,42 @@ def test_sensor_freshness_reports_warn_for_stale_sample(tmp_path: Path) -> None:
     assert checks["sps30_freshness"].status == "warn"
     assert "offline" in checks["sps30_freshness"].detail
     assert checks["sps30_freshness"].required is False
+
+
+def test_format_text_summarizes_ok_report(tmp_path: Path) -> None:
+    db_path = tmp_path / "airmonitor.sqlite3"
+    serial_path = tmp_path / "serial"
+    serial_path.touch()
+    report = run_checks(
+        database=str(db_path),
+        serial_device=str(serial_path),
+        mqtt_host="127.0.0.1",
+        mqtt_port=9,
+        grafana_host="127.0.0.1",
+        grafana_port=9,
+        include_systemd=False,
+    )
+
+    text = format_text(report)
+
+    assert text.startswith("AirMonitor doctor: OK ")
+    assert "sensor_hardware" in text
+    assert "[ok" in text
+    assert "[warn" in text
+
+
+def test_format_text_flags_required_failures_prominently() -> None:
+    report = {
+        "ok": False,
+        "summary": {"checks": 2, "required_failures": 1, "warnings": 0},
+        "checks": [
+            {"name": "database", "status": "fail", "detail": "corrupt", "required": True},
+            {"name": "mqtt", "status": "ok", "detail": "127.0.0.1:1883", "required": False},
+        ],
+    }
+
+    text = format_text(report)
+
+    assert text.startswith("AirMonitor doctor: PROBLEMS FOUND ")
+    assert "[FAIL] database" in text
+    assert "[ok  ] mqtt" in text

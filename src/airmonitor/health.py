@@ -226,6 +226,24 @@ def run_checks(
     }
 
 
+def format_text(report: dict[str, object]) -> str:
+    """Render a doctor report as a short human-readable summary and check table."""
+
+    summary = report["summary"]
+    overall = "OK" if report["ok"] else "PROBLEMS FOUND"
+    lines = [
+        f"AirMonitor doctor: {overall} "
+        f"({summary['checks']} checks, {summary['required_failures']} required failures, {summary['warnings']} warnings)",
+        "",
+    ]
+    checks = report["checks"]
+    name_width = max((len(check["name"]) for check in checks), default=0)
+    for check in checks:
+        marker = check["status"].upper() if check["status"] == "fail" else check["status"]
+        lines.append(f"[{marker:<4}] {check['name']:<{name_width}}  {check['detail']}")
+    return "\n".join(lines)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="airmonitor-doctor", description="Run AirMonitor appliance health checks")
     parser.add_argument("--database", default=DEFAULT_DATABASE)
@@ -238,6 +256,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--grafana-port", type=int, default=DEFAULT_GRAFANA_PORT)
     parser.add_argument("--systemd", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--sensor-freshness", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--format", choices=["json", "text"], default="json", help="output format (default: json)")
     return parser
 
 
@@ -255,7 +274,10 @@ def main(argv: Iterable[str] | None = None) -> int:
         include_systemd=args.systemd,
         include_sensor_freshness=args.sensor_freshness,
     )
-    print(json.dumps(report, indent=2, sort_keys=True))
+    if args.format == "text":
+        print(format_text(report))
+    else:
+        print(json.dumps(report, indent=2, sort_keys=True))
     return 0 if report["ok"] else 1
 
 
