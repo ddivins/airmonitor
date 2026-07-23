@@ -147,7 +147,7 @@ if [[ -f "$DB_FILE" ]]; then
 fi
 
 log "Generating dashboard artifact"
-python3 "$DASHBOARD_GENERATOR" "$DASHBOARD_SRC"
+GRAFANA_DOMAIN="$GRAFANA_DOMAIN" python3 "$DASHBOARD_GENERATOR" "$DASHBOARD_SRC"
 
 log "Installing datasource provisioning"
 if [[ "$FRESH_AIRMONITOR_GRAFANA" == "1" ]]; then

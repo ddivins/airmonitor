@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import sqlite3
 from pathlib import Path
 import unittest
+from unittest import mock
 
 
 def load_generator():
@@ -144,6 +146,37 @@ class GrafanaDashboardTests(unittest.TestCase):
                 conn.execute(f"SELECT * FROM ({compact}) LIMIT 1").fetchall()
         finally:
             conn.close()
+
+
+class StatusPageUrlTests(unittest.TestCase):
+    """Grafana rewrites a relative dashboard link to be relative to its own
+    sub-path (serve_from_sub_path = true), so a root-relative "/" would land
+    back on Grafana instead of the status page. These confirm the link is
+    generated as a fully-qualified absolute URL whenever a real domain is
+    available, and only falls back to "/" when it isn't."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.generator = load_generator()
+
+    def test_uses_relative_url_without_a_configured_domain(self):
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("GRAFANA_DOMAIN", None)
+            self.assertEqual(self.generator.status_page_url(), "/")
+
+    def test_uses_relative_url_for_localhost(self):
+        with mock.patch.dict(os.environ, {"GRAFANA_DOMAIN": "localhost"}):
+            self.assertEqual(self.generator.status_page_url(), "/")
+
+    def test_uses_absolute_https_url_for_a_configured_domain(self):
+        with mock.patch.dict(os.environ, {"GRAFANA_DOMAIN": "airmonitor.example.com"}):
+            self.assertEqual(self.generator.status_page_url(), "https://airmonitor.example.com/")
+
+    def test_build_wires_the_status_link_to_status_page_url(self):
+        with mock.patch.dict(os.environ, {"GRAFANA_DOMAIN": "airmonitor.example.com"}):
+            dashboard = self.generator.build()
+        status_link = next(link for link in dashboard["links"] if link["title"] == "AirMonitor Status")
+        self.assertEqual(status_link["url"], "https://airmonitor.example.com/")
 
 
 if __name__ == "__main__":

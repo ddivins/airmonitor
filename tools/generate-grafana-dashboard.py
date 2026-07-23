@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 import sys
 from pathlib import Path
@@ -307,6 +308,27 @@ def brand_panel(panel_id: int) -> dict[str, Any]:
     }
 
 
+def status_page_url() -> str:
+    """Absolute URL of the AirMonitor status page, for the dashboard's
+    "AirMonitor Status" link.
+
+    Grafana is served under a sub-path (`serve_from_sub_path = true`, see
+    tools/install-grafana.sh), and it rewrites any *relative* dashboard link
+    to be relative to its own sub-path before navigating -- a root-relative
+    "/" therefore lands back on Grafana itself (e.g. "/grafana/") instead of
+    the status page one level up. A fully-qualified absolute URL bypasses
+    that rewrite. GRAFANA_DOMAIN is already threaded to this script's process
+    by tools/update.sh's install-grafana.sh call; fall back to "/" (accepting
+    the same rewrite) when it's unset, e.g. for local generation or
+    --validate-db, where there's no real domain to build an absolute URL from.
+    """
+
+    domain = os.environ.get("GRAFANA_DOMAIN", "").strip()
+    if not domain or domain == "localhost":
+        return "/"
+    return f"https://{domain}/"
+
+
 def build() -> dict[str, Any]:
     panels = [
         brand_panel(12),
@@ -347,7 +369,7 @@ def build() -> dict[str, Any]:
                 "targetBlank": False,
                 "title": "AirMonitor Status",
                 "type": "link",
-                "url": "/",
+                "url": status_page_url(),
             },
             {
                 "asDropdown": False,

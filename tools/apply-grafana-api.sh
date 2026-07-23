@@ -83,7 +83,7 @@ rm -f "$tmp_folder"
 
 log "Generating dashboard"
 tmp_generated="$(mktemp)"
-python3 "$REPO_DIR/$DASHBOARD_GENERATOR" "$tmp_generated"
+GRAFANA_DOMAIN="${GRAFANA_DOMAIN:-}" python3 "$REPO_DIR/$DASHBOARD_GENERATOR" "$tmp_generated"
 
 log "Importing dashboard via API: $DASHBOARD_UID"
 tmp_dash="$(mktemp)"
