@@ -65,7 +65,7 @@ FILTER_MODES = ("auto", "on", "off")
 STATIC_FILENAMES = frozenset({
     "index.html", "login.html", "alerts.html",
     "app.js", "login.js", "alerts.js",
-    "style.css", "airmonitor-logo-300px.webp", "favicon.ico",
+    "style.css", "grafana-banner.css", "airmonitor-logo-300px.webp", "favicon.ico",
 })
 NO_STORE_FILENAMES = frozenset({"index.html", "alerts.html"})
 

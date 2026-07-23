@@ -131,6 +131,9 @@ class StatusWebTests(unittest.TestCase):
         self.assertIn("alerts.html", STATIC_FILENAMES)
         self.assertIn("alerts.js", STATIC_FILENAMES)
 
+    def test_grafana_banner_stylesheet_is_servable(self):
+        self.assertIn("grafana-banner.css", STATIC_FILENAMES)
+
     def test_dashboard_shell_pages_are_never_cached(self):
         self.assertIn("index.html", NO_STORE_FILENAMES)
         self.assertIn("alerts.html", NO_STORE_FILENAMES)

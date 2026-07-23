@@ -118,6 +118,25 @@ is a static committed file rather than python-generated, so its banner (and its 
 `AirMonitor Status` link) carry an `__AIRMONITOR_STATUS_URL__` placeholder that
 `tools/install-grafana.sh` substitutes with the same absolute-or-`/` logic at install time.
 
+Grafana's own built-in pages -- `/grafana/dashboards`, `/grafana/explore`, the login
+screen, and so on -- can't take a custom dashboard panel, so they don't get the banner
+from a dashboard JSON file. Instead, `nginx/airmonitor.conf.template`'s `/grafana/` and
+`/grafana/login` locations use `sub_filter` to inject the same clickable logo (and a
+small dedicated stylesheet, `grafana-banner.css`) directly into Grafana's served HTML,
+immediately before `<div id="reactRoot"></div>` -- Grafana's own SPA mount point, which
+its React app only ever manages the inside of. A sibling injected right before it
+survives every client-side route change with no per-page work, so the banner appears on
+every Grafana page without needing one dashboard JSON edit per page. This relies on
+Grafana's HTML shell keeping a `</head>` tag and that `reactRoot` id -- reasonably stable
+structural anchors, but not a documented/versioned Grafana contract, so a future Grafana
+upgrade could in principle stop matching (the banner would simply stop appearing, not
+break anything else). `proxy_set_header Accept-Encoding "";` is required on both
+locations so `sub_filter` sees Grafana's plain HTML rather than gzip-compressed bytes it
+can't pattern-match against -- the same fix the `/grafana/login` JSON rewrite already
+needed. `grafana-banner.css` is deliberately its own file, not appended to `style.css`:
+that file's bare `body`/`*` selectors would repaint Grafana's own background and text
+color if loaded on a Grafana page.
+
 ## Password reset email
 
 The landing page links to Grafana's password-reset workflow. Configure SMTP while running

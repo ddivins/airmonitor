@@ -159,6 +159,11 @@ server {
         sub_filter_once off;
         sub_filter '"redirectUrl":"/grafana/"' '"redirectUrl":"/"';
         sub_filter '"redirectUrl":"/grafana"' '"redirectUrl":"/"';
+        # Same logo banner injected below for /grafana/ -- this exact-match
+        # location serves the login page's HTML too, which the prefix
+        # location below never sees.
+        sub_filter '</head>' '<link rel="stylesheet" href="/status-assets/grafana-banner.css?v=1"></head>';
+        sub_filter '<div id="reactRoot"></div>' '<a href="/" class="airmonitor-grafana-banner" aria-label="Back to AirMonitor status"><img src="/status-assets/airmonitor-logo-300px.webp" alt="AirMonitor"></a><div id="reactRoot"></div>';
     }
 
     location /grafana/ {
@@ -174,6 +179,24 @@ server {
         # the appliance root so /session-api can validate the same login.
         proxy_cookie_path /grafana "/; Secure; HttpOnly; SameSite=Lax";
         proxy_cookie_path / "/; Secure; HttpOnly; SameSite=Lax";
+
+        # Inject the same clickable AirMonitor logo banner the status_static
+        # pages use, so every Grafana page -- including built-in ones like
+        # /grafana/dashboards that can't take a custom dashboard panel -- gets
+        # the same "click the logo to get back to status" navigation. Accept-
+        # Encoding is stripped so sub_filter sees Grafana's plain (uncompressed)
+        # HTML instead of gzip bytes it can't pattern-match against -- the same
+        # fix already used above for /grafana/login's JSON rewrite. #reactRoot
+        # is Grafana's own SPA mount point; React only ever manages that one
+        # subtree, so a sibling injected immediately before it survives every
+        # client-side route change with no per-page work. This relies on
+        # Grafana's HTML shell keeping a </head> tag and that id -- reasonably
+        # stable structural anchors, but not a documented/versioned contract,
+        # so a Grafana upgrade could someday stop matching (the banner would
+        # just silently disappear, not break anything else).
+        proxy_set_header Accept-Encoding "";
+        sub_filter '</head>' '<link rel="stylesheet" href="/status-assets/grafana-banner.css?v=1"></head>';
+        sub_filter '<div id="reactRoot"></div>' '<a href="/" class="airmonitor-grafana-banner" aria-label="Back to AirMonitor status"><img src="/status-assets/airmonitor-logo-300px.webp" alt="AirMonitor"></a><div id="reactRoot"></div>';
     }
 
     # Preserve historical same-host Grafana bookmarks beneath the new subpath.

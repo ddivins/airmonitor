@@ -1,0 +1,24 @@
+/* Styles the AirMonitor logo banner nginx injects into Grafana's own pages
+   (see nginx/airmonitor.conf.template's /grafana/ and /grafana/login blocks).
+   Deliberately separate from style.css: that file's bare `body`/`*` selectors
+   would repaint Grafana's own background/text color if loaded there. This
+   file must stay scoped to its own class only. */
+
+.airmonitor-grafana-banner {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid #dce5ec;
+}
+
+.airmonitor-grafana-banner img {
+  display: block;
+  height: 32px;
+  width: auto;
+}
+
+.airmonitor-grafana-banner:focus-visible {
+  outline: 3px solid rgba(22, 117, 209, .25);
+  outline-offset: -3px;
+}

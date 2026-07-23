@@ -55,6 +55,20 @@ def test_nginx_routes_alerts_page_and_api_not_the_catchall() -> None:
     assert "proxy_pass http://127.0.0.1:8080/api/update;" in config
 
 
+def test_nginx_injects_airmonitor_banner_into_grafana_pages() -> None:
+    """Grafana's own pages (e.g. /grafana/dashboards) can't take a custom
+    dashboard panel, so the logo banner is injected at the nginx layer
+    instead, before Grafana's #reactRoot mount point so it survives every
+    client-side route change. Applied to both the login page's own location
+    block and the main prefix location, since the exact-match /grafana/login
+    block serves that page's HTML and the prefix block never sees it."""
+
+    config = (ROOT / "nginx" / "airmonitor.conf.template").read_text(encoding="utf-8")
+    assert config.count('sub_filter \'</head>\' \'<link rel="stylesheet" href="/status-assets/grafana-banner.css?v=1"></head>\';') == 2
+    assert config.count("sub_filter '<div id=\"reactRoot\"></div>'") == 2
+    assert 'proxy_set_header Accept-Encoding "";' in config
+
+
 def test_nginx_routes_public_exports_to_bounded_export_service() -> None:
     config = (ROOT / "nginx" / "airmonitor.conf.template").read_text(encoding="utf-8")
     assert "location /exports/" in config
