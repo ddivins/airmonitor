@@ -67,8 +67,8 @@ New phase covering reproducibility gaps that matter more now that the fresh-host
 ## Phase 7 — Appliance management UX
 
 - [ ] Add `airmonitor inventory` and `airmonitor hardware ...` aliases to the main CLI.
-- [ ] Add `sudo airmonitor update` as the supported wrapper around the update lifecycle.
-- [ ] Add `sudo airmonitor install` for first-time installation.
+- [x] Add `airmonitor update` as the supported wrapper around the update lifecycle. Deliberately **not** run via `sudo`: it locates the checkout via a new `REPO_DIR` key in `/etc/airmonitor/install.conf` (written automatically by `tools/install.sh`), then runs `git pull --ff-only` followed by `tools/update.sh` as the invoking user — running the whole thing as root would break `git pull` for a user whose SSH credentials root doesn't have, a bug hit directly this session. `--dry-run` by default; `--no-dry-run` executes.
+- [x] Add `airmonitor install` for rerunning the installer (not the very first bootstrap, which unavoidably still needs `git clone && bash tools/install.sh` before any `airmonitor` binary exists to invoke). Extra flags (`--full`, `--non-interactive`, etc.) pass through to `tools/install.sh`.
 - [ ] Add an interactive `airmonitor setup` flow for printer, sensors, filters, Grafana, and MQTT.
 - [ ] Add EEPROM provisioning behind a guarded AirMonitor CLI command while retaining factory backup requirements.
 - [ ] Add structured human-readable doctor output in addition to JSON.

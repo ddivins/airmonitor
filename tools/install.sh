@@ -101,6 +101,11 @@ load_conf_file() {
         MODE|DOMAIN|CERT_EMAIL|CERTBOT_CLOUDFLARE_CREDENTIALS|MIGRATE_FROM|LEGACY_GRAFANA_REDIRECT)
           printf -v "$key" '%s' "$value"
           ;;
+        REPO_DIR)
+          # Recorded for external tooling (the `airmonitor` CLI's update/install
+          # wrappers). This script always derives its own REPO_DIR from where
+          # it actually lives, never from a possibly-stale saved value.
+          ;;
         *)
           warn "ignoring unknown config key in $file: $key"
           ;;
@@ -120,6 +125,7 @@ save_config() {
     printf 'CERTBOT_CLOUDFLARE_CREDENTIALS=%s\n' "$CERTBOT_CLOUDFLARE_CREDENTIALS"
     printf 'MIGRATE_FROM=\n'
     printf 'LEGACY_GRAFANA_REDIRECT=%s\n' "$LEGACY_GRAFANA_REDIRECT"
+    printf 'REPO_DIR=%s\n' "$REPO_DIR"
   } | sudo tee "$STATE_CONF" >/dev/null
   sudo chmod 0644 "$STATE_CONF"
 }

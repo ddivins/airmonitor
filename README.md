@@ -267,6 +267,19 @@ git pull --ff-only
 bash tools/update.sh
 ```
 
+Once installed, `airmonitor update` and `airmonitor install` are equivalent
+shorthand runnable from anywhere (they locate the checkout via `REPO_DIR` in
+`/etc/airmonitor/install.conf`, written automatically by `tools/install.sh`):
+
+```bash
+airmonitor update            # dry-run by default; add --no-dry-run to execute
+airmonitor install --full    # extra flags pass through to tools/install.sh
+```
+
+Neither needs `sudo` itself — `tools/update.sh`/`tools/install.sh` escalate
+internally only where needed, and the `git pull` must run as whichever user
+actually has the checkout's Git credentials, not root.
+
 Supported fresh install:
 
 ```bash

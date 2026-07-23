@@ -138,10 +138,27 @@ def test_rollback_service_list_includes_alerts_service() -> None:
     assert "airmonitor-alerts.service" in text
 
 
+def test_save_config_records_repo_dir_for_external_tooling() -> None:
+    text = INSTALLER.read_text(encoding="utf-8")
+    save_config = text[text.index("save_config() {") : text.index("prompt_for_missing_config() {")]
+    assert "printf 'REPO_DIR=%s\\n' \"$REPO_DIR\"" in save_config
+
+
+def test_load_conf_file_ignores_repo_dir_without_overwriting_it() -> None:
+    text = INSTALLER.read_text(encoding="utf-8")
+    load_conf_file = text[text.index("load_conf_file() {") : text.index("save_config() {")]
+    assert "REPO_DIR)" in load_conf_file
+    # Recognized so it doesn't trigger "ignoring unknown config key", but not
+    # reassigned like the other keys (install.sh always derives its own
+    # REPO_DIR from where it actually lives).
+    repo_dir_case = load_conf_file[load_conf_file.index("REPO_DIR)") : load_conf_file.index(";;", load_conf_file.index("REPO_DIR)"))]
+    assert 'printf -v "$key"' not in repo_dir_case
+
+
 def test_install_conf_example_documents_all_recognized_keys() -> None:
     installer_text = INSTALLER.read_text(encoding="utf-8")
     example_text = CONFIG_EXAMPLE.read_text(encoding="utf-8")
-    for key in ("MODE", "DOMAIN", "CERT_EMAIL", "CERTBOT_CLOUDFLARE_CREDENTIALS", "MIGRATE_FROM", "LEGACY_GRAFANA_REDIRECT"):
+    for key in ("MODE", "DOMAIN", "CERT_EMAIL", "CERTBOT_CLOUDFLARE_CREDENTIALS", "MIGRATE_FROM", "LEGACY_GRAFANA_REDIRECT", "REPO_DIR"):
         assert f"{key}=" in example_text
         assert key in installer_text
     assert "example" not in example_text

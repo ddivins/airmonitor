@@ -31,3 +31,10 @@ MIGRATE_FROM=
 # Only useful when migrating from an older AirMonitor host that used a
 # separate Grafana subdomain. Leave false for a new install.
 LEGACY_GRAFANA_REDIRECT=false
+
+# Written automatically by tools/install.sh; not read back by install.sh or
+# update.sh themselves (they always derive their own location), but used by
+# the installed `airmonitor update`/`airmonitor install` CLI commands to find
+# this checkout from anywhere on the system. Leave blank if editing this file
+# by hand before a first install — it will be filled in once install.sh runs.
+REPO_DIR=
