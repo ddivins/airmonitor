@@ -1,0 +1,18 @@
+# AirMonitor alert thresholds.
+#
+# Copy to /etc/airmonitor/alert-thresholds.yaml and point ALERT_THRESHOLDS_PATH
+# at it (see config/env/alerts.env.example) to override the built-in defaults
+# in airmonitor.alerts.thresholds.DEFAULT_THRESHOLDS.
+#
+# AirMonitor is not a certified air-quality instrument (see README), so these
+# are tunable starting points, not calibrated safety limits. The PM2.5
+# defaults follow EPA AQI breakpoints; the VOC defaults have no equivalent
+# public standard and should be tuned against your own sensor's baseline.
+
+sgx_gas_ppm:
+  warning: 3.0
+  critical: 10.0
+
+sps30_mass_pm2_5:
+  warning: 35.4
+  critical: 150.4

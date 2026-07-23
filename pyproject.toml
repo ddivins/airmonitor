@@ -33,6 +33,7 @@ airmonitor-levoit = "airmonitor.cli:run_levoit_service"
 airmonitor-levoit-service = "airmonitor.filters.levoit.supervisor:main"
 airmonitor-status = "airmonitor.status_web:main"
 airmonitor-export = "airmonitor.exports.web:main"
+airmonitor-alerts = "airmonitor.alerts.service:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/airmonitor"]

@@ -28,10 +28,12 @@ This roadmap is ordered by dependency and operational value. Items near the top 
 
 Promoted ahead of multi-sensor and UX work: the project's core promise ("Monitor. Understand. Don't Die.") depends on someone being told when air quality is bad, not just able to look it up.
 
-- [ ] Add VOC/PM safety warnings while preserving explicit user override policy.
-- [ ] Add a notification channel (webhook, ntfy, or Pushover) for dangerous air-quality conditions, stale sensors, and failed filters.
-- [ ] Add configurable thresholds per sensor/metric, stored alongside hardware config.
-- [ ] Add a notification-history/acknowledgment record so alerts are auditable, not just fire-and-forget.
+- [x] Add VOC/PM safety warnings (`airmonitor.alerts`, `airmonitor-alerts.service`).
+- [x] Add a notification channel (generic JSON webhook and/or ntfy push) for dangerous air-quality conditions and stale/offline sensors.
+- [x] Add configurable thresholds per sensor/metric (`config/alert-thresholds.yaml.example`, `ALERT_THRESHOLDS_PATH`).
+- [x] Add a notification-history/audit record (`alert_events` table) so alerts are auditable, not just fire-and-forget.
+- [ ] Extend filter-mismatch alerting once Phase 4's persisted control wiring lands (basic actual/effective-state mismatch detection is in place today via `evaluate_filter_mismatch`).
+- [ ] Add an "explicit user override" acknowledgment/silence mechanism so a knowingly-accepted condition doesn't keep re-alerting after a restart.
 
 ## Phase 4 — Filter control and observability
 
@@ -87,8 +89,18 @@ New phase covering reproducibility gaps that matter more now that the fresh-host
 
 ## Current next actions
 
-1. Add sensor freshness and last-good-reading checks to `airmonitor-doctor`.
-2. Add VOC/PM safety warnings and a basic notification channel (webhook/ntfy/Pushover).
-3. Finish persisted filter override integration.
-4. Pin dependencies with a lockfile and enforce ruff in CI.
-5. Add automatic rollback on failed update health checks.
+1. Finish persisted filter override integration.
+2. Pin dependencies with a lockfile and enforce ruff in CI.
+3. Add automatic rollback on failed update health checks.
+4. Write `/etc/airmonitor/install.conf` on hosts that predate the config-driven installer (see Operations note below) so plain `bash tools/update.sh` doesn't need env-var overrides.
+
+## Operations note (2026-07-22)
+
+The production appliance (`airmonitor.example.com`) was set up before the
+config-driven install flow (`install.conf`) existed, so `tools/update.sh`
+currently needs `INSTALL_STATUS_PAGE=0 INSTALL_GRAFANA=0` overrides to skip
+routing/Grafana provisioning steps that can't resolve `DOMAIN`. nginx and
+Grafana are already correctly configured on that host; only the config file
+is missing. Backfilling `/etc/airmonitor/install.conf` (`MODE=full`,
+`DOMAIN=airmonitor.example.com`, `LEGACY_GRAFANA_REDIRECT=true`, plus a
+`CERT_EMAIL`) would let future updates run without the overrides.

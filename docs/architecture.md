@@ -133,6 +133,7 @@ airmonitor-bento.service           Kasa-powered Bento Box control
 airmonitor-levoit.service          VeSync/Levoit room-purifier control
 airmonitor-status.service          Appliance landing page and administration
 airmonitor-export.service          Read-only bounded report generation
+airmonitor-alerts.service          VOC/PM threshold, stale-sensor, and filter-mismatch alerting
 ```
 
 The export service is isolated from the landing page and sensor processes because large

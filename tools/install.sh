@@ -305,7 +305,7 @@ install_config_templates() {
   log "Installing missing configuration templates"
   sudo install -d -o root -g root -m 0755 "$CONFIG_DIR"
   local name source destination mode
-  for name in sgx-voc sps30 printer-mqtt bento levoit; do
+  for name in sgx-voc sps30 printer-mqtt bento levoit alerts; do
     source="$REPO_DIR/config/env/$name.env.example"
     destination="$CONFIG_DIR/$name.env"
     mode=0600

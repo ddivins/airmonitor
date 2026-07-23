@@ -1,0 +1,18 @@
+[Unit]
+Description=AirMonitor safety alerting (VOC/PM thresholds, stale sensors, unresponsive filters)
+After=network-online.target
+PartOf=airmonitor.target
+
+[Service]
+Type=simple
+User=automation
+Group=automation
+EnvironmentFile=-/etc/airmonitor/alerts.env
+ExecStart=/opt/airmonitor/venv/bin/airmonitor-alerts
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/airmonitor

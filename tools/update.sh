@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SERVICE_LIST="${SERVICE_LIST:-airmonitor.target airmonitor-printer-mqtt.service airmonitor-voc.service airmonitor-sps30.service airmonitor-bento.service airmonitor-levoit.service airmonitor-status.service airmonitor-export.service}"
+SERVICE_LIST="${SERVICE_LIST:-airmonitor.target airmonitor-printer-mqtt.service airmonitor-voc.service airmonitor-sps30.service airmonitor-bento.service airmonitor-levoit.service airmonitor-status.service airmonitor-export.service airmonitor-alerts.service}"
 APP_DIR="${APP_DIR:-/opt/airmonitor}"
 ENV_FILE="${ENV_FILE:-/etc/airmonitor/sgx-voc.env}"
 REQUIRED_ENV_FILES="${REQUIRED_ENV_FILES:-/etc/airmonitor/sgx-voc.env /etc/airmonitor/sps30.env /etc/airmonitor/printer-mqtt.env /etc/airmonitor/bento.env /etc/airmonitor/levoit.env}"

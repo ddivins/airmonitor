@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 
-SCHEMA_VERSION = 7
+SCHEMA_VERSION = 8
 
 
 DDL = """
@@ -119,6 +119,17 @@ CREATE TABLE IF NOT EXISTS filter_control_state (
     updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
+CREATE TABLE IF NOT EXISTS alert_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    alert_key TEXT NOT NULL,
+    level TEXT NOT NULL,
+    message TEXT NOT NULL,
+    value REAL,
+    threshold REAL,
+    fired_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    resolved_at TEXT
+);
+
 CREATE TABLE IF NOT EXISTS levoit_samples (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     sampled_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
@@ -139,6 +150,8 @@ CREATE INDEX IF NOT EXISTS idx_sgx_samples_sampled_at ON sgx_voc_samples(sampled
 CREATE INDEX IF NOT EXISTS idx_sgx_samples_sensor_time ON sgx_voc_samples(sensor_id, sampled_at);
 CREATE INDEX IF NOT EXISTS idx_sgx_samples_print_time ON sgx_voc_samples(print_id, sampled_at);
 CREATE INDEX IF NOT EXISTS idx_levoit_samples_sampled_at ON levoit_samples(sampled_at);
+CREATE INDEX IF NOT EXISTS idx_alert_events_key ON alert_events(alert_key);
+CREATE INDEX IF NOT EXISTS idx_alert_events_open ON alert_events(alert_key, resolved_at);
 
 -- Legacy v1 table retained for existing installations. New code writes to the
 -- normalized tables above.
@@ -522,6 +535,56 @@ def update_filter_control_state(
     )
     conn.commit()
     return get_filter_control_state(conn, filter_id=filter_id)
+
+
+def list_open_alert_events(conn: sqlite3.Connection) -> dict[str, sqlite3.Row]:
+    """Return currently open alerts keyed by alert_key."""
+
+    rows = conn.execute("SELECT * FROM alert_events WHERE resolved_at IS NULL").fetchall()
+    return {row["alert_key"]: row for row in rows}
+
+
+def open_alert_event(
+    conn: sqlite3.Connection,
+    *,
+    alert_key: str,
+    level: str,
+    message: str,
+    value: float | None = None,
+    threshold: float | None = None,
+) -> sqlite3.Row:
+    """Close any existing open alert for this key and record a new one.
+
+    Closing and reopening (rather than updating in place) preserves an
+    auditable history when a condition escalates, e.g. warning to critical.
+    """
+
+    conn.execute(
+        "UPDATE alert_events SET resolved_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') "
+        "WHERE alert_key = ? AND resolved_at IS NULL",
+        (alert_key,),
+    )
+    conn.execute(
+        """
+        INSERT INTO alert_events (alert_key, level, message, value, threshold)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (alert_key, level, message, value, threshold),
+    )
+    conn.commit()
+    return conn.execute(
+        "SELECT * FROM alert_events WHERE alert_key = ? ORDER BY id DESC LIMIT 1",
+        (alert_key,),
+    ).fetchone()
+
+
+def resolve_alert_event(conn: sqlite3.Connection, *, alert_key: str) -> None:
+    conn.execute(
+        "UPDATE alert_events SET resolved_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') "
+        "WHERE alert_key = ? AND resolved_at IS NULL",
+        (alert_key,),
+    )
+    conn.commit()
 
 
 def _print_values(

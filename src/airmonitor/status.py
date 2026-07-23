@@ -22,6 +22,7 @@ SERVICES = (
     "airmonitor-printer-mqtt.service",
     "airmonitor-bento.service",
     "airmonitor-levoit.service",
+    "airmonitor-alerts.service",
     "grafana-server.service",
     "mosquitto.service",
 )

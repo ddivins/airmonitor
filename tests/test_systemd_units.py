@@ -18,6 +18,7 @@ def test_application_target_wants_all_airmonitor_units():
         "airmonitor-levoit.service",
         "airmonitor-status.service",
         "airmonitor-export.service",
+        "airmonitor-alerts.service",
     ):
         assert name in target
 
@@ -29,6 +30,7 @@ def test_application_members_follow_target_lifecycle_but_status_survives():
         "airmonitor-printer-mqtt.service",
         "airmonitor-bento.service",
         "airmonitor-levoit.service",
+        "airmonitor-alerts.service",
     ):
         assert "PartOf=airmonitor.target" in unit(name)
     assert "PartOf=airmonitor.target" not in unit("airmonitor-status.service")
@@ -61,6 +63,7 @@ def test_target_managed_units_are_static():
         "airmonitor-levoit.service",
         "airmonitor-status.service",
         "airmonitor-export.service",
+        "airmonitor-alerts.service",
     ):
         assert "[Install]" not in unit(name)
 
