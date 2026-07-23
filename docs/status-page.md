@@ -66,6 +66,13 @@ override with `AIRMONITOR_BACKUP_DIR` / `AIRMONITOR_UPDATE_STATE_DIR` in
 `/etc/airmonitor/airmonitor.env` if needed. Neither is required for day-to-day operation — both
 degrade to an informational "unknown" state rather than breaking the rest of the page.
 
+**Known current limitation:** the `github.com/ddivins/airmonitor` repo is private as of this
+writing, and anonymous `git ls-remote` genuinely cannot read a private repo — so until the repo
+is made public, the "Update" indicator will always show `could not reach upstream repository`.
+This isn't a bug in the check; it's expected until the repo's visibility changes. Confirmed by
+testing `git ls-remote` with credential helpers disabled, and by GitHub's API returning `404`
+(not `403`) for an unauthenticated request to the repo, both of which are private-repo behavior.
+
 ## Authentication and administration
 
 Grafana is the single identity source. Nginx makes its `/grafana/` session cookie available
