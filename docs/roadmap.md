@@ -53,7 +53,7 @@ New phase covering reproducibility gaps that matter more now that the fresh-host
 
 - [x] Pin dependency versions with a lockfile: `uv.lock` (authoritative) plus a derived `requirements-lock.txt` consumed as a pip constraints file by `tools/update.sh` and CI, so an appliance install and a CI run resolve the same versions instead of whatever the `pyproject.toml` ranges pick up that day. See "Dependency pinning" in the README for the regeneration command.
 - [x] Add a committed ruff configuration and enforce it in CI. Deliberately scoped to ruff's default rule set (pyflakes + basic pycodestyle), which the codebase already passes cleanly — broader rules (line length, import sorting, pyupgrade) would require a separate style-focused pass across many unrelated files, so they're left for a dedicated PR rather than bundled in here.
-- [ ] Add a `CHANGELOG.md` and start recording notable changes per release.
+- [x] Add a `CHANGELOG.md` and start recording notable changes per release (see Phase 8).
 
 ## Phase 6 — Multiple sensors and service instances
 
@@ -79,7 +79,7 @@ New phase covering reproducibility gaps that matter more now that the fresh-host
 - [ ] Add end-to-end tests covering MQTT printer state through policy, filter decisions, database writes, and Grafana query generation.
 - [ ] Add database backup/restore commands and documented retention policy.
 - [x] Add installed Git commit reporting (`installed-commit`/`previous-commit`/`target-commit` under `/var/lib/airmonitor/update-state/`, already tracked by `tools/update.sh`/`tools/rollback.sh`).
-- [ ] Add release tags and changelog generation (no Git tags exist yet).
+- [x] Add release tags and a changelog (`CHANGELOG.md`, first entry `v0.6.0`). Tags/changelog are written by hand per release, not auto-generated from commits.
 - [x] Add automatic rollback when update, service startup, or doctor fails: `tools/update.sh` now runs `tools/rollback.sh` automatically if any service fails to (re)start or `airmonitor-doctor` reports a required failure, rather than only suggesting a manual rollback. Opt out with `AUTO_ROLLBACK=0` (see `docs/update-rollback.md`). Fresh `tools/install.sh` runs are not covered yet — a failure there still requires manual cleanup.
 - [ ] Add documented recovery from a damaged SQLite database or missing configuration.
 - [ ] Define and test the v1.0 supported hardware and upgrade path.
@@ -93,18 +93,14 @@ New phase covering reproducibility gaps that matter more now that the fresh-host
 
 ## Current next actions
 
-1. Write `/etc/airmonitor/install.conf` on hosts that predate the config-driven installer (see Operations note below) so plain `bash tools/update.sh` doesn't need env-var overrides.
-2. Add a `CHANGELOG.md` and release tags.
-3. Add database backup/restore commands.
-4. Begin Phase 6 (multiple sensors and service instances) or Phase 7 (appliance management UX), whichever hardware/usage need arrives first.
+1. Add database backup/restore commands.
+2. Begin Phase 6 (multiple sensors and service instances) or Phase 7 (appliance management UX), whichever hardware/usage need arrives first.
 
-## Operations note (2026-07-22)
+## Operations note (2026-07-23)
 
-The production appliance (`airmonitor.example.com`) was set up before the
-config-driven install flow (`install.conf`) existed, so `tools/update.sh`
-currently needs `INSTALL_STATUS_PAGE=0 INSTALL_GRAFANA=0` overrides to skip
-routing/Grafana provisioning steps that can't resolve `DOMAIN`. nginx and
-Grafana are already correctly configured on that host; only the config file
-is missing. Backfilling `/etc/airmonitor/install.conf` (`MODE=full`,
-`DOMAIN=airmonitor.example.com`, `LEGACY_GRAFANA_REDIRECT=true`, plus a
-`CERT_EMAIL`) would let future updates run without the overrides.
+The production appliance (`airmonitor.example.com`) predated the
+config-driven install flow. `/etc/airmonitor/install.conf` has since been
+backfilled (`MODE=full`, `DOMAIN=airmonitor.example.com`,
+`CERT_EMAIL`, `CERTBOT_CLOUDFLARE_CREDENTIALS`,
+`LEGACY_GRAFANA_REDIRECT=true`), and plain `bash tools/update.sh` (no
+env-var overrides) now runs cleanly end to end.
