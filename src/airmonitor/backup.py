@@ -82,6 +82,11 @@ def create_backup(
         dest_conn = sqlite3.connect(tmp_uncompressed)
         try:
             source_conn.backup(dest_conn)
+            # The backed-up pages carry the source's journal_mode=WAL setting.
+            # Switch back to DELETE before closing so SQLite fully checkpoints
+            # and removes -wal/-shm here, rather than leaving small sidecar
+            # files behind that a .sqlite3.gz-only glob would never prune.
+            dest_conn.execute("PRAGMA journal_mode=DELETE")
         finally:
             dest_conn.close()
     finally:
@@ -92,6 +97,8 @@ def create_backup(
             shutil.copyfileobj(raw, compressed)
     finally:
         tmp_uncompressed.unlink(missing_ok=True)
+        tmp_uncompressed.with_name(f"{tmp_uncompressed.name}-wal").unlink(missing_ok=True)
+        tmp_uncompressed.with_name(f"{tmp_uncompressed.name}-shm").unlink(missing_ok=True)
 
     removed = prune_backups(directory, retention=retention)
     size_bytes = destination.stat().st_size

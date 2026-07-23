@@ -35,6 +35,21 @@ def test_create_backup_produces_gzipped_consistent_snapshot(tmp_path: Path) -> N
     assert result.removed == []
 
 
+def test_create_backup_leaves_no_wal_or_shm_sidecar_files(tmp_path: Path) -> None:
+    """The source database is WAL-mode; a naive online-backup copy would
+    inherit that and leave orphan -wal/-shm files that a .sqlite3.gz-only
+    glob (see prune_backups) would never clean up."""
+
+    db_path = tmp_path / "airmonitor.sqlite3"
+    _seed_database(db_path)
+    backup_dir = tmp_path / "backups"
+
+    create_backup(database=str(db_path), backup_dir=str(backup_dir), retention=10)
+
+    leftover = sorted(p.name for p in backup_dir.iterdir())
+    assert leftover == [f for f in leftover if f.endswith(".sqlite3.gz")]
+
+
 def test_verify_backup_reports_ok_for_a_healthy_backup(tmp_path: Path) -> None:
     db_path = tmp_path / "airmonitor.sqlite3"
     _seed_database(db_path)
