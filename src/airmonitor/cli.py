@@ -29,6 +29,7 @@ from airmonitor.database import (
 from airmonitor.database.repositories import FilterControlRepository
 from airmonitor.filters.control import FilterState, resolve_filter_state
 from airmonitor.filament_policy import FilamentPolicy
+from airmonitor.health import _package_version
 from airmonitor.print_tracker import PrintTracker
 from airmonitor.printer_mqtt import PrinterStateCache
 from airmonitor.sensors.sgx_ps1_voc_1000 import (
@@ -40,7 +41,6 @@ from airmonitor.sensors.sgx_ps1_voc_1000 import (
 )
 
 
-APP_VERSION = "0.4.0"
 SENSOR_MANUFACTURER = "SGX Sensortech"
 SENSOR_PRODUCT = "PS1-VOC-1000-MOD"
 SENSOR_MODEL = "SGX PS1-VOC-1000-MOD"
@@ -384,7 +384,7 @@ def log_samples(args: argparse.Namespace) -> int:
     session_id = start_sensor_session(
         conn,
         sensor_id=args.sensor_id,
-        software_version=APP_VERSION,
+        software_version=_package_version(),
         sensor_protocol=None,
         sensor_port=args.port,
     )
@@ -406,7 +406,7 @@ def log_samples(args: argparse.Namespace) -> int:
 
     LOG.info(
         "Starting sensor logger: version=%s sensor_id=%s port=%s database=%s interval=%ss printer_mqtt=%s session_id=%s",
-        APP_VERSION,
+        _package_version(),
         args.sensor_id,
         args.port,
         args.database,
