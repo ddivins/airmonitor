@@ -31,6 +31,8 @@ body { margin: 0; color: var(--ink); background: var(--canvas); }
 .status-dot.offline { background: var(--offline); box-shadow: 0 0 0 6px #fae0e2; }
 .hero-copy p { margin: 5px 0 0; color: var(--muted); }
 .updated { font-size: .78rem; }
+.updated a { color: var(--muted); font-weight: 650; text-decoration: none; }
+.updated a:hover, .updated a:focus-visible { color: var(--blue); text-decoration: underline; }
 .grafana-button { align-self: center; display: inline-flex; gap: 14px; align-items: center; padding: 14px 18px; color: white; background: var(--navy); border-radius: 12px; text-decoration: none; font-weight: 750; white-space: nowrap; }
 .grafana-button:hover, .grafana-button:focus-visible { background: var(--blue); outline: 3px solid rgba(22,117,209,.2); outline-offset: 3px; }
 .grafana-button.secondary { color: var(--navy); background: white; border: 1px solid var(--line); }
