@@ -40,6 +40,9 @@ class GrafanaDashboardTests(unittest.TestCase):
         brand = dashboard["panels"][0]
         self.assertEqual(brand["type"], "text")
         self.assertIn("airmonitor-brand-300.png", brand["options"]["content"])
+        # The logo is a normal navigation element, not decoration: clicking it
+        # goes back to the status page, same as the status_static pages' header.
+        self.assertEqual(brand["options"]["content"], "[![AirMonitor — Monitor. Understand. Don't Die.](/public/img/airmonitor-brand-300.png)](/)")
 
         environment = next(panel for panel in dashboard["panels"] if panel["id"] == 2)
         self.assertEqual(environment["title"], "Ambient Temperature / Humidity / Chamber")
@@ -88,6 +91,28 @@ class GrafanaDashboardTests(unittest.TestCase):
             export_link["url"],
             "/exports/print?print_id=${print_id}",
         )
+
+    def test_print_dashboard_has_a_clickable_logo_banner(self):
+        """Previously this dashboard had no logo/banner at all -- the only way
+        back to status was the small "AirMonitor Status" link button. Its
+        banner panel should match airmonitor-live's in shape (full-width,
+        first panel, same clickable-logo markdown) for a consistent
+        navigation experience across dashboards."""
+
+        path = Path(__file__).parents[1] / "grafana" / "dashboards" / "airmonitor-print-window.json"
+        dashboard = json.loads(path.read_text(encoding="utf-8"))
+        brand = dashboard["panels"][0]
+        self.assertEqual(brand["type"], "text")
+        self.assertEqual(brand["gridPos"], {"h": 6, "w": 24, "x": 0, "y": 0})
+        self.assertEqual(
+            brand["options"]["content"],
+            "[![AirMonitor — Monitor. Understand. Don't Die.](/public/img/airmonitor-brand-300.png)](__AIRMONITOR_STATUS_URL__)",
+        )
+
+        # No two panels should overlap now that the banner pushed everything else down.
+        spans = sorted((p["gridPos"]["y"], p["gridPos"]["y"] + p["gridPos"]["h"]) for p in dashboard["panels"])
+        for (_, end), (next_start, _) in zip(spans, spans[1:]):
+            self.assertLessEqual(end, next_start)
 
     def test_print_dashboard_status_link_is_a_placeholder_for_install_time_substitution(self):
         """This dashboard is a static committed file, not python-generated like
@@ -190,6 +215,12 @@ class StatusPageUrlTests(unittest.TestCase):
             dashboard = self.generator.build()
         status_link = next(link for link in dashboard["links"] if link["title"] == "AirMonitor Status")
         self.assertEqual(status_link["url"], "https://airmonitor.example.com/")
+
+    def test_build_wires_the_logo_banner_to_status_page_url(self):
+        with mock.patch.dict(os.environ, {"GRAFANA_DOMAIN": "airmonitor.example.com"}):
+            dashboard = self.generator.build()
+        brand = dashboard["panels"][0]
+        self.assertIn("](https://airmonitor.example.com/)", brand["options"]["content"])
 
 
 if __name__ == "__main__":

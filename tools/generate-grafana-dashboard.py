@@ -292,6 +292,16 @@ def timeseries(
 
 
 def brand_panel(panel_id: int) -> dict[str, Any]:
+    """Full-width logo banner, first panel on every AirMonitor dashboard.
+
+    The logo is a markdown-wrapped link back to the status page
+    (status_page_url()), so every dashboard offers the same "click the logo
+    to get back to status" navigation as the status_static pages already
+    have, instead of leaving a dashboard's only way back to a dashboard
+    "links" button (or nothing at all, as airmonitor-print-window.json was
+    before this).
+    """
+
     return {
         "id": panel_id,
         "type": "text",
@@ -302,7 +312,7 @@ def brand_panel(panel_id: int) -> dict[str, Any]:
         "fieldConfig": {"defaults": {}, "overrides": []},
         "options": {
             "mode": "markdown",
-            "content": "![AirMonitor — Monitor. Understand. Don't Die.](/public/img/airmonitor-brand-300.png)",
+            "content": f"[![AirMonitor — Monitor. Understand. Don't Die.](/public/img/airmonitor-brand-300.png)]({status_page_url()})",
         },
         "transparent": True,
     }

@@ -77,6 +77,31 @@
   },
   "panels": [
     {
+      "id": 6,
+      "type": "text",
+      "title": "",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "airmonitor-sqlite"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "[![AirMonitor — Monitor. Understand. Don't Die.](/public/img/airmonitor-brand-300.png)](__AIRMONITOR_STATUS_URL__)"
+      },
+      "transparent": true
+    },
+    {
       "id": 1,
       "type": "table",
       "title": "Selected Print",
@@ -88,7 +113,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 0
+        "y": 6
       },
       "targets": [
         {
@@ -194,7 +219,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 5
+        "y": 11
       },
       "targets": [
         {
@@ -321,7 +346,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 23
+        "y": 29
       },
       "targets": [
         {
@@ -435,7 +460,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 14
+        "y": 20
       },
       "targets": [
         {
@@ -609,7 +634,7 @@
         "h": 11,
         "w": 24,
         "x": 0,
-        "y": 32
+        "y": 38
       },
       "targets": [
         {

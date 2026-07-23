@@ -100,7 +100,23 @@ administrator control. It remains isolated from the status process so report gen
 cannot block landing-page refreshes.
 
 Grafana and the appliance landing page now share one origin. The provisioned dashboards
-include an `AirMonitor Status` link back to the appliance root.
+include an `AirMonitor Status` link back to the appliance root. Because Grafana runs
+sub-pathed (`serve_from_sub_path = true`), that link -- and the dashboards' logo banner
+described below -- must be a fully-qualified `https://<domain>/` URL rather than a
+root-relative `/`: Grafana rewrites relative dashboard links to be relative to its own
+`/grafana/` sub-path, which otherwise lands you back on Grafana instead of the status
+page. `generate-grafana-dashboard.py`'s `status_page_url()` builds that absolute URL
+from `GRAFANA_DOMAIN` (threaded to it by `tools/update.sh`'s `install-grafana.sh` call),
+falling back to `/` only when no real domain is configured (local generation,
+`--validate-db`).
+
+Every AirMonitor dashboard (`airmonitor-live`, `airmonitor-print-window`) opens with a
+full-width logo banner as its first panel, matching the clickable-logo header the
+status_static pages already use -- clicking the logo returns to the status page from
+any dashboard, the same navigation available everywhere else. `airmonitor-print-window.json`
+is a static committed file rather than python-generated, so its banner (and its own
+`AirMonitor Status` link) carry an `__AIRMONITOR_STATUS_URL__` placeholder that
+`tools/install-grafana.sh` substitutes with the same absolute-or-`/` logic at install time.
 
 ## Password reset email
 
