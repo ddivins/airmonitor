@@ -51,8 +51,8 @@ just hadn't been updated to reflect it.
 
 New phase covering reproducibility gaps that matter more now that the fresh-host installer is meant for others to use.
 
-- [ ] Pin dependency versions with a lockfile (e.g. `uv.lock` or pip-compile output) instead of open version ranges in `pyproject.toml`.
-- [ ] Add a committed ruff configuration and enforce it in CI (currently run ad hoc, not gated).
+- [x] Pin dependency versions with a lockfile: `uv.lock` (authoritative) plus a derived `requirements-lock.txt` consumed as a pip constraints file by `tools/update.sh` and CI, so an appliance install and a CI run resolve the same versions instead of whatever the `pyproject.toml` ranges pick up that day. See "Dependency pinning" in the README for the regeneration command.
+- [x] Add a committed ruff configuration and enforce it in CI. Deliberately scoped to ruff's default rule set (pyflakes + basic pycodestyle), which the codebase already passes cleanly — broader rules (line length, import sorting, pyupgrade) would require a separate style-focused pass across many unrelated files, so they're left for a dedicated PR rather than bundled in here.
 - [ ] Add a `CHANGELOG.md` and start recording notable changes per release.
 
 ## Phase 6 — Multiple sensors and service instances
@@ -92,9 +92,9 @@ New phase covering reproducibility gaps that matter more now that the fresh-host
 
 ## Current next actions
 
-1. Pin dependencies with a lockfile and enforce ruff in CI.
-2. Add automatic rollback on failed update health checks.
-3. Write `/etc/airmonitor/install.conf` on hosts that predate the config-driven installer (see Operations note below) so plain `bash tools/update.sh` doesn't need env-var overrides.
+1. Add automatic rollback on failed update health checks.
+2. Write `/etc/airmonitor/install.conf` on hosts that predate the config-driven installer (see Operations note below) so plain `bash tools/update.sh` doesn't need env-var overrides.
+3. Add a `CHANGELOG.md`.
 
 ## Operations note (2026-07-22)
 

@@ -300,6 +300,21 @@ preserved across updates:
 /etc/airmonitor/airmonitor.env
 ```
 
+### Dependency pinning
+
+`requirements-lock.txt` pins exact versions for every third-party dependency
+(direct and transitive) and is passed to pip as a constraints file during
+install/update, so a fresh appliance gets the same dependency versions as CI
+rather than whatever the version ranges in `pyproject.toml` happen to
+resolve to on a given day. `uv.lock` is the authoritative source it's
+generated from. After changing a dependency in `pyproject.toml`, regenerate
+both:
+
+```bash
+uv lock
+uv export --format requirements.txt --no-hashes --no-emit-project -o requirements-lock.txt
+```
+
 ## Hardware Configuration
 
 The current build uses USB-UART interfaces and explicit serial device configuration. Depending

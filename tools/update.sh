@@ -95,7 +95,11 @@ NEW_COMMIT="$(git rev-parse HEAD)"
 printf '%s\n' "$NEW_COMMIT" | sudo tee "$STATE_DIR/target-commit" >/dev/null
 
 log "Installing package into $APP_DIR/venv"
-sudo "$PIP_BIN" install --upgrade .
+if [[ -f "$REPO_DIR/requirements-lock.txt" ]]; then
+  sudo "$PIP_BIN" install --upgrade -c "$REPO_DIR/requirements-lock.txt" .
+else
+  sudo "$PIP_BIN" install --upgrade .
+fi
 
 log "Ensuring data directory exists"
 sudo install -d -o "$SERVICE_USER" -g "$SERVICE_GROUP" -m 0755 "$DATA_DIR"
