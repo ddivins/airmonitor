@@ -22,9 +22,15 @@ const serviceLabel = (name) => ({
   "airmonitor-status.service": "Status page",
   "airmonitor-export.service": "Print exports",
   "airmonitor-voc.service": "VOC sensor",
+  "airmonitor-sps30.service": "SPS30 sensor",
+  "airmonitor-printer-mqtt.service": "Printer MQTT",
+  "airmonitor-bento.service": "Bento filter",
+  "airmonitor-levoit.service": "Levoit filter",
+  "airmonitor-alerts.service": "Safety alerts",
+  "airmonitor-backup.timer": "Database backup",
   "grafana-server.service": "Grafana server",
   "mosquitto.service": "Mosquitto MQTT",
-})[name] || name.replace(".service", "").replace("airmonitor-", "").replaceAll("-", " ");
+})[name] || name.replace(/\.(service|timer)$/, "").replace("airmonitor-", "").replaceAll("-", " ");
 const serviceRuntime = (value) => typeof value === "object" && value !== null
   ? {active: value.active_state || "unknown", sub: value.sub_state || "unknown"}
   : {active: value || "unknown", sub: value || "unknown"};
@@ -163,7 +169,7 @@ function render(data) {
     const runtime = serviceRuntime(state);
     const runtimeText = runtime.active;
     const ownership = targetManagedServices.has(name) ? "Target managed" : (session.user?.admin && name in session.services ? session.services[name].enabled : "");
-    return `<div class="service-item"><div class="service-summary"><span class="service-label" title="${escapeHtml(name)}">${escapeHtml(serviceLabel(name))}</span><span>${ownership ? `<span class="enabled-state">${escapeHtml(ownership)}</span> ` : ""}${pill(escapeHtml(runtimeText), escapeHtml(runtime.active))}</span></div>${serviceControl(name)}</div>`;
+    return `<div class="service-item"><div class="service-summary"><span class="service-label" title="${escapeHtml(name)}">${escapeHtml(serviceLabel(name))}</span><span class="service-meta">${ownership ? `<span class="enabled-state">${escapeHtml(ownership)}</span>` : ""}${pill(escapeHtml(runtimeText), escapeHtml(runtime.active))}</span></div>${serviceControl(name)}</div>`;
   }).join("");
 }
 
