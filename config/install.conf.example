@@ -32,6 +32,16 @@ MIGRATE_FROM=
 # separate Grafana subdomain. Leave false for a new install.
 LEGACY_GRAFANA_REDIRECT=false
 
+# Name of the Grafana organization anonymous (logged-out) viewers are
+# attached to for read-only dashboard access. Must match a real organization
+# in this Grafana instance -- Grafana's own default is "Main Org." (a fresh
+# install never needs this set), but a Grafana instance that already existed
+# before this installer touched it may use a different organization name.
+# Anonymous access silently falls back to requiring login if this doesn't
+# match any real organization, rather than erroring, so a mismatch here is
+# easy to miss. Leave blank to use Grafana's own default.
+GRAFANA_ANONYMOUS_ORG_NAME=
+
 # Written automatically by tools/install.sh; not read back by install.sh or
 # update.sh themselves (they always derive their own location), but used by
 # the installed `airmonitor update`/`airmonitor install` CLI commands to find

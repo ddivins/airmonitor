@@ -18,7 +18,15 @@ DB_FILE="${DB_FILE:-/var/lib/airmonitor/airmonitor.sqlite3}"
 DATA_GROUP="${DATA_GROUP:-airmonitor-data}"
 GRAFANA_DOMAIN="${GRAFANA_DOMAIN:-localhost}"
 GRAFANA_ROOT_URL="${GRAFANA_ROOT_URL:-http://localhost:3000/}"
-GRAFANA_ANONYMOUS_ORG_NAME="${GRAFANA_ANONYMOUS_ORG_NAME:-AirMonitor}"
+# Must match a real Grafana organization or anonymous auth silently falls
+# back to requiring login (Grafana doesn't error on a missing org, it just
+# can't attach the anonymous session) -- "Main Org." is Grafana's own
+# out-of-the-box default, not a dashboard folder name or anything AirMonitor
+# creates itself, so it's the only default that's actually correct on a
+# fresh install. A host whose Grafana organization was set up before this
+# installer touched it (a different, real org name already existing) needs
+# GRAFANA_ANONYMOUS_ORG_NAME set explicitly to that name.
+GRAFANA_ANONYMOUS_ORG_NAME="${GRAFANA_ANONYMOUS_ORG_NAME:-Main Org.}"
 GRAFANA_DB="${GRAFANA_DB:-/var/lib/grafana/grafana.db}"
 FRESH_AIRMONITOR_GRAFANA="${FRESH_AIRMONITOR_GRAFANA:-1}"
 GRAFANA_SMTP_ENABLED="${GRAFANA_SMTP_ENABLED:-false}"
@@ -208,9 +216,20 @@ if [[ "$FRESH_AIRMONITOR_GRAFANA" == "1" && -f "$GRAFANA_DB" ]]; then
 fi
 
 if [[ -f "$GRAFANA_DB" ]] && command -v sqlite3 >/dev/null; then
-  log "Clearing the organization dashboard-home override"
   org_name_sql="${GRAFANA_ANONYMOUS_ORG_NAME//\'/\'\'}"
-  sudo sqlite3 "$GRAFANA_DB" "UPDATE preferences SET home_dashboard_id = 0 WHERE org_id = (SELECT id FROM org WHERE name = '$org_name_sql') AND user_id = 0 AND COALESCE(team_id, 0) = 0;"
+  if [[ -z "$(sudo sqlite3 "$GRAFANA_DB" "SELECT id FROM org WHERE name = '$org_name_sql' LIMIT 1;")" ]]; then
+    # Grafana doesn't error on this -- it just can't attach an anonymous
+    # session, so logged-out visitors silently get sent to the login page
+    # instead of read-only dashboard access. Easy to miss since nothing
+    # else here fails.
+    printf '\nWARNING: no Grafana organization named "%s" -- anonymous (logged-out) dashboard\n' "$GRAFANA_ANONYMOUS_ORG_NAME" >&2
+    printf 'access will require login instead. Actual organizations on this host:\n' >&2
+    sudo sqlite3 "$GRAFANA_DB" "SELECT '  - ' || name FROM org;" >&2
+    printf 'Set GRAFANA_ANONYMOUS_ORG_NAME to one of the names above (install.conf).\n\n' >&2
+  else
+    log "Clearing the organization dashboard-home override"
+    sudo sqlite3 "$GRAFANA_DB" "UPDATE preferences SET home_dashboard_id = 0 WHERE org_id = (SELECT id FROM org WHERE name = '$org_name_sql') AND user_id = 0 AND COALESCE(team_id, 0) = 0;"
+  fi
 fi
 
 log "Restarting Grafana"

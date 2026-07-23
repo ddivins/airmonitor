@@ -10,14 +10,20 @@ def test_grafana_is_configured_under_appliance_subpath() -> None:
     assert "GRAFANA_ROOT_URL:-http://localhost:3000/" in installer
     assert "GF_SERVER_SERVE_FROM_SUB_PATH=true" in installer
     assert "serve_from_sub_path = true" in installer
-    assert "GRAFANA_ANONYMOUS_ORG_NAME:-AirMonitor" in installer
+    # "Main Org." is Grafana's own out-of-the-box default organization name,
+    # not something AirMonitor creates -- anything else (e.g. the earlier
+    # "AirMonitor" default) never matches a real org on a fresh install, and
+    # Grafana silently falls back to requiring login instead of erroring.
+    assert "GRAFANA_ANONYMOUS_ORG_NAME:-Main Org." in installer
     assert "GF_USERS_HOME_PAGE=/" in installer
     assert "GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH" not in installer
     assert "UPDATE preferences SET home_dashboard_id = 0" in installer
+    assert "no Grafana organization named" in installer
     assert "[[ -x /usr/sbin/grafana ]]" in updater
     assert "[[ -x /usr/sbin/grafana-cli ]]" in updater
     assert 'GRAFANA_DOMAIN="$DOMAIN"' in updater
     assert 'GRAFANA_ROOT_URL="${DOMAIN:+https://$DOMAIN/grafana/}"' in updater
+    assert 'GRAFANA_ANONYMOUS_ORG_NAME="$GRAFANA_ANONYMOUS_ORG_NAME"' in updater
 
 
 def test_nginx_routes_grafana_and_shared_session_on_one_origin() -> None:

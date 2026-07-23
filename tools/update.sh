@@ -27,6 +27,7 @@ INSTALL_CONF="${INSTALL_CONF:-/etc/airmonitor/install.conf}"
 AIRMONITOR_ENV_DST="${AIRMONITOR_ENV_DST:-/etc/airmonitor/airmonitor.env}"
 DOMAIN=""
 LEGACY_GRAFANA_REDIRECT=false
+GRAFANA_ANONYMOUS_ORG_NAME=""
 
 load_install_conf() {
   local file="$1" line key value
@@ -37,7 +38,7 @@ load_install_conf() {
       key="${BASH_REMATCH[1]}"
       value="${BASH_REMATCH[2]}"
       case "$key" in
-        DOMAIN|LEGACY_GRAFANA_REDIRECT) printf -v "$key" '%s' "$value" ;;
+        DOMAIN|LEGACY_GRAFANA_REDIRECT|GRAFANA_ANONYMOUS_ORG_NAME) printf -v "$key" '%s' "$value" ;;
       esac
     fi
   done < "$file"
@@ -194,7 +195,12 @@ if [[ "$INSTALL_GRAFANA" == "1" ]] || {
   systemctl list-unit-files grafana-server.service >/dev/null 2>&1
 }; then
   log "Installing Grafana datasource and dashboards"
-  GRAFANA_DOMAIN="$DOMAIN" GRAFANA_ROOT_URL="${DOMAIN:+https://$DOMAIN/grafana/}" bash tools/install-grafana.sh
+  if [[ -n "$GRAFANA_ANONYMOUS_ORG_NAME" ]]; then
+    GRAFANA_DOMAIN="$DOMAIN" GRAFANA_ROOT_URL="${DOMAIN:+https://$DOMAIN/grafana/}" \
+      GRAFANA_ANONYMOUS_ORG_NAME="$GRAFANA_ANONYMOUS_ORG_NAME" bash tools/install-grafana.sh
+  else
+    GRAFANA_DOMAIN="$DOMAIN" GRAFANA_ROOT_URL="${DOMAIN:+https://$DOMAIN/grafana/}" bash tools/install-grafana.sh
+  fi
 fi
 
 log "Restarting services"
