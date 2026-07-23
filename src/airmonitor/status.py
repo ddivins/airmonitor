@@ -13,6 +13,7 @@ from typing import Any, Callable
 DEFAULT_DATABASE = "/var/lib/airmonitor/airmonitor.sqlite3"
 SENSOR_STALE_SECONDS = 90
 SENSOR_OFFLINE_SECONDS = 300
+DEFAULT_ALERT_HISTORY_LIMIT = 50
 SERVICES = (
     "airmonitor.target",
     "airmonitor-status.service",
@@ -212,5 +213,41 @@ def collect_status(
         "levoit": levoit,
         "services": services,
         "host": host,
+        "database_error": database_error,
+    }
+
+
+def collect_alerts(
+    database: str = DEFAULT_DATABASE,
+    *,
+    now: datetime | None = None,
+    limit: int = DEFAULT_ALERT_HISTORY_LIMIT,
+) -> dict[str, Any]:
+    """Read-only view of the alert_events table: currently open alerts, and
+    recently resolved ones, for the public alert-visibility page."""
+
+    checked_at = _iso_now(now)
+    open_alerts: list[dict[str, Any]] = []
+    resolved: list[dict[str, Any]] = []
+    database_error = None
+    try:
+        conn = sqlite3.connect(f"file:{database}?mode=ro", uri=True, timeout=2)
+        conn.row_factory = sqlite3.Row
+        open_alerts = [dict(row) for row in conn.execute("""
+            SELECT id, alert_key, level, message, value, threshold, fired_at
+            FROM alert_events WHERE resolved_at IS NULL ORDER BY fired_at DESC
+        """)]
+        resolved = [dict(row) for row in conn.execute("""
+            SELECT id, alert_key, level, message, value, threshold, fired_at, resolved_at
+            FROM alert_events WHERE resolved_at IS NOT NULL ORDER BY resolved_at DESC LIMIT ?
+        """, (limit,))]
+        conn.close()
+    except (OSError, sqlite3.Error) as exc:
+        database_error = str(exc)
+
+    return {
+        "checked_at": checked_at.isoformat().replace("+00:00", "Z"),
+        "open": open_alerts,
+        "resolved": resolved,
         "database_error": database_error,
     }

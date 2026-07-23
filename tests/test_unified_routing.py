@@ -41,6 +41,18 @@ def test_legacy_grafana_subdomain_is_optional_and_templated() -> None:
     assert 'LEGACY_GRAFANA_REDIRECT="${LEGACY_GRAFANA_REDIRECT:-false}"' in status_page
 
 
+def test_nginx_routes_alerts_page_and_api_not_the_catchall() -> None:
+    """The trailing `location / { return 301 /grafana... }` catch-all means any
+    new page needs an explicit location block, or it silently 301s to Grafana
+    instead of loading."""
+
+    config = (ROOT / "nginx" / "airmonitor.conf.template").read_text(encoding="utf-8")
+    assert "location = /alerts {" in config
+    assert "proxy_pass http://127.0.0.1:8080/alerts.html;" in config
+    assert "location = /alerts-api {" in config
+    assert "proxy_pass http://127.0.0.1:8080/api/alerts;" in config
+
+
 def test_nginx_routes_public_exports_to_bounded_export_service() -> None:
     config = (ROOT / "nginx" / "airmonitor.conf.template").read_text(encoding="utf-8")
     assert "location /exports/" in config

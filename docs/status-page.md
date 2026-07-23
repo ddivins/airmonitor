@@ -30,6 +30,20 @@ The page refreshes every ten seconds. Sensor freshness is derived from persisted
 timestamps. It is degraded after 90 seconds without a sample and offline when both sensor
 streams are older than five minutes.
 
+## Alerts page
+
+`https://<DOMAIN>/alerts` shows currently open and recently resolved entries from the
+`alert_events` table populated by `airmonitor-alerts` (see `docs/alerting.md`). It's the only
+web UI view of alert state — previously the only way to see an active alert was the CLI or raw
+SQL. Like the main landing page, it's read-only, unauthenticated, and refreshes automatically
+(every 15 seconds).
+
+Adding a new page here requires two things, not just new files: a route in
+`StatusHandler.do_GET`/`STATIC_FILENAMES` (`src/airmonitor/status_web.py`), and an explicit
+`location` block in `nginx/airmonitor.conf.template`. The template's trailing catch-all
+(`location / { return 301 /grafana$request_uri; }`) means an unmatched path silently redirects
+to Grafana instead of 404ing, which makes a missing nginx route easy to overlook.
+
 ## Authentication and administration
 
 Grafana is the single identity source. Nginx makes its `/grafana/` session cookie available

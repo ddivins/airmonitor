@@ -19,7 +19,7 @@ from urllib.request import Request, urlopen
 from airmonitor.database import connect, init_db
 from airmonitor.database.repositories import FilterControlRepository
 from airmonitor.filters.control import resolve_filter_state
-from airmonitor.status import DEFAULT_DATABASE, collect_status
+from airmonitor.status import DEFAULT_DATABASE, collect_alerts, collect_status
 
 
 STATIC = files("airmonitor").joinpath("status_static")
@@ -59,6 +59,12 @@ SERVICE_ACTIONS = {
 }
 FILTER_IDS = ("bento", "levoit")
 FILTER_MODES = ("auto", "on", "off")
+STATIC_FILENAMES = frozenset({
+    "index.html", "login.html", "alerts.html",
+    "app.js", "login.js", "alerts.js",
+    "style.css", "airmonitor-logo-300px.webp", "favicon.ico",
+})
+NO_STORE_FILENAMES = frozenset({"index.html", "alerts.html"})
 
 
 def set_filter_mode(database: str, filter_id: str, mode: str) -> dict:
@@ -166,6 +172,9 @@ class StatusHandler(BaseHTTPRequestHandler):
         if path == "/api/status":
             self._json(200, collect_status(self.server.database))
             return
+        if path == "/api/alerts":
+            self._json(200, collect_alerts(self.server.database))
+            return
         if path == "/api/session":
             user = self._current_user()
             if not user:
@@ -211,7 +220,7 @@ class StatusHandler(BaseHTTPRequestHandler):
         if path.startswith("/assets/"):
             path = path.removeprefix("/assets")
         name = PurePosixPath(path).name
-        if name not in {"index.html", "login.html", "app.js", "login.js", "style.css", "airmonitor-logo-300px.webp", "favicon.ico"}:
+        if name not in STATIC_FILENAMES:
             self._send(404, b"Not found\n", "text/plain; charset=utf-8")
             return
         resource = STATIC.joinpath(name)
@@ -221,7 +230,7 @@ class StatusHandler(BaseHTTPRequestHandler):
             self._send(404, b"Not found\n", "text/plain; charset=utf-8")
             return
         content_type = mimetypes.guess_type(name)[0] or "application/octet-stream"
-        cache = "no-store" if name == "index.html" else "public, max-age=3600"
+        cache = "no-store" if name in NO_STORE_FILENAMES else "public, max-age=3600"
         self._send(200, body, content_type, cache)
 
     def do_POST(self) -> None:

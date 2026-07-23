@@ -6,7 +6,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from airmonitor.status import SERVICES, collect_status
+from airmonitor.status import SERVICES, collect_alerts, collect_status
 
 
 def build_database(path, sampled_at: str) -> None:
@@ -79,3 +79,97 @@ class StatusTests(unittest.TestCase):
         self.assertIn("One or more sensor streams are stale", result["warnings"])
         self.assertEqual(result["freshness"]["sgx"]["error"], "SGX read failed: timeout")
         self.assertEqual(result["freshness"]["sps30"]["error"], "SPS30 unavailable: permission denied")
+
+
+def build_alert_events(path, *, open_fired_at: str, resolved_fired_at: str, resolved_at: str) -> None:
+    conn = sqlite3.connect(path)
+    conn.executescript("""
+        CREATE TABLE alert_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            alert_key TEXT NOT NULL,
+            level TEXT NOT NULL,
+            message TEXT NOT NULL,
+            value REAL,
+            threshold REAL,
+            fired_at TEXT NOT NULL,
+            resolved_at TEXT
+        );
+    """)
+    conn.execute(
+        "INSERT INTO alert_events (alert_key, level, message, value, threshold, fired_at, resolved_at) "
+        "VALUES ('sgx_gas_ppm', 'critical', 'VOC critical', 12.0, 10.0, ?, NULL)",
+        (open_fired_at,),
+    )
+    conn.execute(
+        "INSERT INTO alert_events (alert_key, level, message, value, threshold, fired_at, resolved_at) "
+        "VALUES ('sps30_stale', 'warning', 'SPS30 stale', NULL, NULL, ?, ?)",
+        (resolved_fired_at, resolved_at),
+    )
+    conn.commit()
+    conn.close()
+
+
+class AlertsTests(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.database = Path(self.temp_dir.name) / "airmonitor.sqlite3"
+        self.now = datetime(2026, 7, 14, 12, 0, tzinfo=timezone.utc)
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+
+    def test_collect_alerts_separates_open_from_resolved(self):
+        build_alert_events(
+            self.database,
+            open_fired_at="2026-07-14T11:00:00Z",
+            resolved_fired_at="2026-07-14T09:00:00Z",
+            resolved_at="2026-07-14T09:30:00Z",
+        )
+        result = collect_alerts(str(self.database), now=self.now)
+
+        self.assertEqual(len(result["open"]), 1)
+        self.assertEqual(result["open"][0]["alert_key"], "sgx_gas_ppm")
+        self.assertEqual(result["open"][0]["level"], "critical")
+        self.assertEqual(result["open"][0]["value"], 12.0)
+
+        self.assertEqual(len(result["resolved"]), 1)
+        self.assertEqual(result["resolved"][0]["alert_key"], "sps30_stale")
+        self.assertEqual(result["resolved"][0]["resolved_at"], "2026-07-14T09:30:00Z")
+        self.assertIsNone(result["database_error"])
+
+    def test_collect_alerts_reports_no_alerts_cleanly(self):
+        conn = sqlite3.connect(self.database)
+        conn.execute("CREATE TABLE alert_events (id INTEGER PRIMARY KEY, alert_key TEXT, level TEXT, message TEXT, value REAL, threshold REAL, fired_at TEXT, resolved_at TEXT)")
+        conn.commit()
+        conn.close()
+
+        result = collect_alerts(str(self.database), now=self.now)
+
+        self.assertEqual(result["open"], [])
+        self.assertEqual(result["resolved"], [])
+        self.assertIsNone(result["database_error"])
+
+    def test_collect_alerts_respects_history_limit(self):
+        conn = sqlite3.connect(self.database)
+        conn.execute(
+            "CREATE TABLE alert_events (id INTEGER PRIMARY KEY, alert_key TEXT, level TEXT, message TEXT, "
+            "value REAL, threshold REAL, fired_at TEXT, resolved_at TEXT)"
+        )
+        for i in range(5):
+            conn.execute(
+                "INSERT INTO alert_events (alert_key, level, message, fired_at, resolved_at) VALUES (?, 'warning', 'x', ?, ?)",
+                (f"alert-{i}", f"2026-07-14T0{i}:00:00Z", f"2026-07-14T0{i}:05:00Z"),
+            )
+        conn.commit()
+        conn.close()
+
+        result = collect_alerts(str(self.database), now=self.now, limit=2)
+        self.assertEqual(len(result["resolved"]), 2)
+        # Most recently resolved first.
+        self.assertEqual(result["resolved"][0]["alert_key"], "alert-4")
+
+    def test_collect_alerts_reports_database_error_without_raising(self):
+        result = collect_alerts(str(self.database / "does-not-exist" / "x.sqlite3"), now=self.now)
+        self.assertEqual(result["open"], [])
+        self.assertEqual(result["resolved"], [])
+        self.assertIsNotNone(result["database_error"])

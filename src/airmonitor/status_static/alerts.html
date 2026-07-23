@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#f4f8fb">
+  <title>AirMonitor Alerts</title>
+  <link rel="icon" href="/status-assets/favicon.ico">
+  <link rel="stylesheet" href="/status-assets/style.css?v=11">
+</head>
+<body>
+  <main class="shell">
+    <header class="hero alerts-hero">
+      <a class="brand-link" href="/" aria-label="Back to AirMonitor status">
+        <img class="brand" src="/status-assets/airmonitor-logo-300px.webp" alt="AirMonitor — Monitor. Understand. Don't Die.">
+      </a>
+      <div class="hero-copy">
+        <div class="eyebrow">Safety alerting</div>
+        <div class="status-line">
+          <span id="overall-dot" class="status-dot loading"></span>
+          <h1 id="overall">Checking alerts…</h1>
+        </div>
+        <p id="summary">Reading VOC/PM threshold, sensor freshness, and filter-mismatch alerts.</p>
+        <p class="updated">Updated <time id="updated">—</time></p>
+      </div>
+      <div class="hero-actions">
+        <a class="grafana-button" href="/">Back to Status <span aria-hidden="true">→</span></a>
+      </div>
+    </header>
+
+    <section aria-labelledby="active-title">
+      <div class="section-heading"><h2 id="active-title">Active alerts</h2><span id="active-caption">From airmonitor-alerts</span></div>
+      <div id="active-alerts" class="state-list"><div class="skeleton"></div></div>
+    </section>
+
+    <section aria-labelledby="history-title">
+      <div class="section-heading"><h2 id="history-title">Recent history</h2><span>Most recently resolved first</span></div>
+      <div id="alert-history" class="state-list"><div class="skeleton"></div></div>
+    </section>
+  </main>
+  <script src="/status-assets/alerts.js?v=2" defer></script>
+</body>
+</html>

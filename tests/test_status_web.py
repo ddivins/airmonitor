@@ -6,7 +6,15 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from airmonitor.status_web import SERVICE_ACTIONS, grafana_user, service_enabled, service_status, set_filter_mode
+from airmonitor.status_web import (
+    NO_STORE_FILENAMES,
+    SERVICE_ACTIONS,
+    STATIC_FILENAMES,
+    grafana_user,
+    service_enabled,
+    service_status,
+    set_filter_mode,
+)
 
 
 class FakeResponse:
@@ -117,6 +125,16 @@ class StatusWebTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 64)
         self.assertIn("limited to sensor services", result.stderr)
+
+    def test_alerts_page_and_script_are_servable(self):
+        self.assertIn("alerts.html", STATIC_FILENAMES)
+        self.assertIn("alerts.js", STATIC_FILENAMES)
+
+    def test_dashboard_shell_pages_are_never_cached(self):
+        self.assertIn("index.html", NO_STORE_FILENAMES)
+        self.assertIn("alerts.html", NO_STORE_FILENAMES)
+        # login.html intentionally keeps its prior cached behavior.
+        self.assertNotIn("login.html", NO_STORE_FILENAMES)
 
 
 if __name__ == "__main__":

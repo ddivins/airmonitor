@@ -31,6 +31,23 @@ server {
         return 302 /;
     }
 
+    location = /alerts {
+        proxy_pass http://127.0.0.1:8080/alerts.html;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_intercept_errors on;
+        error_page 502 503 504 =503 /airmonitor-offline.html;
+    }
+
+    location = /alerts-api {
+        proxy_pass http://127.0.0.1:8080/api/alerts;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Real-IP $remote_addr;
+        add_header Cache-Control "no-store" always;
+    }
+
     location = /sign-in {
         proxy_pass http://127.0.0.1:8080/login.html;
         proxy_set_header Host $host;
