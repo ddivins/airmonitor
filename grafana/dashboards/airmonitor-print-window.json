@@ -49,7 +49,7 @@
       "targetBlank": false,
       "title": "AirMonitor Status",
       "type": "link",
-      "url": "/"
+      "url": "__AIRMONITOR_STATUS_URL__"
     }
   ],
   "templating": {

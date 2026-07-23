@@ -89,6 +89,19 @@ class GrafanaDashboardTests(unittest.TestCase):
             "/exports/print?print_id=${print_id}",
         )
 
+    def test_print_dashboard_status_link_is_a_placeholder_for_install_time_substitution(self):
+        """This dashboard is a static committed file, not python-generated like
+        airmonitor-live.json, so its "AirMonitor Status" link can't call
+        status_page_url() directly -- tools/install-grafana.sh substitutes this
+        placeholder for the real domain (or "/") when it installs the file.
+        Guards against someone reverting it to a bare "/" that install-grafana.sh
+        would then have nothing to substitute."""
+
+        path = Path(__file__).parents[1] / "grafana" / "dashboards" / "airmonitor-print-window.json"
+        dashboard = json.loads(path.read_text(encoding="utf-8"))
+        status_link = next(link for link in dashboard["links"] if link["title"] == "AirMonitor Status")
+        self.assertEqual(status_link["url"], "__AIRMONITOR_STATUS_URL__")
+
     def test_all_panel_queries_match_schema(self):
         conn = sqlite3.connect(":memory:")
         try:

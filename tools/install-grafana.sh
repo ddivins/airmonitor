@@ -163,7 +163,18 @@ fi
 sudo install -o root -g grafana -m 0640 "$DASHBOARD_PROVIDER_SRC" /etc/grafana/provisioning/dashboards/airmonitor.yaml
 sudo install -d -o grafana -g grafana -m 0755 "$DASHBOARD_DIR"
 sudo install -o grafana -g grafana -m 0644 "$DASHBOARD_SRC" "$DASHBOARD_DIR/airmonitor-live.json"
-sudo install -o grafana -g grafana -m 0644 "$PRINT_WINDOW_DASHBOARD_SRC" "$DASHBOARD_DIR/airmonitor-print-window.json"
+# airmonitor-print-window.json is a static, committed file (not python-generated
+# like airmonitor-live.json), so its own "AirMonitor Status" link is filled in
+# here from a placeholder rather than via status_page_url() in the generator.
+if [[ -n "$GRAFANA_DOMAIN" && "$GRAFANA_DOMAIN" != "localhost" ]]; then
+  STATUS_PAGE_URL="https://$GRAFANA_DOMAIN/"
+else
+  STATUS_PAGE_URL="/"
+fi
+tmp_print_window="$(mktemp)"
+sed "s#__AIRMONITOR_STATUS_URL__#$STATUS_PAGE_URL#" "$PRINT_WINDOW_DASHBOARD_SRC" > "$tmp_print_window"
+sudo install -o grafana -g grafana -m 0644 "$tmp_print_window" "$DASHBOARD_DIR/airmonitor-print-window.json"
+rm -f "$tmp_print_window"
 
 log "Configuring AirMonitor DB permissions"
 sudo groupadd --system "$DATA_GROUP" 2>/dev/null || true
