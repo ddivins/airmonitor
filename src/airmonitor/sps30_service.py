@@ -13,6 +13,7 @@ import time
 
 from airmonitor.database import connect, init_db, start_sensor_session, end_sensor_session, upsert_sensor
 from airmonitor.hardware import DEFAULT_REGISTRY, resolve_device
+from airmonitor.health import _package_version
 from airmonitor.sensors.sensirion.sps30 import BAUD_RATE, SPS30, SPS30Error
 
 LOG = logging.getLogger("airmonitor.sps30")
@@ -142,7 +143,7 @@ def run(args: argparse.Namespace) -> int:
                 session_id = start_sensor_session(
                     conn,
                     sensor_id=args.sensor_id,
-                    software_version="0.5.0",
+                    software_version=_package_version(),
                     sensor_protocol="SHDLC",
                     sensor_port=port,
                 )

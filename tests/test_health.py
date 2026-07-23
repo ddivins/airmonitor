@@ -3,8 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 
-from airmonitor.database import connect, init_db
-from airmonitor.health import check_sensor_freshness, run_checks
+from airmonitor.database import connect, init_db, start_sensor_session
+from airmonitor.health import _package_version, check_sensor_freshness, run_checks
 from airmonitor.sps30_service import ensure_schema as ensure_sps30_schema
 
 
@@ -32,6 +32,33 @@ def test_health_report_uses_temporary_database(tmp_path: Path) -> None:
     # No samples recorded yet on a freshly initialized database.
     assert checks["sgx_freshness"]["status"] == "warn"
     assert checks["sps30_freshness"]["status"] == "warn"
+
+
+def test_sps30_session_records_installed_package_version(tmp_path: Path) -> None:
+    from airmonitor import sps30_service
+
+    db_path = tmp_path / "airmonitor.sqlite3"
+    conn = connect(str(db_path))
+    ensure_sps30_schema(conn)
+    conn.execute(
+        "INSERT INTO sensors (sensor_id, transport) VALUES (?, 'usb-uart')",
+        ("sps30-1",),
+    )
+    conn.commit()
+
+    session_id = start_sensor_session(
+        conn,
+        sensor_id="sps30-1",
+        software_version=sps30_service._package_version(),
+        sensor_protocol="SHDLC",
+        sensor_port="/dev/ttyUSB0",
+    )
+
+    recorded = conn.execute(
+        "SELECT software_version FROM sensor_sessions WHERE id = ?", (session_id,)
+    ).fetchone()[0]
+    assert recorded == _package_version()
+    conn.close()
 
 
 def _insert_sample(db_path: Path, table: str, sensor_id: str, sampled_at: str) -> None:
