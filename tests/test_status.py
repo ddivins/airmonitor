@@ -136,6 +136,25 @@ class AlertsTests(unittest.TestCase):
         self.assertEqual(result["resolved"][0]["alert_key"], "sps30_stale")
         self.assertEqual(result["resolved"][0]["resolved_at"], "2026-07-14T09:30:00Z")
         self.assertIsNone(result["database_error"])
+        self.assertFalse(result["open"][0]["acknowledged"])
+
+    def test_collect_alerts_marks_acknowledged_open_alerts(self):
+        from airmonitor.database import acknowledge_alert_event, connect, init_db
+
+        build_alert_events(
+            self.database,
+            open_fired_at="2026-07-14T11:00:00Z",
+            resolved_fired_at="2026-07-14T09:00:00Z",
+            resolved_at="2026-07-14T09:30:00Z",
+        )
+        conn = connect(str(self.database))
+        init_db(conn)
+        acknowledge_alert_event(conn, alert_key="sgx_gas_ppm", note="waiting on part")
+        conn.close()
+
+        result = collect_alerts(str(self.database), now=self.now)
+        self.assertTrue(result["open"][0]["acknowledged"])
+        self.assertEqual(result["open"][0]["acknowledgement_note"], "waiting on part")
 
     def test_collect_alerts_reports_no_alerts_cleanly(self):
         conn = sqlite3.connect(self.database)

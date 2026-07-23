@@ -39,8 +39,12 @@ function renderActive(alerts, now) {
           <div class="alert-key">${escapeHtml(item.alert_key.replaceAll("_", " "))}</div>
           <div class="state-meta">${escapeHtml(item.message)}</div>
           <div class="state-meta telemetry">${[alertDetail(item), `Fired ${escapeHtml(ago(item.fired_at, now))}`].filter(Boolean).join(" · ")}</div>
+          ${item.acknowledged ? `<div class="state-meta telemetry">Acknowledged${item.acknowledgement_note ? `: ${escapeHtml(item.acknowledgement_note)}` : ""} · notifications silenced</div>` : ""}
         </div>
-        ${pill(escapeHtml(item.level), levelPillClass(item.level))}
+        <div class="alert-pills">
+          ${pill(escapeHtml(item.level), levelPillClass(item.level))}
+          ${item.acknowledged ? pill("acknowledged", "active") : ""}
+        </div>
       </div>
     </div>
   `).join("");

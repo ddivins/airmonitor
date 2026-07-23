@@ -24,7 +24,14 @@ from airmonitor.alerts.evaluator import (
 )
 from airmonitor.alerts.notifier import AlertMessage, NotifierConfig, send
 from airmonitor.alerts.thresholds import MetricThreshold, load_thresholds
-from airmonitor.database import connect, init_db, list_open_alert_events, open_alert_event, resolve_alert_event
+from airmonitor.database import (
+    connect,
+    init_db,
+    list_acknowledged_alert_events,
+    list_open_alert_events,
+    open_alert_event,
+    resolve_alert_event,
+)
 
 LOG = logging.getLogger("airmonitor.alerts")
 
@@ -42,8 +49,11 @@ def _fetchone(conn: sqlite3.Connection, query: str) -> sqlite3.Row | None:
 def collect_candidates(
     conn: sqlite3.Connection,
     thresholds: dict[str, MetricThreshold],
+    *,
+    open_alerts: dict[str, sqlite3.Row] | None = None,
 ) -> dict[str, AlertCandidate]:
     candidates: dict[str, AlertCandidate] = {}
+    open_alerts = open_alerts or {}
 
     sgx = _fetchone(conn, "SELECT sampled_at, gas_ppm FROM sgx_voc_samples ORDER BY id DESC LIMIT 1")
     metric = evaluate_metric(
@@ -66,12 +76,15 @@ def collect_candidates(
         candidates[freshness.key] = freshness
 
     for row in conn.execute("SELECT filter_id, actual_state, effective_state, reason FROM filter_control_state"):
+        key = f"filter_{row['filter_id']}_mismatch"
+        open_row = open_alerts.get(key)
         mismatch = evaluate_filter_mismatch(
-            f"filter_{row['filter_id']}_mismatch",
+            key,
             f"{row['filter_id']} filter",
             row["actual_state"],
             row["effective_state"],
             row["reason"],
+            open_since=open_row["fired_at"] if open_row else None,
         )
         if mismatch:
             candidates[mismatch.key] = mismatch
@@ -88,8 +101,9 @@ def run_once(
     conn = connect(database)
     init_db(conn)
     try:
-        candidates = collect_candidates(conn, thresholds)
         open_rows = list_open_alert_events(conn)
+        acknowledged = list_acknowledged_alert_events(conn)
+        candidates = collect_candidates(conn, thresholds, open_alerts=open_rows)
         open_levels = {key: row["level"] for key, row in open_rows.items()}
         to_open, to_resolve = diff_alerts(candidates, open_levels)
 
@@ -103,11 +117,16 @@ def run_once(
                 threshold=candidate.threshold,
             )
             LOG.warning("alert opened: %s (%s) - %s", candidate.key, candidate.level, candidate.body)
+            if candidate.key in acknowledged:
+                LOG.info("alert %s is acknowledged; suppressing notification", candidate.key)
+                continue
             send(notifier_config, AlertMessage(candidate.key, candidate.level, candidate.title, candidate.body, candidate.value, candidate.threshold))
 
         for key in to_resolve:
             resolve_alert_event(conn, alert_key=key)
             LOG.info("alert resolved: %s", key)
+            if key in acknowledged:
+                continue
             send(notifier_config, AlertMessage(key, "resolved", f"{key} resolved", "Condition returned to normal"))
     finally:
         conn.close()

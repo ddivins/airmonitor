@@ -242,10 +242,22 @@ def collect_alerts(
     try:
         conn = sqlite3.connect(f"file:{database}?mode=ro", uri=True, timeout=2)
         conn.row_factory = sqlite3.Row
-        open_alerts = [dict(row) for row in conn.execute("""
-            SELECT id, alert_key, level, message, value, threshold, fired_at
-            FROM alert_events WHERE resolved_at IS NULL ORDER BY fired_at DESC
-        """)]
+        try:
+            acknowledged = {
+                row["alert_key"]: row["note"]
+                for row in conn.execute("SELECT alert_key, note FROM alert_acknowledgements")
+            }
+        except sqlite3.Error:
+            # Older, not-yet-migrated databases don't have this table yet;
+            # acknowledgement is informational, so don't fail the whole page for it.
+            acknowledged = {}
+        open_alerts = [
+            {**dict(row), "acknowledged": row["alert_key"] in acknowledged, "acknowledgement_note": acknowledged.get(row["alert_key"])}
+            for row in conn.execute("""
+                SELECT id, alert_key, level, message, value, threshold, fired_at
+                FROM alert_events WHERE resolved_at IS NULL ORDER BY fired_at DESC
+            """)
+        ]
         resolved = [dict(row) for row in conn.execute("""
             SELECT id, alert_key, level, message, value, threshold, fired_at, resolved_at
             FROM alert_events WHERE resolved_at IS NOT NULL ORDER BY resolved_at DESC LIMIT ?

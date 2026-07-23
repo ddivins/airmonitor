@@ -35,8 +35,8 @@ Promoted ahead of multi-sensor and UX work: the project's core promise ("Monitor
 - [x] Add a web UI view of alert state (`/alerts` page, `docs/status-page.md`). Found while auditing the UI: alerts were being recorded but had zero visibility anywhere in the status page or Grafana — only the CLI/raw SQL could see them.
 - [x] Add backup-health visibility (last backup time/size, retention count) to the landing page — otherwise a silently-broken `airmonitor-backup.timer` was only visible via `airmonitor-doctor`.
 - [x] Add an "update available" indicator to the landing page, comparing the installed commit against upstream via anonymous `git ls-remote` (no credentials or local-write needed) rather than requiring a manual check of `origin/main`.
-- [ ] Extend filter-mismatch alerting once Phase 4's persisted control wiring lands (basic actual/effective-state mismatch detection is in place today via `evaluate_filter_mismatch`).
-- [ ] Add an "explicit user override" acknowledgment/silence mechanism so a knowingly-accepted condition doesn't keep re-alerting after a restart.
+- [x] Extend filter-mismatch alerting now that Phase 4's persisted control wiring has landed: a mismatch escalates from warning to critical if it's still open 10 minutes later (`FILTER_MISMATCH_ESCALATION_SECONDS`), the same warning-then-critical shape sensor-freshness alerts already use, instead of a single flat "warning" regardless of how long a filter's been stuck.
+- [x] Add an "explicit user override" acknowledgment/silence mechanism (`airmonitor alerts ack|unack|list`, `alert_acknowledgements` table) so a knowingly-accepted condition doesn't keep re-notifying. Persisted in the database (survives a service restart, unlike an in-memory flag) and auto-cleared once the condition actually resolves, so it can't silence a future, unrelated recurrence. The alert stays fully visible on `/alerts` with an "Acknowledged" badge -- only the webhook/ntfy notification is suppressed.
 
 ## Phase 4 — Filter control and observability
 

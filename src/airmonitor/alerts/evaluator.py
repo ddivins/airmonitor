@@ -14,6 +14,8 @@ from airmonitor.alerts.thresholds import MetricThreshold
 from airmonitor.state_freshness import assess_timestamp
 from airmonitor.status import SENSOR_OFFLINE_SECONDS, SENSOR_STALE_SECONDS
 
+FILTER_MISMATCH_ESCALATION_SECONDS = 600.0
+
 
 @dataclass(frozen=True)
 class AlertCandidate:
@@ -72,7 +74,22 @@ def evaluate_filter_mismatch(
     actual_state: str | None,
     effective_state: str | None,
     reason: str | None,
+    *,
+    open_since: str | None = None,
+    now: datetime | None = None,
+    escalate_after_seconds: float = FILTER_MISMATCH_ESCALATION_SECONDS,
 ) -> AlertCandidate | None:
+    """Flag a filter whose actual state disagrees with its commanded state.
+
+    ``open_since`` is the ``fired_at`` of the currently-open alert for this
+    key, if any (the caller reads it from ``alert_events`` before this
+    mismatch is re-evaluated). A mismatch starts as a warning -- commands can
+    take a moment to take effect -- and escalates to critical once it has
+    stayed open past ``escalate_after_seconds``, the same warning-then-critical
+    shape sensor-freshness alerts already use for a condition that gets worse
+    the longer it's ignored.
+    """
+
     if not actual_state or not effective_state:
         return None
     if actual_state == "unknown" or effective_state == "unknown":
@@ -82,7 +99,15 @@ def evaluate_filter_mismatch(
     detail = f"{label} commanded {effective_state} but reports {actual_state}"
     if reason:
         detail = f"{detail} ({reason})"
-    return AlertCandidate(key, "warning", f"{label} not responding", detail)
+
+    level = "warning"
+    if open_since is not None:
+        elapsed = assess_timestamp(open_since, max_age_seconds=escalate_after_seconds, now=now)
+        if not elapsed.fresh:
+            level = "critical"
+            detail = f"{detail}; unresolved for over {escalate_after_seconds:g}s"
+
+    return AlertCandidate(key, level, f"{label} not responding", detail)
 
 
 def diff_alerts(

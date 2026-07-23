@@ -9,7 +9,9 @@ independent service that periodically checks:
   300s is "offline" (the same thresholds the status page uses).
 - Filter control mismatches — a filter's `actual_state` disagreeing with its
   `effective_state` (for example, an automation command that didn't take
-  effect).
+  effect). This starts as a warning (a command can take a moment to land) and
+  escalates to critical if the mismatch is still open 10 minutes later, the
+  same warning-then-critical shape sensor-freshness alerts use.
 
 It writes every alert transition (opened, escalated, resolved) to the
 `alert_events` table, and optionally sends a push notification. Alerts are
@@ -45,6 +47,28 @@ A condition only (re)notifies when it newly opens or escalates (for example
 warning to critical); it does not repeat every poll cycle while unchanged.
 When a condition clears, a single "resolved" notification is sent and the
 open `alert_events` row is closed.
+
+## Acknowledging a known condition
+
+Sometimes a condition is already known and doesn't need repeated
+notifications -- for example, a Kasa outlet unplugged for a firmware update,
+or a sensor deliberately offline for maintenance. `airmonitor alerts`
+acknowledges the alert without pretending it's resolved:
+
+```bash
+airmonitor alerts list                                    # open alerts, JSON
+airmonitor alerts ack sgx_gas_ppm waiting on replacement sensor
+airmonitor alerts unack sgx_gas_ppm
+```
+
+Acknowledging an alert only suppresses `send()` (the webhook/ntfy
+notification); the `alert_events` row and the `/alerts` page are unaffected
+-- the alert still shows there with an "Acknowledged" badge and your note, so
+a known issue never becomes invisible. Because the acknowledgement is stored
+in the database (`alert_acknowledgements`, keyed by `alert_key`), it survives
+an `airmonitor-alerts` service restart. It's also automatically cleared the
+moment the condition actually resolves, so a stale acknowledgement can't
+silence some future, unrelated occurrence of the same alert.
 
 ## Running a single check
 

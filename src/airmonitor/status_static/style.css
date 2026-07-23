@@ -117,6 +117,7 @@ section { margin-top: 30px; }
 .alert-row-warning { border-left-color: var(--degraded); background: #fffaf0; }
 .alert-row-resolved { border-left-color: var(--healthy); }
 .alert-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.alert-pills { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .alert-key { color: var(--navy); font-weight: 750; text-transform: capitalize; }
 .skeleton { height: 48px; border-radius: 12px; background: linear-gradient(90deg,#edf1f4,#f8fafc,#edf1f4); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
 @keyframes shimmer { to { background-position: -200% 0; } }

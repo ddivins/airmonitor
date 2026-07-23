@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest import mock
 
@@ -13,7 +13,15 @@ from airmonitor.alerts.evaluator import (
 from airmonitor.alerts.notifier import AlertMessage, NotifierConfig, send
 from airmonitor.alerts.service import run_once
 from airmonitor.alerts.thresholds import MetricThreshold, load_thresholds
-from airmonitor.database import connect, init_db
+from airmonitor.database import (
+    acknowledge_alert_event,
+    clear_alert_acknowledgement,
+    connect,
+    init_db,
+    list_acknowledged_alert_events,
+    open_alert_event,
+    resolve_alert_event,
+)
 
 
 # --- thresholds -------------------------------------------------------------
@@ -107,6 +115,33 @@ def test_evaluate_filter_mismatch_differing_states_warns() -> None:
     assert result is not None
     assert result.level == "warning"
     assert "VeSync unavailable" in result.body
+
+
+def test_evaluate_filter_mismatch_stays_warning_before_escalation_threshold() -> None:
+    now = datetime(2026, 1, 1, 0, 5, 0, tzinfo=timezone.utc)
+    open_since = "2026-01-01T00:00:00Z"  # 300s ago
+    result = evaluate_filter_mismatch(
+        "k", "bento", "off", "on", None, open_since=open_since, now=now, escalate_after_seconds=600.0
+    )
+    assert result is not None
+    assert result.level == "warning"
+
+
+def test_evaluate_filter_mismatch_escalates_to_critical_after_threshold() -> None:
+    now = datetime(2026, 1, 1, 0, 11, 0, tzinfo=timezone.utc)
+    open_since = "2026-01-01T00:00:00Z"  # 660s ago
+    result = evaluate_filter_mismatch(
+        "k", "bento", "off", "on", None, open_since=open_since, now=now, escalate_after_seconds=600.0
+    )
+    assert result is not None
+    assert result.level == "critical"
+    assert "unresolved for over 600s" in result.body
+
+
+def test_evaluate_filter_mismatch_without_open_since_never_escalates() -> None:
+    result = evaluate_filter_mismatch("k", "bento", "off", "on", None, escalate_after_seconds=600.0)
+    assert result is not None
+    assert result.level == "warning"
 
 
 # --- evaluator: diff_alerts ---------------------------------------------------
@@ -219,6 +254,38 @@ def test_run_once_opens_and_resolves_alert(tmp_path: Path) -> None:
     conn.close()
 
 
+def test_run_once_escalates_filter_mismatch_that_persists(tmp_path: Path) -> None:
+    db_path = tmp_path / "airmonitor.sqlite3"
+    conn = connect(str(db_path))
+    init_db(conn)
+    conn.execute(
+        "INSERT INTO filter_control_state (filter_id, actual_state, effective_state, reason) "
+        "VALUES ('bento', 'off', 'on', 'automation')"
+    )
+    long_ago = (datetime.now(timezone.utc) - timedelta(seconds=700)).isoformat().replace("+00:00", "Z")
+    conn.execute(
+        "INSERT INTO alert_events (alert_key, level, message, fired_at) "
+        "VALUES ('filter_bento_mismatch', 'warning', 'bento filter not responding', ?)",
+        (long_ago,),
+    )
+    conn.commit()
+    conn.close()
+
+    thresholds = load_thresholds(None)
+    with mock.patch("airmonitor.alerts.service.send") as sent:
+        run_once(database=str(db_path), thresholds=thresholds, notifier_config=NotifierConfig())
+        calls = [call.args[1] for call in sent.call_args_list if call.args[1].alert_key == "filter_bento_mismatch"]
+        assert calls and calls[-1].level == "critical"
+
+    conn = connect(str(db_path))
+    row = conn.execute(
+        "SELECT * FROM alert_events WHERE alert_key = 'filter_bento_mismatch' AND resolved_at IS NULL"
+    ).fetchone()
+    assert row is not None
+    assert row["level"] == "critical"
+    conn.close()
+
+
 def test_run_once_does_not_renotify_unchanged_alert(tmp_path: Path) -> None:
     db_path = tmp_path / "airmonitor.sqlite3"
     now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -235,3 +302,91 @@ def test_run_once_does_not_renotify_unchanged_alert(tmp_path: Path) -> None:
         assert sent.call_count == 0
 
     assert first_call_count >= 1
+
+
+# --- acknowledgements ----------------------------------------------------------
+
+def test_acknowledge_alert_event_is_idempotent_and_updates_note(tmp_path: Path) -> None:
+    conn = connect(str(tmp_path / "airmonitor.sqlite3"))
+    init_db(conn)
+    acknowledge_alert_event(conn, alert_key="k", note="known issue")
+    acknowledge_alert_event(conn, alert_key="k", note="still known")
+    acknowledged = list_acknowledged_alert_events(conn)
+    assert acknowledged["k"]["note"] == "still known"
+    conn.close()
+
+
+def test_clear_alert_acknowledgement_removes_it(tmp_path: Path) -> None:
+    conn = connect(str(tmp_path / "airmonitor.sqlite3"))
+    init_db(conn)
+    acknowledge_alert_event(conn, alert_key="k")
+    clear_alert_acknowledgement(conn, alert_key="k")
+    assert list_acknowledged_alert_events(conn) == {}
+    conn.close()
+
+
+def test_resolve_alert_event_clears_its_acknowledgement(tmp_path: Path) -> None:
+    conn = connect(str(tmp_path / "airmonitor.sqlite3"))
+    init_db(conn)
+    open_alert_event(conn, alert_key="k", level="warning", message="m")
+    acknowledge_alert_event(conn, alert_key="k")
+    resolve_alert_event(conn, alert_key="k")
+    assert list_acknowledged_alert_events(conn) == {}
+    conn.close()
+
+
+def test_run_once_suppresses_notification_for_acknowledged_alert(tmp_path: Path) -> None:
+    db_path = tmp_path / "airmonitor.sqlite3"
+    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    _insert_sgx_sample(db_path, 20.0, now)  # above critical threshold
+    thresholds = load_thresholds(None)
+
+    conn = connect(str(db_path))
+    init_db(conn)
+    acknowledge_alert_event(conn, alert_key="sgx_gas_ppm", note="waiting on part")
+    conn.close()
+
+    with mock.patch("airmonitor.alerts.service.send") as sent:
+        run_once(database=str(db_path), thresholds=thresholds, notifier_config=NotifierConfig())
+        notified_keys = {call.args[1].alert_key for call in sent.call_args_list}
+        assert "sgx_gas_ppm" not in notified_keys
+
+    conn = connect(str(db_path))
+    row = conn.execute(
+        "SELECT * FROM alert_events WHERE alert_key = 'sgx_gas_ppm' AND resolved_at IS NULL"
+    ).fetchone()
+    assert row is not None  # still recorded, just not notified
+    conn.close()
+
+
+def test_run_once_notifies_again_after_unacknowledged(tmp_path: Path) -> None:
+    db_path = tmp_path / "airmonitor.sqlite3"
+    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    _insert_sgx_sample(db_path, 20.0, now)
+    thresholds = load_thresholds(None)
+
+    conn = connect(str(db_path))
+    init_db(conn)
+    acknowledge_alert_event(conn, alert_key="sgx_gas_ppm")
+    conn.close()
+
+    with mock.patch("airmonitor.alerts.service.send"):
+        run_once(database=str(db_path), thresholds=thresholds, notifier_config=NotifierConfig())
+
+    conn = connect(str(db_path))
+    clear_alert_acknowledgement(conn, alert_key="sgx_gas_ppm")
+    conn.close()
+
+    # Condition escalates further (still critical, but the resolved/reopened
+    # cycle below proves a fresh occurrence notifies normally once unacked).
+    _insert_sgx_sample(db_path, 0.1, now)  # clears the condition
+    with mock.patch("airmonitor.alerts.service.send") as sent:
+        run_once(database=str(db_path), thresholds=thresholds, notifier_config=NotifierConfig())
+        resolved_keys = {call.args[1].alert_key for call in sent.call_args_list if call.args[1].level == "resolved"}
+        assert "sgx_gas_ppm" in resolved_keys
+
+    _insert_sgx_sample(db_path, 20.0, now)  # re-trips, unacknowledged this time
+    with mock.patch("airmonitor.alerts.service.send") as sent:
+        run_once(database=str(db_path), thresholds=thresholds, notifier_config=NotifierConfig())
+        opened_keys = {call.args[1].alert_key for call in sent.call_args_list}
+        assert "sgx_gas_ppm" in opened_keys

@@ -21,10 +21,14 @@ from airmonitor.backup import (
     restore_backup,
 )
 from airmonitor.database import (
+    acknowledge_alert_event,
+    clear_alert_acknowledgement,
     connect,
     end_sensor_session,
     init_db,
     insert_sgx_voc_sample,
+    list_acknowledged_alert_events,
+    list_open_alert_events,
     start_sensor_session,
     upsert_sensor,
 )
@@ -223,6 +227,39 @@ def filter_control(args: argparse.Namespace) -> int:
             updated.append(record.as_dict())
         print(json.dumps(updated[0] if len(updated) == 1 else updated, indent=2, sort_keys=True))
         return 0
+    finally:
+        conn.close()
+
+
+def alerts_command(args: argparse.Namespace) -> int:
+    conn = connect(args.database)
+    init_db(conn)
+    try:
+        if args.alert_args == ["list"]:
+            open_rows = list_open_alert_events(conn)
+            acknowledged = list_acknowledged_alert_events(conn)
+            records = [
+                {**dict(row), "acknowledged": key in acknowledged, "acknowledgement_note": acknowledged[key]["note"] if key in acknowledged else None}
+                for key, row in open_rows.items()
+            ]
+            print(json.dumps(records, indent=2, sort_keys=True))
+            return 0
+
+        if len(args.alert_args) >= 2 and args.alert_args[0] == "ack":
+            alert_key = args.alert_args[1]
+            note = " ".join(args.alert_args[2:]) or None
+            record = acknowledge_alert_event(conn, alert_key=alert_key, note=note)
+            print(json.dumps(dict(record), indent=2, sort_keys=True))
+            return 0
+
+        if len(args.alert_args) == 2 and args.alert_args[0] == "unack":
+            clear_alert_acknowledgement(conn, alert_key=args.alert_args[1])
+            print(f"cleared acknowledgement: {args.alert_args[1]}")
+            return 0
+
+        raise SystemExit(
+            "usage: airmonitor alerts list | airmonitor alerts ack <alert_key> [note...] | airmonitor alerts unack <alert_key>"
+        )
     finally:
         conn.close()
 
@@ -546,6 +583,10 @@ def build_parser() -> argparse.ArgumentParser:
     filter_parser.add_argument("filter_args", nargs="+", metavar="ARG")
     filter_parser.add_argument("--database", default="/var/lib/airmonitor/airmonitor.sqlite3")
 
+    alerts_parser = subparsers.add_parser("alerts", help="list, acknowledge, or unacknowledge active alerts")
+    alerts_parser.add_argument("alert_args", nargs="+", metavar="ARG")
+    alerts_parser.add_argument("--database", default="/var/lib/airmonitor/airmonitor.sqlite3")
+
     doctor_parser = subparsers.add_parser("doctor", help="run local AirMonitor sanity checks")
     doctor_parser.add_argument("--database", default="/var/lib/airmonitor/airmonitor.sqlite3")
 
@@ -638,6 +679,8 @@ def main(argv: list[str] | None = None) -> int:
         return show_policy(args)
     if args.command == "filter":
         return filter_control(args)
+    if args.command == "alerts":
+        return alerts_command(args)
     if args.command == "doctor":
         return doctor(args)
     if args.command == "backup":

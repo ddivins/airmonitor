@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 9
 
 
 DDL = """
@@ -128,6 +128,20 @@ CREATE TABLE IF NOT EXISTS alert_events (
     threshold REAL,
     fired_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     resolved_at TEXT
+);
+
+-- Silences notification delivery for a knowingly-accepted condition without
+-- pretending it's resolved: the alert_events row (and /alerts visibility)
+-- stay exactly as they are, only send() is skipped. Keyed independently of
+-- alert_events' close/reopen-on-escalation lifecycle, so an acknowledgement
+-- survives an escalation instead of only ever matching one specific row.
+-- resolve_alert_event() deletes the row for a key once its condition
+-- actually clears, so a stale acknowledgement can't silence a future,
+-- unrelated occurrence of the same alert_key.
+CREATE TABLE IF NOT EXISTS alert_acknowledgements (
+    alert_key TEXT PRIMARY KEY,
+    acknowledged_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    note TEXT
 );
 
 CREATE TABLE IF NOT EXISTS levoit_samples (
@@ -584,7 +598,35 @@ def resolve_alert_event(conn: sqlite3.Connection, *, alert_key: str) -> None:
         "WHERE alert_key = ? AND resolved_at IS NULL",
         (alert_key,),
     )
+    # A condition that's actually cleared shouldn't leave behind an
+    # acknowledgement that silences some future, unrelated occurrence of the
+    # same alert_key.
+    conn.execute("DELETE FROM alert_acknowledgements WHERE alert_key = ?", (alert_key,))
     conn.commit()
+
+
+def acknowledge_alert_event(conn: sqlite3.Connection, *, alert_key: str, note: str | None = None) -> sqlite3.Row:
+    conn.execute(
+        "INSERT INTO alert_acknowledgements (alert_key, note) VALUES (?, ?) "
+        "ON CONFLICT(alert_key) DO UPDATE SET acknowledged_at = excluded.acknowledged_at, note = excluded.note",
+        (alert_key, note),
+    )
+    conn.commit()
+    return conn.execute(
+        "SELECT * FROM alert_acknowledgements WHERE alert_key = ?", (alert_key,)
+    ).fetchone()
+
+
+def clear_alert_acknowledgement(conn: sqlite3.Connection, *, alert_key: str) -> None:
+    conn.execute("DELETE FROM alert_acknowledgements WHERE alert_key = ?", (alert_key,))
+    conn.commit()
+
+
+def list_acknowledged_alert_events(conn: sqlite3.Connection) -> dict[str, sqlite3.Row]:
+    """Return currently acknowledged alerts keyed by alert_key."""
+
+    rows = conn.execute("SELECT * FROM alert_acknowledgements").fetchall()
+    return {row["alert_key"]: row for row in rows}
 
 
 def _print_values(
