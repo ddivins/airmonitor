@@ -327,7 +327,7 @@ def resolve_repo_dir() -> str:
 def install(args: argparse.Namespace) -> int:
     repo_dir = resolve_repo_dir()
     script = Path(repo_dir) / "tools" / "install.sh"
-    command = ["bash", str(script), *args.install_args]
+    command = ["bash", str(script), *args.passthrough_args]
     if args.dry_run:
         print("AirMonitor install plan (dry run; pass --no-dry-run to execute)")
         print(f"  repo: {repo_dir}")
@@ -576,6 +576,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="show what would run without executing git pull / tools/update.sh (default: on)",
     )
 
+    subparsers.add_parser(
+        "inventory",
+        help="alias for airmonitor-inventory (see `airmonitor-inventory --help` for its options)",
+    )
+    subparsers.add_parser(
+        "hardware",
+        help="alias for airmonitor-hardware (see `airmonitor-hardware --help` for its subcommands)",
+    )
+
     subparsers.add_parser("printer-mqtt", help="run the Bambu printer MQTT normalization service")
     subparsers.add_parser("bento-service", help="run the Bento filter service")
     levoit_parser = subparsers.add_parser("levoit-service", help="run Levoit filter service commands")
@@ -606,11 +615,14 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+PASSTHROUGH_COMMANDS = {"install", "inventory", "hardware"}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args, unknown = parser.parse_known_args(argv)
-    if args.command == "install":
-        args.install_args = unknown
+    if args.command in PASSTHROUGH_COMMANDS:
+        args.passthrough_args = unknown
     elif unknown:
         parser.error(f"unrecognized arguments: {' '.join(unknown)}")
     if args.command == "probe":
@@ -631,6 +643,14 @@ def main(argv: list[str] | None = None) -> int:
         return install(args)
     if args.command == "update":
         return update(args)
+    if args.command == "inventory":
+        from airmonitor import inventory as inventory_module
+
+        return inventory_module.main(args.passthrough_args)
+    if args.command == "hardware":
+        from airmonitor import hardware as hardware_module
+
+        return hardware_module.main(args.passthrough_args)
     if args.command == "printer-mqtt":
         return run_printer_mqtt_service()
     if args.command == "bento-service":
