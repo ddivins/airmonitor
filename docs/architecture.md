@@ -57,6 +57,12 @@ The architecture preserves raw reported measurements, but downstream interpretat
 focus on repeatable relative differences rather than treating a single VOC ppm value as a
 compound-specific exposure measurement.
 
+The `AirMonitor Compare Prints` Grafana dashboard is where these comparisons actually happen:
+pick up to four prints and it shows a side-by-side summary table (peak VOC, peak PM2.5,
+filament, duration) plus VOC, PM2.5, and temperature curves for all four aligned on elapsed
+time since each print's own start, rather than wall-clock time, since two prints being
+compared occurred at different real times. See `docs/status-page.md`.
+
 ## Hardware Connection
 
 The physical hardware concepts are:

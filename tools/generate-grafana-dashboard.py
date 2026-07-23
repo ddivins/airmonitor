@@ -392,6 +392,17 @@ def build() -> dict[str, Any]:
                 "type": "link",
                 "url": "/grafana/d/airmonitor-print-window/airmonitor-print-window",
             },
+            {
+                "asDropdown": False,
+                "icon": "dashboard",
+                "includeVars": False,
+                "keepTime": False,
+                "tags": [],
+                "targetBlank": False,
+                "title": "Compare Prints",
+                "type": "link",
+                "url": "/grafana/d/airmonitor-compare-prints/airmonitor-compare-prints",
+            },
         ],
         "panels": panels,
     }

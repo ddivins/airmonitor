@@ -110,13 +110,37 @@ from `GRAFANA_DOMAIN` (threaded to it by `tools/update.sh`'s `install-grafana.sh
 falling back to `/` only when no real domain is configured (local generation,
 `--validate-db`).
 
-Every AirMonitor dashboard (`airmonitor-live`, `airmonitor-print-window`) opens with a
-full-width logo banner as its first panel, matching the clickable-logo header the
-status_static pages already use -- clicking the logo returns to the status page from
-any dashboard, the same navigation available everywhere else. `airmonitor-print-window.json`
-is a static committed file rather than python-generated, so its banner (and its own
-`AirMonitor Status` link) carry an `__AIRMONITOR_STATUS_URL__` placeholder that
+Every AirMonitor dashboard (`airmonitor-live`, `airmonitor-print-window`,
+`airmonitor-compare-prints`) opens with a full-width logo banner as its first panel,
+matching the clickable-logo header the status_static pages already use -- clicking the
+logo returns to the status page from any dashboard, the same navigation available
+everywhere else. `airmonitor-print-window.json` and `airmonitor-compare-prints.json` are
+static committed files rather than python-generated, so their banners (and their own
+`AirMonitor Status` links) carry an `__AIRMONITOR_STATUS_URL__` placeholder that
 `tools/install-grafana.sh` substitutes with the same absolute-or-`/` logic at install time.
+
+### Comparing prints
+
+`airmonitor-compare-prints` picks up where `airmonitor-print-window`'s single-print view
+leaves off: four independent print-select variables (`print_a`..`print_d`, each the same
+query as `print-window`'s own `print_id`) feed a summary table (one row per slot: filament,
+duration, peak VOC, peak PM2.5, ...) plus VOC/PM2.5/temperature charts overlaying all four.
+
+The charts can't just plot real timestamps -- two prints being compared happened at
+different wall-clock times, so their curves would never overlap. Each chart's query instead
+computes `(sampled_at - print's own started_at)` in minutes per print, `UNION ALL`s the four
+slots together, and pivots into up to four named columns via
+`MAX(CASE WHEN slot = 'a' THEN value END) AS "${print_a:text}"` (one column per slot,
+aliased to the selected print's own label). This reuses two mechanisms already proven
+elsewhere in this codebase rather than anything exotic: "one query column = one series" (the
+same mechanism the `airmonitor-live` temperature/humidity/chamber panel already relies on),
+and Grafana's `${var:text}` interpolation for a human-readable series name. The `trend` panel
+type (not `timeseries`) is what allows a non-wall-clock numeric axis at all.
+
+`sps30_samples` has no `print_id` column -- the SPS30 logger never associates samples with a
+print -- so its PM2.5 queries correlate by time-range overlap against the print's own
+`started_at`/`ended_at` instead, the same convention `airmonitor-print-window`'s own PM panel
+already uses.
 
 Grafana's own built-in pages -- `/grafana/dashboards`, `/grafana/explore`, the login
 screen, and so on -- can't take a custom dashboard panel, so they don't get the banner

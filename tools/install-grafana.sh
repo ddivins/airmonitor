@@ -10,6 +10,7 @@ DATASOURCE_SRC="${DATASOURCE_SRC:-grafana/provisioning/datasources/airmonitor-sq
 DASHBOARD_PROVIDER_SRC="${DASHBOARD_PROVIDER_SRC:-grafana/provisioning/dashboards/airmonitor.yaml}"
 DASHBOARD_SRC="${DASHBOARD_SRC:-grafana/dashboards/airmonitor-live.json}"
 PRINT_WINDOW_DASHBOARD_SRC="${PRINT_WINDOW_DASHBOARD_SRC:-grafana/dashboards/airmonitor-print-window.json}"
+COMPARE_PRINTS_DASHBOARD_SRC="${COMPARE_PRINTS_DASHBOARD_SRC:-grafana/dashboards/airmonitor-compare-prints.json}"
 DASHBOARD_GENERATOR="${DASHBOARD_GENERATOR:-tools/generate-grafana-dashboard.py}"
 BRAND_ASSET="${BRAND_ASSET:-grafana/assets/airmonitor-brand-300.png}"
 DB_DIR="${DB_DIR:-/var/lib/airmonitor}"
@@ -55,6 +56,7 @@ command -v python3 >/dev/null || fail "python3 is required"
 [[ -f "$REPO_DIR/$DATASOURCE_SRC" ]] || fail "missing $DATASOURCE_SRC"
 [[ -f "$REPO_DIR/$DASHBOARD_PROVIDER_SRC" ]] || fail "missing $DASHBOARD_PROVIDER_SRC"
 [[ -f "$REPO_DIR/$PRINT_WINDOW_DASHBOARD_SRC" ]] || fail "missing $PRINT_WINDOW_DASHBOARD_SRC"
+[[ -f "$REPO_DIR/$COMPARE_PRINTS_DASHBOARD_SRC" ]] || fail "missing $COMPARE_PRINTS_DASHBOARD_SRC"
 [[ -f "$REPO_DIR/$DASHBOARD_GENERATOR" ]] || fail "missing dashboard generator: $REPO_DIR/$DASHBOARD_GENERATOR"
 [[ -f "$REPO_DIR/$BRAND_ASSET" ]] || fail "missing brand asset: $REPO_DIR/$BRAND_ASSET"
 
@@ -175,6 +177,12 @@ tmp_print_window="$(mktemp)"
 sed "s#__AIRMONITOR_STATUS_URL__#$STATUS_PAGE_URL#" "$PRINT_WINDOW_DASHBOARD_SRC" > "$tmp_print_window"
 sudo install -o grafana -g grafana -m 0644 "$tmp_print_window" "$DASHBOARD_DIR/airmonitor-print-window.json"
 rm -f "$tmp_print_window"
+# airmonitor-compare-prints.json is also a static, committed file -- same
+# placeholder substitution as airmonitor-print-window.json above.
+tmp_compare_prints="$(mktemp)"
+sed "s#__AIRMONITOR_STATUS_URL__#$STATUS_PAGE_URL#" "$COMPARE_PRINTS_DASHBOARD_SRC" > "$tmp_compare_prints"
+sudo install -o grafana -g grafana -m 0644 "$tmp_compare_prints" "$DASHBOARD_DIR/airmonitor-compare-prints.json"
+rm -f "$tmp_compare_prints"
 
 log "Configuring AirMonitor DB permissions"
 sudo groupadd --system "$DATA_GROUP" 2>/dev/null || true

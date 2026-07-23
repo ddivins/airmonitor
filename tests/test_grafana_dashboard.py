@@ -222,6 +222,102 @@ class StatusPageUrlTests(unittest.TestCase):
         brand = dashboard["panels"][0]
         self.assertIn("](https://airmonitor.example.com/)", brand["options"]["content"])
 
+    def test_build_links_to_compare_prints_dashboard(self):
+        dashboard = self.generator.build()
+        link = next(link for link in dashboard["links"] if link["title"] == "Compare Prints")
+        self.assertEqual(link["url"], "/grafana/d/airmonitor-compare-prints/airmonitor-compare-prints")
+
+
+def _interpolate_grafana_variables(query: str) -> str:
+    """Stand in literal values for Grafana template-variable syntax so a raw
+    sqlite3 connection can execute a dashboard's own query text directly,
+    the same trick test_all_panel_queries_match_schema uses for the SQL dict."""
+
+    for letter, print_id in zip("abcd", (1, 2, 3, 4)):
+        query = query.replace(f"${{print_{letter}:text}}", f"Slot {letter.upper()}")
+        query = query.replace(f"$print_{letter}", str(print_id))
+    return query
+
+
+class ComparePrintsDashboardTests(unittest.TestCase):
+    """airmonitor-compare-prints.json is a static committed file (like
+    airmonitor-print-window.json), not python-generated -- these validate its
+    structure and, since its queries are new and more involved than the
+    existing dashboards' (UNION ALL branches, conditional-aggregation pivots
+    for multi-print overlay series), that they actually execute cleanly
+    against a schema shaped like the real database."""
+
+    @classmethod
+    def setUpClass(cls):
+        path = Path(__file__).parents[1] / "grafana" / "dashboards" / "airmonitor-compare-prints.json"
+        cls.dashboard = json.loads(path.read_text(encoding="utf-8"))
+
+    def test_has_four_independent_print_select_variables(self):
+        names = [variable["name"] for variable in self.dashboard["templating"]["list"]]
+        self.assertEqual(names, ["print_a", "print_b", "print_c", "print_d"])
+        for variable in self.dashboard["templating"]["list"]:
+            self.assertFalse(variable["multi"])
+
+    def test_has_a_clickable_logo_banner_and_cross_links(self):
+        brand = self.dashboard["panels"][0]
+        self.assertEqual(brand["type"], "text")
+        self.assertEqual(brand["gridPos"], {"h": 6, "w": 24, "x": 0, "y": 0})
+        self.assertIn("__AIRMONITOR_STATUS_URL__", brand["options"]["content"])
+
+        link_titles = {link["title"] for link in self.dashboard["links"]}
+        self.assertEqual(link_titles, {"AirMonitor Status", "AirMonitor Live", "Print Window"})
+
+    def test_no_panels_overlap(self):
+        spans = sorted((p["gridPos"]["y"], p["gridPos"]["y"] + p["gridPos"]["h"]) for p in self.dashboard["panels"])
+        for (_, end), (next_start, _) in zip(spans, spans[1:]):
+            self.assertLessEqual(end, next_start)
+
+    def test_summary_table_and_overlay_queries_execute_against_real_schema(self):
+        conn = sqlite3.connect(":memory:")
+        try:
+            conn.executescript(
+                """
+                CREATE TABLE sgx_voc_samples (
+                    id INTEGER PRIMARY KEY,
+                    sampled_at TEXT,
+                    gas_ppm REAL,
+                    temperature_c REAL,
+                    print_id INTEGER
+                );
+                CREATE TABLE sps30_samples (
+                    id INTEGER PRIMARY KEY,
+                    sampled_at TEXT,
+                    mass_pm2_5 REAL
+                );
+                CREATE TABLE prints (
+                    id INTEGER PRIMARY KEY,
+                    started_at TEXT,
+                    ended_at TEXT,
+                    last_seen_at TEXT,
+                    started_gcode_state TEXT,
+                    last_gcode_state TEXT,
+                    ended_gcode_state TEXT,
+                    subtask_name TEXT,
+                    filament_type TEXT,
+                    filament_emission_class TEXT,
+                    room_filter_recommended INTEGER
+                );
+                """
+            )
+            conn.executemany(
+                "INSERT INTO prints (id, started_at, ended_at, last_seen_at) VALUES (?, ?, ?, ?)",
+                [
+                    (i, f"2026-01-0{i}T00:00:00Z", f"2026-01-0{i}T01:00:00Z", f"2026-01-0{i}T01:00:00Z")
+                    for i in (1, 2, 3, 4)
+                ],
+            )
+            for panel in self.dashboard["panels"]:
+                for target in panel["targets"]:
+                    query = _interpolate_grafana_variables(target["queryText"]).rstrip(";")
+                    conn.execute(f"SELECT * FROM ({query}) LIMIT 1").fetchall()
+        finally:
+            conn.close()
+
 
 if __name__ == "__main__":
     unittest.main()

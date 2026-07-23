@@ -50,6 +50,17 @@
       "title": "AirMonitor Status",
       "type": "link",
       "url": "__AIRMONITOR_STATUS_URL__"
+    },
+    {
+      "asDropdown": false,
+      "icon": "dashboard",
+      "includeVars": false,
+      "keepTime": false,
+      "tags": [],
+      "targetBlank": false,
+      "title": "Compare Prints",
+      "type": "link",
+      "url": "/grafana/d/airmonitor-compare-prints/airmonitor-compare-prints"
     }
   ],
   "templating": {

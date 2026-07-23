@@ -1,0 +1,469 @@
+{
+  "uid": "airmonitor-compare-prints",
+  "title": "AirMonitor Compare Prints",
+  "description": "Side-by-side comparison of up to four prints -- summary stats plus VOC, PM2.5, and temperature curves aligned on elapsed time since each print's own start, so a filtered run can be compared against an unfiltered one, one filter medium against another, or different fan speeds/enclosure states, per the comparative-experiment goal in docs/architecture.md.",
+  "tags": [
+    "airmonitor",
+    "prints",
+    "environment"
+  ],
+  "timezone": "browser",
+  "refresh": "",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "graphTooltip": 1,
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "10s",
+      "30s",
+      "1m",
+      "5m"
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": false,
+      "tags": [],
+      "targetBlank": false,
+      "title": "AirMonitor Status",
+      "type": "link",
+      "url": "__AIRMONITOR_STATUS_URL__"
+    },
+    {
+      "asDropdown": false,
+      "icon": "dashboard",
+      "includeVars": false,
+      "keepTime": false,
+      "tags": [],
+      "targetBlank": false,
+      "title": "AirMonitor Live",
+      "type": "link",
+      "url": "/grafana/d/airmonitor-live/airmonitor-live"
+    },
+    {
+      "asDropdown": false,
+      "icon": "dashboard",
+      "includeVars": false,
+      "keepTime": false,
+      "tags": [],
+      "targetBlank": false,
+      "title": "Print Window",
+      "type": "link",
+      "url": "/grafana/d/airmonitor-print-window/airmonitor-print-window"
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "print_a",
+        "label": "Print A",
+        "type": "query",
+        "datasource": {
+          "type": "frser-sqlite-datasource",
+          "uid": "airmonitor-sqlite"
+        },
+        "query": "SELECT printf('%s — %s — %s (#%d)', substr(started_at, 1, 16), COALESCE(NULLIF(subtask_name, ''), 'Unnamed print'), COALESCE(NULLIF(filament_type, ''), 'unknown filament'), id) AS __text, CAST(id AS TEXT) AS __value FROM prints WHERE started_gcode_state = 'RUNNING' OR last_gcode_state = 'RUNNING' OR ended_gcode_state IS NOT NULL ORDER BY started_at DESC LIMIT 12;",
+        "refresh": 1,
+        "sort": 0,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "selected": true,
+          "text": "",
+          "value": ""
+        }
+      },
+      {
+        "name": "print_b",
+        "label": "Print B",
+        "type": "query",
+        "datasource": {
+          "type": "frser-sqlite-datasource",
+          "uid": "airmonitor-sqlite"
+        },
+        "query": "SELECT printf('%s — %s — %s (#%d)', substr(started_at, 1, 16), COALESCE(NULLIF(subtask_name, ''), 'Unnamed print'), COALESCE(NULLIF(filament_type, ''), 'unknown filament'), id) AS __text, CAST(id AS TEXT) AS __value FROM prints WHERE started_gcode_state = 'RUNNING' OR last_gcode_state = 'RUNNING' OR ended_gcode_state IS NOT NULL ORDER BY started_at DESC LIMIT 12;",
+        "refresh": 1,
+        "sort": 0,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "selected": true,
+          "text": "",
+          "value": ""
+        }
+      },
+      {
+        "name": "print_c",
+        "label": "Print C",
+        "type": "query",
+        "datasource": {
+          "type": "frser-sqlite-datasource",
+          "uid": "airmonitor-sqlite"
+        },
+        "query": "SELECT printf('%s — %s — %s (#%d)', substr(started_at, 1, 16), COALESCE(NULLIF(subtask_name, ''), 'Unnamed print'), COALESCE(NULLIF(filament_type, ''), 'unknown filament'), id) AS __text, CAST(id AS TEXT) AS __value FROM prints WHERE started_gcode_state = 'RUNNING' OR last_gcode_state = 'RUNNING' OR ended_gcode_state IS NOT NULL ORDER BY started_at DESC LIMIT 12;",
+        "refresh": 1,
+        "sort": 0,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "selected": true,
+          "text": "",
+          "value": ""
+        }
+      },
+      {
+        "name": "print_d",
+        "label": "Print D",
+        "type": "query",
+        "datasource": {
+          "type": "frser-sqlite-datasource",
+          "uid": "airmonitor-sqlite"
+        },
+        "query": "SELECT printf('%s — %s — %s (#%d)', substr(started_at, 1, 16), COALESCE(NULLIF(subtask_name, ''), 'Unnamed print'), COALESCE(NULLIF(filament_type, ''), 'unknown filament'), id) AS __text, CAST(id AS TEXT) AS __value FROM prints WHERE started_gcode_state = 'RUNNING' OR last_gcode_state = 'RUNNING' OR ended_gcode_state IS NOT NULL ORDER BY started_at DESC LIMIT 12;",
+        "refresh": 1,
+        "sort": 0,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "selected": true,
+          "text": "",
+          "value": ""
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 100,
+      "type": "text",
+      "title": "",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "airmonitor-sqlite"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "[![AirMonitor — Monitor. Understand. Don't Die.](/public/img/airmonitor-brand-300.png)](__AIRMONITOR_STATUS_URL__)"
+      },
+      "transparent": true
+    },
+    {
+      "id": 101,
+      "type": "table",
+      "title": "Selected Prints",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "airmonitor-sqlite"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "airmonitor-sqlite"
+          },
+          "queryText": "SELECT 'A' AS slot, strftime('%m/%d %H:%M', p.started_at, 'localtime') AS started, COALESCE(NULLIF(p.subtask_name, ''), 'Unnamed') AS file, COALESCE(NULLIF(p.filament_type, ''), 'Not captured') AS filament, COALESCE(NULLIF(p.filament_emission_class, ''), 'n/a') AS emissions, CASE p.room_filter_recommended WHEN 1 THEN 'yes' WHEN 0 THEN 'no' ELSE '' END AS room_filter, COALESCE(NULLIF(p.ended_gcode_state, ''), NULLIF(p.last_gcode_state, ''), NULLIF(p.started_gcode_state, ''), '') AS final_state, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS duration_min, (SELECT ROUND(MAX(gas_ppm), 2) FROM sgx_voc_samples WHERE print_id = p.id) AS peak_voc_ppm, (SELECT ROUND(MAX(mass_pm2_5), 2) FROM sps30_samples WHERE datetime(sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes')) AS peak_pm2_5 FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'B' AS slot, strftime('%m/%d %H:%M', p.started_at, 'localtime') AS started, COALESCE(NULLIF(p.subtask_name, ''), 'Unnamed') AS file, COALESCE(NULLIF(p.filament_type, ''), 'Not captured') AS filament, COALESCE(NULLIF(p.filament_emission_class, ''), 'n/a') AS emissions, CASE p.room_filter_recommended WHEN 1 THEN 'yes' WHEN 0 THEN 'no' ELSE '' END AS room_filter, COALESCE(NULLIF(p.ended_gcode_state, ''), NULLIF(p.last_gcode_state, ''), NULLIF(p.started_gcode_state, ''), '') AS final_state, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS duration_min, (SELECT ROUND(MAX(gas_ppm), 2) FROM sgx_voc_samples WHERE print_id = p.id) AS peak_voc_ppm, (SELECT ROUND(MAX(mass_pm2_5), 2) FROM sps30_samples WHERE datetime(sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes')) AS peak_pm2_5 FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'C' AS slot, strftime('%m/%d %H:%M', p.started_at, 'localtime') AS started, COALESCE(NULLIF(p.subtask_name, ''), 'Unnamed') AS file, COALESCE(NULLIF(p.filament_type, ''), 'Not captured') AS filament, COALESCE(NULLIF(p.filament_emission_class, ''), 'n/a') AS emissions, CASE p.room_filter_recommended WHEN 1 THEN 'yes' WHEN 0 THEN 'no' ELSE '' END AS room_filter, COALESCE(NULLIF(p.ended_gcode_state, ''), NULLIF(p.last_gcode_state, ''), NULLIF(p.started_gcode_state, ''), '') AS final_state, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS duration_min, (SELECT ROUND(MAX(gas_ppm), 2) FROM sgx_voc_samples WHERE print_id = p.id) AS peak_voc_ppm, (SELECT ROUND(MAX(mass_pm2_5), 2) FROM sps30_samples WHERE datetime(sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes')) AS peak_pm2_5 FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'D' AS slot, strftime('%m/%d %H:%M', p.started_at, 'localtime') AS started, COALESCE(NULLIF(p.subtask_name, ''), 'Unnamed') AS file, COALESCE(NULLIF(p.filament_type, ''), 'Not captured') AS filament, COALESCE(NULLIF(p.filament_emission_class, ''), 'n/a') AS emissions, CASE p.room_filter_recommended WHEN 1 THEN 'yes' WHEN 0 THEN 'no' ELSE '' END AS room_filter, COALESCE(NULLIF(p.ended_gcode_state, ''), NULLIF(p.last_gcode_state, ''), NULLIF(p.started_gcode_state, ''), '') AS final_state, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS duration_min, (SELECT ROUND(MAX(gas_ppm), 2) FROM sgx_voc_samples WHERE print_id = p.id) AS peak_voc_ppm, (SELECT ROUND(MAX(mass_pm2_5), 2) FROM sps30_samples WHERE datetime(sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes')) AS peak_pm2_5 FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER);",
+          "rawQueryText": "SELECT 'A' AS slot, strftime('%m/%d %H:%M', p.started_at, 'localtime') AS started, COALESCE(NULLIF(p.subtask_name, ''), 'Unnamed') AS file, COALESCE(NULLIF(p.filament_type, ''), 'Not captured') AS filament, COALESCE(NULLIF(p.filament_emission_class, ''), 'n/a') AS emissions, CASE p.room_filter_recommended WHEN 1 THEN 'yes' WHEN 0 THEN 'no' ELSE '' END AS room_filter, COALESCE(NULLIF(p.ended_gcode_state, ''), NULLIF(p.last_gcode_state, ''), NULLIF(p.started_gcode_state, ''), '') AS final_state, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS duration_min, (SELECT ROUND(MAX(gas_ppm), 2) FROM sgx_voc_samples WHERE print_id = p.id) AS peak_voc_ppm, (SELECT ROUND(MAX(mass_pm2_5), 2) FROM sps30_samples WHERE datetime(sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes')) AS peak_pm2_5 FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'B' AS slot, strftime('%m/%d %H:%M', p.started_at, 'localtime') AS started, COALESCE(NULLIF(p.subtask_name, ''), 'Unnamed') AS file, COALESCE(NULLIF(p.filament_type, ''), 'Not captured') AS filament, COALESCE(NULLIF(p.filament_emission_class, ''), 'n/a') AS emissions, CASE p.room_filter_recommended WHEN 1 THEN 'yes' WHEN 0 THEN 'no' ELSE '' END AS room_filter, COALESCE(NULLIF(p.ended_gcode_state, ''), NULLIF(p.last_gcode_state, ''), NULLIF(p.started_gcode_state, ''), '') AS final_state, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS duration_min, (SELECT ROUND(MAX(gas_ppm), 2) FROM sgx_voc_samples WHERE print_id = p.id) AS peak_voc_ppm, (SELECT ROUND(MAX(mass_pm2_5), 2) FROM sps30_samples WHERE datetime(sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes')) AS peak_pm2_5 FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'C' AS slot, strftime('%m/%d %H:%M', p.started_at, 'localtime') AS started, COALESCE(NULLIF(p.subtask_name, ''), 'Unnamed') AS file, COALESCE(NULLIF(p.filament_type, ''), 'Not captured') AS filament, COALESCE(NULLIF(p.filament_emission_class, ''), 'n/a') AS emissions, CASE p.room_filter_recommended WHEN 1 THEN 'yes' WHEN 0 THEN 'no' ELSE '' END AS room_filter, COALESCE(NULLIF(p.ended_gcode_state, ''), NULLIF(p.last_gcode_state, ''), NULLIF(p.started_gcode_state, ''), '') AS final_state, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS duration_min, (SELECT ROUND(MAX(gas_ppm), 2) FROM sgx_voc_samples WHERE print_id = p.id) AS peak_voc_ppm, (SELECT ROUND(MAX(mass_pm2_5), 2) FROM sps30_samples WHERE datetime(sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes')) AS peak_pm2_5 FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'D' AS slot, strftime('%m/%d %H:%M', p.started_at, 'localtime') AS started, COALESCE(NULLIF(p.subtask_name, ''), 'Unnamed') AS file, COALESCE(NULLIF(p.filament_type, ''), 'Not captured') AS filament, COALESCE(NULLIF(p.filament_emission_class, ''), 'n/a') AS emissions, CASE p.room_filter_recommended WHEN 1 THEN 'yes' WHEN 0 THEN 'no' ELSE '' END AS room_filter, COALESCE(NULLIF(p.ended_gcode_state, ''), NULLIF(p.last_gcode_state, ''), NULLIF(p.started_gcode_state, ''), '') AS final_state, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS duration_min, (SELECT ROUND(MAX(gas_ppm), 2) FROM sgx_voc_samples WHERE print_id = p.id) AS peak_voc_ppm, (SELECT ROUND(MAX(mass_pm2_5), 2) FROM sps30_samples WHERE datetime(sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes')) AS peak_pm2_5 FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER);",
+          "queryType": "table",
+          "timeColumns": [],
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 1,
+      "type": "trend",
+      "title": "VOC (ppm)",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "airmonitor-sqlite"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "airmonitor-sqlite"
+          },
+          "queryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'c' THEN value END) AS \"${print_c:text}\", MAX(CASE WHEN slot = 'd' THEN value END) AS \"${print_d:text}\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') UNION ALL SELECT 'c' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_c' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') UNION ALL SELECT 'd' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_d' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes')) combined GROUP BY time_bucket ORDER BY time_bucket;",
+          "rawQueryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'c' THEN value END) AS \"${print_c:text}\", MAX(CASE WHEN slot = 'd' THEN value END) AS \"${print_d:text}\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') UNION ALL SELECT 'c' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_c' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') UNION ALL SELECT 'd' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_d' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes')) combined GROUP BY time_bucket ORDER BY time_bucket;",
+          "queryType": "table",
+          "timeColumns": [
+            "time"
+          ],
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ppm",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "axisSoftMin": 0
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "time"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "m"
+              },
+              {
+                "id": "displayName",
+                "value": "Elapsed minutes"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "Minutes since print start"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "placement": "bottom",
+          "displayMode": "table",
+          "calcs": [
+            "min",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "trend",
+      "title": "PM2.5 (µg/m³)",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "airmonitor-sqlite"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 23
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "airmonitor-sqlite"
+          },
+          "queryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'c' THEN value END) AS \"${print_c:text}\", MAX(CASE WHEN slot = 'd' THEN value END) AS \"${print_d:text}\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') UNION ALL SELECT 'c' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_c' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') UNION ALL SELECT 'd' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_d' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes')) combined GROUP BY time_bucket ORDER BY time_bucket;",
+          "rawQueryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'c' THEN value END) AS \"${print_c:text}\", MAX(CASE WHEN slot = 'd' THEN value END) AS \"${print_d:text}\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') UNION ALL SELECT 'c' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_c' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') UNION ALL SELECT 'd' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_d' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes')) combined GROUP BY time_bucket ORDER BY time_bucket;",
+          "queryType": "table",
+          "timeColumns": [
+            "time"
+          ],
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "conμgm3",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "axisSoftMin": 0
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "time"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "m"
+              },
+              {
+                "id": "displayName",
+                "value": "Elapsed minutes"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "Minutes since print start"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "placement": "bottom",
+          "displayMode": "table",
+          "calcs": [
+            "min",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "trend",
+      "title": "Temperature (°C)",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "airmonitor-sqlite"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "airmonitor-sqlite"
+          },
+          "queryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'c' THEN value END) AS \"${print_c:text}\", MAX(CASE WHEN slot = 'd' THEN value END) AS \"${print_d:text}\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') UNION ALL SELECT 'c' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_c' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') UNION ALL SELECT 'd' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_d' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes')) combined GROUP BY time_bucket ORDER BY time_bucket;",
+          "rawQueryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'c' THEN value END) AS \"${print_c:text}\", MAX(CASE WHEN slot = 'd' THEN value END) AS \"${print_d:text}\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') UNION ALL SELECT 'c' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_c' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') UNION ALL SELECT 'd' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_d' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes')) combined GROUP BY time_bucket ORDER BY time_bucket;",
+          "queryType": "table",
+          "timeColumns": [
+            "time"
+          ],
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "axisSoftMin": 0
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "time"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "m"
+              },
+              {
+                "id": "displayName",
+                "value": "Elapsed minutes"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "Minutes since print start"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "placement": "bottom",
+          "displayMode": "table",
+          "calcs": [
+            "min",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    }
+  ]
+}
+
