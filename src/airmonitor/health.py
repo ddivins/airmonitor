@@ -46,6 +46,7 @@ SERVICES = (
     "airmonitor-status.service",
     "airmonitor-export.service",
     "airmonitor-alerts.service",
+    "airmonitor-backup.timer",
 )
 SENSOR_FRESHNESS_QUERIES = {
     "sgx": "SELECT sampled_at FROM sgx_voc_samples ORDER BY id DESC LIMIT 1",

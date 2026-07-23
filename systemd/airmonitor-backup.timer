@@ -1,0 +1,10 @@
+[Unit]
+Description=Run AirMonitor database backup daily
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=600
+
+[Install]
+WantedBy=timers.target

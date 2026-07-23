@@ -12,6 +12,12 @@ import sys
 import time
 from typing import Any
 
+from airmonitor.backup import (
+    DEFAULT_BACKUP_DIR,
+    DEFAULT_RETENTION,
+    create_backup,
+    restore_backup,
+)
 from airmonitor.database import (
     connect,
     end_sensor_session,
@@ -229,6 +235,38 @@ def parse_filter_args(values: list[str]) -> tuple[str, str]:
     if command not in {"status", "auto", "on", "off"}:
         raise SystemExit(f"unknown filter command: {command}")
     return filter_id, command
+
+
+def backup_database(args: argparse.Namespace) -> int:
+    result = create_backup(database=args.database, backup_dir=args.backup_dir, retention=args.retention)
+    print(json.dumps({
+        "path": str(result.path),
+        "size_bytes": result.size_bytes,
+        "removed": [str(path) for path in result.removed],
+    }, indent=2, sort_keys=True))
+    return 0
+
+
+def restore_database(args: argparse.Namespace) -> int:
+    if not args.yes:
+        print(
+            "Refusing to restore without --yes: this overwrites the live database at "
+            f"{args.database} (a pre-restore copy is still kept alongside it). "
+            "Stop AirMonitor services writing to it first.",
+            file=sys.stderr,
+        )
+        return 1
+    try:
+        pre_restore_copy = restore_backup(args.backup_file, database=args.database)
+    except (FileNotFoundError, ValueError) as exc:
+        print(f"Restore failed: {exc}", file=sys.stderr)
+        return 1
+    print(json.dumps({
+        "restored_from": args.backup_file,
+        "database": args.database,
+        "pre_restore_copy": str(pre_restore_copy) if pre_restore_copy else None,
+    }, indent=2, sort_keys=True))
+    return 0
 
 
 def doctor(args: argparse.Namespace) -> int:
@@ -488,6 +526,16 @@ def build_parser() -> argparse.ArgumentParser:
     doctor_parser = subparsers.add_parser("doctor", help="run local AirMonitor sanity checks")
     doctor_parser.add_argument("--database", default="/var/lib/airmonitor/airmonitor.sqlite3")
 
+    backup_parser = subparsers.add_parser("backup", help="create a compressed database backup and prune old ones")
+    backup_parser.add_argument("--database", default="/var/lib/airmonitor/airmonitor.sqlite3")
+    backup_parser.add_argument("--backup-dir", default=DEFAULT_BACKUP_DIR)
+    backup_parser.add_argument("--retention", type=int, default=DEFAULT_RETENTION, help="number of backups to keep")
+
+    restore_parser = subparsers.add_parser("restore", help="restore the database from a backup file")
+    restore_parser.add_argument("backup_file", help="path to a .sqlite3 or .sqlite3.gz backup file")
+    restore_parser.add_argument("--database", default="/var/lib/airmonitor/airmonitor.sqlite3")
+    restore_parser.add_argument("--yes", action="store_true", help="confirm overwriting the live database")
+
     install_parser = subparsers.add_parser("install", help="show or execute the AirMonitor install plan")
     install_parser.add_argument("--prefix", default="/opt/airmonitor")
     install_parser.add_argument("--dry-run", action=argparse.BooleanOptionalAction, default=True)
@@ -536,6 +584,10 @@ def main(argv: list[str] | None = None) -> int:
         return filter_control(args)
     if args.command == "doctor":
         return doctor(args)
+    if args.command == "backup":
+        return backup_database(args)
+    if args.command == "restore":
+        return restore_database(args)
     if args.command == "install":
         return install(args)
     if args.command == "update":

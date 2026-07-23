@@ -161,6 +161,7 @@ systemctl --no-pager --full status \
   airmonitor-status.service \
   airmonitor-export.service \
   airmonitor-alerts.service \
+  airmonitor-backup.timer \
   mosquitto.service
 ```
 

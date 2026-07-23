@@ -126,6 +126,13 @@ def test_updater_exit_trap_does_not_double_suggest_after_auto_rollback() -> None
     assert '$rc -ne 0 && "$ROLLED_BACK" != "1"' in text
 
 
+def test_updater_installs_and_enables_backup_timer() -> None:
+    text = UPDATER.read_text(encoding="utf-8")
+    assert 'sudo install -o root -g root -m 0644 "$UNIT_DIR/airmonitor-backup.service"' in text
+    assert 'sudo install -o root -g root -m 0644 "$UNIT_DIR/airmonitor-backup.timer"' in text
+    assert "sudo systemctl enable --now airmonitor-backup.timer" in text
+
+
 def test_rollback_service_list_includes_alerts_service() -> None:
     text = ROLLBACK.read_text(encoding="utf-8")
     assert "airmonitor-alerts.service" in text

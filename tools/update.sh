@@ -167,6 +167,12 @@ done
 sudo systemctl daemon-reload
 sudo systemctl enable airmonitor.target >/dev/null
 
+log "Installing AirMonitor backup timer"
+sudo install -o root -g root -m 0644 "$UNIT_DIR/airmonitor-backup.service" "/etc/systemd/system/airmonitor-backup.service"
+sudo install -o root -g root -m 0644 "$UNIT_DIR/airmonitor-backup.timer" "/etc/systemd/system/airmonitor-backup.timer"
+sudo systemctl daemon-reload
+sudo systemctl enable --now airmonitor-backup.timer >/dev/null
+
 if [[ -n "$DOMAIN" ]]; then
   log "Writing appliance public origin: https://$DOMAIN"
   sudo install -d -o root -g root -m 0755 "$(dirname "$AIRMONITOR_ENV_DST")"

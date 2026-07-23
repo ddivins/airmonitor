@@ -68,6 +68,16 @@ def test_target_managed_units_are_static():
         assert "[Install]" not in unit(name)
 
 
+def test_backup_timer_runs_daily_and_is_independent_of_target():
+    service = unit("airmonitor-backup.service")
+    timer = unit("airmonitor-backup.timer")
+    assert "Type=oneshot" in service
+    assert "PartOf=airmonitor.target" not in service
+    assert "ExecStart=/opt/airmonitor/venv/bin/airmonitor backup" in service
+    assert "OnCalendar=daily" in timer
+    assert "[Install]" in timer
+
+
 def test_rollback_tolerates_services_absent_from_older_commit():
     rollback = (UNIT_DIR.parent / "tools" / "rollback.sh").read_text(encoding="utf-8")
     assert 'if [[ -f "$WORKTREE/systemd/$service" ]]' in rollback

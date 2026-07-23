@@ -77,7 +77,7 @@ New phase covering reproducibility gaps that matter more now that the fresh-host
 ## Phase 8 — Reliability and releases
 
 - [ ] Add end-to-end tests covering MQTT printer state through policy, filter decisions, database writes, and Grafana query generation.
-- [ ] Add database backup/restore commands and documented retention policy.
+- [x] Add database backup/restore commands and documented retention policy (`airmonitor backup`/`airmonitor restore`, daily `airmonitor-backup.timer`, 14-backup default retention). See `docs/backup-restore.md`.
 - [x] Add installed Git commit reporting (`installed-commit`/`previous-commit`/`target-commit` under `/var/lib/airmonitor/update-state/`, already tracked by `tools/update.sh`/`tools/rollback.sh`).
 - [x] Add release tags and a changelog (`CHANGELOG.md`, first entry `v0.6.0`). Tags/changelog are written by hand per release, not auto-generated from commits.
 - [x] Add automatic rollback when update, service startup, or doctor fails: `tools/update.sh` now runs `tools/rollback.sh` automatically if any service fails to (re)start or `airmonitor-doctor` reports a required failure, rather than only suggesting a manual rollback. Opt out with `AUTO_ROLLBACK=0` (see `docs/update-rollback.md`). Fresh `tools/install.sh` runs are not covered yet — a failure there still requires manual cleanup.
@@ -93,8 +93,9 @@ New phase covering reproducibility gaps that matter more now that the fresh-host
 
 ## Current next actions
 
-1. Add database backup/restore commands.
-2. Begin Phase 6 (multiple sensors and service instances) or Phase 7 (appliance management UX), whichever hardware/usage need arrives first.
+1. Add end-to-end tests covering MQTT printer state through policy, filter decisions, database writes, and Grafana query generation.
+2. Add documented recovery from a damaged SQLite database or missing configuration (partially covered by `docs/backup-restore.md`'s restore procedure; formalize as a runbook).
+3. Begin Phase 6 (multiple sensors and service instances) or Phase 7 (appliance management UX), whichever hardware/usage need arrives first.
 
 ## Operations note (2026-07-23)
 
