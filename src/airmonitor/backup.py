@@ -36,6 +36,19 @@ def _timestamp(now: datetime | None = None) -> str:
     return value.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
+def parse_backup_timestamp(path: str | Path) -> datetime | None:
+    """Recover the UTC moment a backup was taken from its filename."""
+
+    name = Path(path).name
+    if not (name.startswith(BACKUP_PREFIX) and name.endswith(BACKUP_SUFFIX)):
+        return None
+    stamp = name[len(BACKUP_PREFIX):-len(BACKUP_SUFFIX)]
+    try:
+        return datetime.strptime(stamp, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+
+
 def list_backups(backup_dir: str | Path) -> list[Path]:
     """Return backup files oldest-first, based on their filename timestamp."""
 

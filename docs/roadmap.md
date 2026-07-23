@@ -33,6 +33,8 @@ Promoted ahead of multi-sensor and UX work: the project's core promise ("Monitor
 - [x] Add configurable thresholds per sensor/metric (`config/alert-thresholds.yaml.example`, `ALERT_THRESHOLDS_PATH`).
 - [x] Add a notification-history/audit record (`alert_events` table) so alerts are auditable, not just fire-and-forget.
 - [x] Add a web UI view of alert state (`/alerts` page, `docs/status-page.md`). Found while auditing the UI: alerts were being recorded but had zero visibility anywhere in the status page or Grafana — only the CLI/raw SQL could see them.
+- [x] Add backup-health visibility (last backup time/size, retention count) to the landing page — otherwise a silently-broken `airmonitor-backup.timer` was only visible via `airmonitor-doctor`.
+- [x] Add an "update available" indicator to the landing page, comparing the installed commit against upstream via anonymous `git ls-remote` (no credentials or local-write needed) rather than requiring a manual check of `origin/main`.
 - [ ] Extend filter-mismatch alerting once Phase 4's persisted control wiring lands (basic actual/effective-state mismatch detection is in place today via `evaluate_filter_mismatch`).
 - [ ] Add an "explicit user override" acknowledgment/silence mechanism so a knowingly-accepted condition doesn't keep re-alerting after a restart.
 

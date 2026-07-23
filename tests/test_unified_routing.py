@@ -51,6 +51,8 @@ def test_nginx_routes_alerts_page_and_api_not_the_catchall() -> None:
     assert "proxy_pass http://127.0.0.1:8080/alerts.html;" in config
     assert "location = /alerts-api {" in config
     assert "proxy_pass http://127.0.0.1:8080/api/alerts;" in config
+    assert "location = /update-api {" in config
+    assert "proxy_pass http://127.0.0.1:8080/api/update;" in config
 
 
 def test_nginx_routes_public_exports_to_bounded_export_service() -> None:

@@ -9,11 +9,17 @@ import sqlite3
 import subprocess
 from typing import Any, Callable
 
+from airmonitor.backup import list_backups, parse_backup_timestamp
+
 
 DEFAULT_DATABASE = "/var/lib/airmonitor/airmonitor.sqlite3"
 SENSOR_STALE_SECONDS = 90
 SENSOR_OFFLINE_SECONDS = 300
 DEFAULT_ALERT_HISTORY_LIMIT = 50
+DEFAULT_BACKUP_DIR = "/var/lib/airmonitor/backups"
+# airmonitor-backup.timer runs daily; call a backup "stale" past ~1.5 days
+# so a single delayed run (RandomizedDelaySec, a busy host) doesn't false-flag.
+BACKUP_STALE_SECONDS = 36 * 3600
 SERVICES = (
     "airmonitor.target",
     "airmonitor-status.service",
@@ -24,6 +30,7 @@ SERVICES = (
     "airmonitor-bento.service",
     "airmonitor-levoit.service",
     "airmonitor-alerts.service",
+    "airmonitor-backup.timer",
     "grafana-server.service",
     "mosquitto.service",
 )
@@ -127,6 +134,7 @@ def collect_status(
     service_reader: Callable[[str], str | dict[str, str]] = _service_state,
     error_reader: Callable[[str], str | None] = _service_error,
     host_reader: Callable[[str], dict[str, Any]] | None = None,
+    backup_dir: str = DEFAULT_BACKUP_DIR,
 ) -> dict[str, Any]:
     """Collect status without talking to sensor hardware or control integrations."""
     checked_at = _iso_now(now)
@@ -213,6 +221,7 @@ def collect_status(
         "levoit": levoit,
         "services": services,
         "host": host,
+        "backups": collect_backup_status(backup_dir, now=checked_at),
         "database_error": database_error,
     }
 
@@ -250,4 +259,39 @@ def collect_alerts(
         "open": open_alerts,
         "resolved": resolved,
         "database_error": database_error,
+    }
+
+
+def collect_backup_status(backup_dir: str = DEFAULT_BACKUP_DIR, *, now: datetime | None = None) -> dict[str, Any]:
+    """Read-only view of what's in the backup directory: count, and the most
+    recent backup's age and size, so a silently-broken airmonitor-backup.timer
+    is visible without having to run airmonitor-doctor."""
+
+    checked_at = _iso_now(now)
+    try:
+        backups = list_backups(backup_dir)
+    except OSError:
+        backups = []
+
+    latest_at = None
+    latest_size_bytes = None
+    age_seconds = None
+    if backups:
+        latest = backups[-1]
+        parsed = parse_backup_timestamp(latest)
+        if parsed is not None:
+            latest_at = parsed.isoformat().replace("+00:00", "Z")
+            age_seconds = max(0.0, (checked_at - parsed).total_seconds())
+        try:
+            latest_size_bytes = latest.stat().st_size
+        except OSError:
+            latest_size_bytes = None
+
+    return {
+        "checked_at": checked_at.isoformat().replace("+00:00", "Z"),
+        "count": len(backups),
+        "latest_at": latest_at,
+        "latest_size_bytes": latest_size_bytes,
+        "age_seconds": age_seconds,
+        "stale": age_seconds is None or age_seconds > BACKUP_STALE_SECONDS,
     }

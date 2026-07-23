@@ -11,6 +11,7 @@ import os
 from pathlib import PurePosixPath
 import sqlite3
 import subprocess
+import time
 from typing import Iterable
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, urlsplit
@@ -20,12 +21,14 @@ from airmonitor.database import connect, init_db
 from airmonitor.database.repositories import FilterControlRepository
 from airmonitor.filters.control import resolve_filter_state
 from airmonitor.status import DEFAULT_DATABASE, collect_alerts, collect_status
+from airmonitor.update_check import check_for_update
 
 
 STATIC = files("airmonitor").joinpath("status_static")
 GRAFANA_API = os.environ.get("AIRMONITOR_GRAFANA_API", "http://127.0.0.1:3000")
 PUBLIC_ORIGIN = os.environ.get("AIRMONITOR_PUBLIC_ORIGIN", "http://localhost:8080")
 CONTROL_HELPER = os.environ.get("AIRMONITOR_CONTROL_HELPER", "/usr/local/sbin/airmonitor-service-control")
+BACKUP_DIR = os.environ.get("AIRMONITOR_BACKUP_DIR", "/var/lib/airmonitor/backups")
 CONTROLLED_SERVICES = (
     "airmonitor.target",
     "airmonitor-voc.service",
@@ -139,6 +142,23 @@ def service_status(service: str) -> str:
     return (result.stdout or result.stderr).strip()
 
 
+UPDATE_CHECK_TTL_SECONDS = int(os.environ.get("AIRMONITOR_UPDATE_CHECK_TTL_SECONDS", "3600"))
+_update_check_cache: dict[str, object] = {"result": None, "checked_at": 0.0}
+
+
+def cached_update_check() -> dict[str, object]:
+    """Debounce the network call in check_for_update(): a git ls-remote on
+    every poll would add latency/traffic for information that changes at
+    most a few times a day."""
+
+    now = time.monotonic()
+    cached = _update_check_cache["result"]
+    if cached is None or (now - _update_check_cache["checked_at"]) > UPDATE_CHECK_TTL_SECONDS:
+        _update_check_cache["result"] = check_for_update()
+        _update_check_cache["checked_at"] = now
+    return _update_check_cache["result"]
+
+
 class StatusHandler(BaseHTTPRequestHandler):
     server_version = "AirMonitorStatus"
 
@@ -170,10 +190,13 @@ class StatusHandler(BaseHTTPRequestHandler):
         request_url = urlsplit(self.path)
         path = request_url.path
         if path == "/api/status":
-            self._json(200, collect_status(self.server.database))
+            self._json(200, collect_status(self.server.database, backup_dir=self.server.backup_dir))
             return
         if path == "/api/alerts":
             self._json(200, collect_alerts(self.server.database))
+            return
+        if path == "/api/update":
+            self._json(200, cached_update_check())
             return
         if path == "/api/session":
             user = self._current_user()
@@ -309,12 +332,14 @@ class StatusServer(ThreadingHTTPServer):
         grafana_api: str = GRAFANA_API,
         public_origin: str = PUBLIC_ORIGIN,
         control_helper: str = CONTROL_HELPER,
+        backup_dir: str = BACKUP_DIR,
     ):
         super().__init__(address, StatusHandler)
         self.database = database
         self.grafana_api = grafana_api
         self.public_origin = public_origin
         self.control_helper = control_helper
+        self.backup_dir = backup_dir
 
 
 def main(argv: Iterable[str] | None = None) -> int:

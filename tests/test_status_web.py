@@ -10,6 +10,7 @@ from airmonitor.status_web import (
     NO_STORE_FILENAMES,
     SERVICE_ACTIONS,
     STATIC_FILENAMES,
+    cached_update_check,
     grafana_user,
     service_enabled,
     service_status,
@@ -135,6 +136,35 @@ class StatusWebTests(unittest.TestCase):
         self.assertIn("alerts.html", NO_STORE_FILENAMES)
         # login.html intentionally keeps its prior cached behavior.
         self.assertNotIn("login.html", NO_STORE_FILENAMES)
+
+    def test_cached_update_check_debounces_the_network_call(self):
+        import airmonitor.status_web as status_web
+
+        status_web._update_check_cache["result"] = None
+        status_web._update_check_cache["checked_at"] = 0.0
+        with patch("airmonitor.status_web.check_for_update") as mocked:
+            mocked.return_value = {"update_available": False}
+            first = cached_update_check()
+            second = cached_update_check()
+        self.assertEqual(first, second)
+        mocked.assert_called_once()
+
+    def test_cached_update_check_refreshes_after_ttl_expires(self):
+        import time
+
+        import airmonitor.status_web as status_web
+
+        status_web._update_check_cache["result"] = {"update_available": False}
+        # A relative offset, not an absolute value: time.monotonic()'s epoch is
+        # arbitrary (often process/boot start), so it can be small in a
+        # short-lived test process -- "far in the past" must be computed
+        # relative to "now", not assumed via a literal like 0.0.
+        status_web._update_check_cache["checked_at"] = time.monotonic() - (status_web.UPDATE_CHECK_TTL_SECONDS + 10)
+        with patch("airmonitor.status_web.check_for_update") as mocked:
+            mocked.return_value = {"update_available": True}
+            result = cached_update_check()
+        self.assertEqual(result, {"update_available": True})
+        mocked.assert_called_once()
 
 
 if __name__ == "__main__":

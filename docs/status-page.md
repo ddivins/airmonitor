@@ -44,6 +44,28 @@ Adding a new page here requires two things, not just new files: a route in
 (`location / { return 301 /grafana$request_uri; }`) means an unmatched path silently redirects
 to Grafana instead of 404ing, which makes a missing nginx route easy to overlook.
 
+## Backup and update visibility
+
+The "Appliance" panel on the landing page also shows:
+
+- **Last backup / Backups kept** — reads `airmonitor.backup.list_backups()` directly (no
+  network, no subprocess), so a silently-broken `airmonitor-backup.timer` is visible without
+  running `airmonitor-doctor`. A backup older than 36 hours (1.5x the daily schedule, so a
+  single delayed `RandomizedDelaySec` run doesn't false-flag) is shown in amber.
+- **Update** — compares the commit `tools/update.sh` last recorded as installed
+  (`/var/lib/airmonitor/update-state/installed-commit`) against upstream's current tip via an
+  anonymous `git ls-remote` over HTTPS. This deliberately avoids a real `git fetch`: it needs
+  neither write access to the checkout's `.git` (a fetch does) nor stored credentials for a
+  public repo, so it can run as the unprivileged status-service user rather than needing the
+  checkout-owner permissions that `airmonitor update` requires (see `cli.resolve_repo_dir`).
+  The result is cached in-process for an hour (`AIRMONITOR_UPDATE_CHECK_TTL_SECONDS`) so the
+  network call doesn't happen on every page load.
+
+Both read from `/var/lib/airmonitor/backups` and `/var/lib/airmonitor/update-state` by default;
+override with `AIRMONITOR_BACKUP_DIR` / `AIRMONITOR_UPDATE_STATE_DIR` in
+`/etc/airmonitor/airmonitor.env` if needed. Neither is required for day-to-day operation — both
+degrade to an informational "unknown" state rather than breaking the rest of the page.
+
 ## Authentication and administration
 
 Grafana is the single identity source. Nginx makes its `/grafana/` session cookie available

@@ -6,7 +6,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from airmonitor.status import SERVICES, collect_alerts, collect_status
+from airmonitor.status import SERVICES, collect_alerts, collect_backup_status, collect_status
 
 
 def build_database(path, sampled_at: str) -> None:
@@ -173,3 +173,48 @@ class AlertsTests(unittest.TestCase):
         self.assertEqual(result["open"], [])
         self.assertEqual(result["resolved"], [])
         self.assertIsNotNone(result["database_error"])
+
+
+class BackupStatusTests(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.backup_dir = Path(self.temp_dir.name) / "backups"
+        self.backup_dir.mkdir()
+        self.now = datetime(2026, 7, 14, 12, 0, tzinfo=timezone.utc)
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+
+    def _touch_backup(self, stamp: str, size: int = 1000) -> None:
+        path = self.backup_dir / f"airmonitor-{stamp}.sqlite3.gz"
+        path.write_bytes(b"0" * size)
+
+    def test_collect_backup_status_reports_empty_directory(self):
+        result = collect_backup_status(str(self.backup_dir), now=self.now)
+        self.assertEqual(result["count"], 0)
+        self.assertIsNone(result["latest_at"])
+        self.assertTrue(result["stale"])
+
+    def test_collect_backup_status_reports_the_most_recent_backup(self):
+        self._touch_backup("20260713T000000Z", size=500)
+        self._touch_backup("20260714T110000Z", size=1234)  # 1 hour before self.now
+
+        result = collect_backup_status(str(self.backup_dir), now=self.now)
+
+        self.assertEqual(result["count"], 2)
+        self.assertEqual(result["latest_at"], "2026-07-14T11:00:00Z")
+        self.assertEqual(result["latest_size_bytes"], 1234)
+        self.assertAlmostEqual(result["age_seconds"], 3600, delta=1)
+        self.assertFalse(result["stale"])
+
+    def test_collect_backup_status_flags_a_stale_backup(self):
+        self._touch_backup("20260710T120000Z")  # 4 days before self.now
+
+        result = collect_backup_status(str(self.backup_dir), now=self.now)
+
+        self.assertTrue(result["stale"])
+
+    def test_collect_backup_status_ignores_missing_directory(self):
+        result = collect_backup_status(str(self.backup_dir / "does-not-exist"), now=self.now)
+        self.assertEqual(result["count"], 0)
+        self.assertTrue(result["stale"])

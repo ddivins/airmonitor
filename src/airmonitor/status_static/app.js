@@ -153,6 +153,12 @@ function render(data) {
   $("database-size").textContent = bytes(host.database_size_bytes);
   $("cpu-temperature").textContent = host.cpu_temperature_c == null ? "Unavailable" : `${number(host.cpu_temperature_c, 1)} °C`;
 
+  const backups = data.backups || {};
+  const lastBackupEl = $("last-backup");
+  lastBackupEl.textContent = backups.latest_at ? `${timeAgo(backups.age_seconds)} · ${bytes(backups.latest_size_bytes)}` : "Never";
+  lastBackupEl.classList.toggle("value-warning", Boolean(backups.stale));
+  $("backup-count").textContent = backups.count ?? "—";
+
   $("services").innerHTML = Object.entries(data.services || {}).map(([name, state]) => {
     const runtime = serviceRuntime(state);
     const runtimeText = runtime.active;
@@ -247,11 +253,34 @@ async function refresh() {
   }
 }
 
+async function refreshUpdateStatus() {
+  const el = $("update-status");
+  try {
+    const response = await fetch("/update-api", {cache: "no-store"});
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    const short = (sha) => (sha ? sha.slice(0, 7) : "");
+    if (data.update_available === true) {
+      el.textContent = `Update available (${short(data.installed_commit)} → ${short(data.latest_commit)})`;
+    } else if (data.update_available === false) {
+      el.textContent = `Up to date (${short(data.installed_commit)})`;
+    } else {
+      el.textContent = data.error || "Unknown";
+    }
+    el.classList.toggle("value-warning", data.update_available === true);
+  } catch (_) {
+    el.textContent = "Unavailable";
+    el.classList.remove("value-warning");
+  }
+}
+
 async function initialize() {
   await refreshSession();
   await refresh();
+  await refreshUpdateStatus();
 }
 
 initialize();
 setInterval(refresh, 10000);
 setInterval(async () => { await refreshSession(); await refresh(); }, 60000);
+setInterval(refreshUpdateStatus, 600000);
