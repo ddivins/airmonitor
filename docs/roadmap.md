@@ -76,7 +76,7 @@ New phase covering reproducibility gaps that matter more now that the fresh-host
 
 ## Phase 8 — Reliability and releases
 
-- [ ] Add end-to-end tests covering MQTT printer state through policy, filter decisions, database writes, and Grafana query generation.
+- [x] Add end-to-end tests covering MQTT printer state through policy, filter decisions, database writes, and Grafana query generation (`tests/test_end_to_end_pipeline.py`).
 - [x] Add database backup/restore commands and documented retention policy (`airmonitor backup`/`airmonitor restore`, daily `airmonitor-backup.timer`, 14-backup default retention). See `docs/backup-restore.md`.
 - [x] Add installed Git commit reporting (`installed-commit`/`previous-commit`/`target-commit` under `/var/lib/airmonitor/update-state/`, already tracked by `tools/update.sh`/`tools/rollback.sh`).
 - [x] Add release tags and a changelog (`CHANGELOG.md`, first entry `v0.6.0`). Tags/changelog are written by hand per release, not auto-generated from commits.
@@ -93,8 +93,8 @@ New phase covering reproducibility gaps that matter more now that the fresh-host
 
 ## Current next actions
 
-1. Add end-to-end tests covering MQTT printer state through policy, filter decisions, database writes, and Grafana query generation.
-2. Add documented recovery from a damaged SQLite database or missing configuration (partially covered by `docs/backup-restore.md`'s restore procedure; formalize as a runbook).
+1. Add documented recovery from a damaged SQLite database or missing configuration (partially covered by `docs/backup-restore.md`'s restore procedure; formalize as a runbook).
+2. Define and test the v1.0 supported hardware and upgrade path.
 3. Begin Phase 6 (multiple sensors and service instances) or Phase 7 (appliance management UX), whichever hardware/usage need arrives first.
 
 ## Operations note (2026-07-23)
