@@ -82,7 +82,7 @@ New phase covering reproducibility gaps that matter more now that the fresh-host
 - [x] Add release tags and a changelog (`CHANGELOG.md`, first entry `v0.6.0`). Tags/changelog are written by hand per release, not auto-generated from commits.
 - [x] Add automatic rollback when update, service startup, or doctor fails: `tools/update.sh` now runs `tools/rollback.sh` automatically if any service fails to (re)start or `airmonitor-doctor` reports a required failure, rather than only suggesting a manual rollback. Opt out with `AUTO_ROLLBACK=0` (see `docs/update-rollback.md`). Fresh `tools/install.sh` runs are not covered yet — a failure there still requires manual cleanup.
 - [ ] Add documented recovery from a damaged SQLite database or missing configuration.
-- [ ] Define and test the v1.0 supported hardware and upgrade path.
+- [x] Define and test the v1.0 supported hardware and upgrade path (`docs/hardware-bom.md`, "v1.0 upgrade path promise" in `docs/update-rollback.md`, `tests/test_schema_upgrade_path.py`). The package version has not been bumped to `1.0.0` yet — that's a separate, deliberate release decision, not implied by writing the definition down.
 
 ## Phase 9 — Optional future expansion
 
@@ -94,8 +94,9 @@ New phase covering reproducibility gaps that matter more now that the fresh-host
 ## Current next actions
 
 1. Add documented recovery from a damaged SQLite database or missing configuration (partially covered by `docs/backup-restore.md`'s restore procedure; formalize as a runbook).
-2. Define and test the v1.0 supported hardware and upgrade path.
-3. Begin Phase 6 (multiple sensors and service instances) or Phase 7 (appliance management UX), whichever hardware/usage need arrives first.
+2. Update `docs/hardware-bom.md`'s host section once the planned Raspberry Pi 5 migration completes.
+3. Decide when to actually cut the `1.0.0` release (the definition is written; the version bump is a separate decision).
+4. Begin Phase 6 (multiple sensors and service instances) or Phase 7 (appliance management UX), whichever hardware/usage need arrives first.
 
 ## Operations note (2026-07-23)
 

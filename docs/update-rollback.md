@@ -86,3 +86,27 @@ sudo cat /var/lib/airmonitor/update-state/installed-commit
 - Local secrets and `/etc/airmonitor/hardware.yaml` are preserved and are not replaced by rollback.
 - Grafana dashboards are not currently reverted automatically by `tools/rollback.sh`.
 - A rollback restores application code and systemd units, not the Git branch pointer.
+
+## v1.0 upgrade path promise
+
+Starting at v1.0 (see `docs/hardware-bom.md` for the corresponding reference
+hardware), this project commits to:
+
+- **Any tagged version can update in place to any later tagged version** via
+  `bash tools/update.sh`, without manual database surgery. This holds
+  because schema migrations (`airmonitor.database.init_db`) are additive
+  only — new tables via `CREATE TABLE IF NOT EXISTS`, new columns via
+  `ALTER TABLE ADD COLUMN` (`ensure_columns`) — never destructive
+  (`DROP`/rename/retype an existing column). `SCHEMA_VERSION` only
+  increases. `tests/test_schema_upgrade_path.py` guards this by migrating a
+  populated pre-v1.0-shaped database forward and asserting existing rows
+  survive untouched.
+- **A failed update rolls back automatically** to the previously installed
+  commit (see "Automatic rollback on failure" above), so an update that
+  breaks a service or fails its health check doesn't leave the appliance
+  degraded unattended.
+
+This project does **not** currently promise that `/etc/airmonitor/*` config
+file locations or formats stay fixed forever — a breaking config change
+would be called out in `CHANGELOG.md` with a manual migration note, not
+silently handled by `tools/update.sh`.
