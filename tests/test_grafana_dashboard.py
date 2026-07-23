@@ -272,6 +272,20 @@ class ComparePrintsDashboardTests(unittest.TestCase):
         for (_, end), (next_start, _) in zip(spans, spans[1:]):
             self.assertLessEqual(end, next_start)
 
+    def test_overlay_charts_do_not_mark_time_as_a_time_column(self):
+        """Regression test: the "time" column here is elapsed minutes since
+        each print's own start, not epoch seconds. Listing it in
+        timeColumns tells the plugin to convert it as epoch seconds, which
+        silently collapses many distinct elapsed-minute values onto the same
+        instant (observed live as Grafana's "Values must be in ascending
+        order" error on the VOC panel). airmonitor-print-window.json's own
+        trend panels use an empty timeColumns for the same reason."""
+
+        trend_panels = [p for p in self.dashboard["panels"] if p["type"] == "trend"]
+        self.assertEqual(len(trend_panels), 3)
+        for panel in trend_panels:
+            self.assertEqual(panel["targets"][0]["timeColumns"], [])
+
     def test_summary_table_and_overlay_queries_execute_against_real_schema(self):
         conn = sqlite3.connect(":memory:")
         try:
