@@ -70,8 +70,10 @@ def test_nginx_injects_airmonitor_banner_into_grafana_pages() -> None:
     block serves that page's HTML and the prefix block never sees it."""
 
     config = (ROOT / "nginx" / "airmonitor.conf.template").read_text(encoding="utf-8")
-    assert config.count('sub_filter \'</head>\' \'<link rel="stylesheet" href="/status-assets/grafana-banner.css?v=1"></head>\';') == 2
+    assert config.count('sub_filter \'</head>\' \'<link rel="stylesheet" href="/status-assets/grafana-banner.css?v=2"></head>\';') == 2
     assert config.count("sub_filter '<div id=\"reactRoot\"></div>'") == 2
+    for label in ("Home", "Live", "Prints", "Compare", "Alerts"):
+        assert f">{label}</a>" in config
     assert 'proxy_set_header Accept-Encoding "";' in config
 
 
@@ -95,6 +97,21 @@ def test_landing_page_uses_same_origin_grafana_links() -> None:
         assert 'href="/grafana/' in content
         assert "https://grafana.airmonitor.example.com" not in content
         assert 'href="/sign-in"' in content
+
+
+def test_landing_page_groups_readings_and_keeps_diagnostics_progressive() -> None:
+    root = ROOT / "src" / "airmonitor" / "status_static"
+    html = (root / "index.html").read_text(encoding="utf-8")
+    css = (root / "style.css").read_text(encoding="utf-8")
+    script = (root / "app.js").read_text(encoding="utf-8")
+
+    assert 'class="reading-group"' in html
+    assert 'class="reading-group particulate-group"' in html
+    assert 'id="system-details"' in html
+    assert 'id="voc-age"' in html
+    assert 'id="pm25-age"' in html
+    assert "renderReadingFreshness" in script
+    assert "@media (prefers-reduced-motion: reduce)" in css
 
 
 def test_airmonitor_login_submits_to_grafana_then_returns_home() -> None:

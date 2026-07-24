@@ -52,6 +52,17 @@
       "title": "Print Window",
       "type": "link",
       "url": "/grafana/d/airmonitor-print-window/airmonitor-print-window"
+    },
+    {
+      "asDropdown": false,
+      "icon": "dashboard",
+      "includeVars": false,
+      "keepTime": false,
+      "tags": [],
+      "targetBlank": false,
+      "title": "Compare Prints",
+      "type": "link",
+      "url": "/grafana/d/airmonitor-compare-prints/airmonitor-compare-prints"
     }
   ],
   "panels": [
@@ -76,7 +87,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "![AirMonitor \u2014 Monitor. Understand. Don't Die.](/public/img/airmonitor-brand-300.png)"
+        "content": "[![AirMonitor \u2014 Monitor. Understand. Don't Die.](/public/img/airmonitor-brand-300.png)](/)"
       },
       "transparent": true
     },

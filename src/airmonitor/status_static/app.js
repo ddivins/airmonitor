@@ -42,6 +42,21 @@ let session = {authenticated: false, services: {}};
 let streamedService = null;
 let serviceStreamTimer = null;
 
+function renderReadingFreshness(source, groupId, metricIds) {
+  const age = source?.age_seconds;
+  const fresh = age != null && age <= 90;
+  const text = timeAgo(age);
+  const stateClass = age == null ? "stale" : (fresh ? "fresh" : "stale");
+  const group = $(groupId);
+  group.textContent = text;
+  group.className = stateClass;
+  metricIds.forEach((id) => {
+    const element = $(`${id}-age`);
+    element.textContent = `Sampled ${text}`;
+    element.className = `metric-age ${stateClass}`;
+  });
+}
+
 function renderSession() {
   const panel = $("auth-panel");
   const user = session.user;
@@ -55,6 +70,11 @@ function renderSession() {
   panel.innerHTML = `<div class="signed-in"><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(user.role)} · ${escapeHtml(user.email || user.login)}</small><a class="dashboard-browser-link" href="/grafana/dashboards">Browse dashboards <span aria-hidden="true">→</span></a><div class="account-links"><a href="/grafana/profile">Account</a><a href="/grafana/logout">Sign out</a></div></div>`;
   $("admin-notice").hidden = !user.admin;
   $("services-caption").textContent = user.admin ? "Administrator controls" : "Systemd state";
+  const details = $("system-details");
+  if (user.admin && !details.dataset.adminOpened) {
+    details.open = true;
+    details.dataset.adminOpened = "true";
+  }
 }
 
 function serviceControl(name) {
@@ -135,6 +155,8 @@ function render(data) {
   $("pm25").textContent = number(sps.mass_pm2_5, 1);
   $("pm4").textContent = number(sps.mass_pm4_0, 1);
   $("pm10").textContent = number(sps.mass_pm10, 1);
+  renderReadingFreshness(data.freshness?.sgx, "sgx-group-age", ["voc", "temperature", "humidity"]);
+  renderReadingFreshness(data.freshness?.sps30, "sps30-group-age", ["pm1", "pm25", "pm4", "pm10"]);
 
   const printer = data.printer || {};
   $("printer-state").textContent = printer.last_gcode_state || "Unknown";

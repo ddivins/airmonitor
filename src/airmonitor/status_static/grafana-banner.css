@@ -7,18 +7,78 @@
 .airmonitor-grafana-banner {
   display: flex;
   align-items: center;
-  padding: 10px 16px;
+  gap: 22px;
+  min-height: 56px;
+  padding: 8px 16px;
   background: #ffffff;
   border-bottom: 1px solid #dce5ec;
+  box-shadow: 0 5px 18px rgba(6, 29, 73, .05);
 }
 
-.airmonitor-grafana-banner img {
+.airmonitor-grafana-brand {
   display: block;
-  height: 32px;
+  flex: 0 0 auto;
+  border-radius: 7px;
+}
+
+.airmonitor-grafana-brand img {
+  display: block;
+  height: 38px;
   width: auto;
 }
 
-.airmonitor-grafana-banner:focus-visible {
+.airmonitor-grafana-brand:focus-visible {
   outline: 3px solid rgba(22, 117, 209, .25);
-  outline-offset: -3px;
+  outline-offset: 3px;
+}
+
+.airmonitor-grafana-banner nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.airmonitor-grafana-banner nav a {
+  padding: 8px 10px;
+  color: #162747;
+  border-radius: 7px;
+  font: 700 13px/1.2 Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  text-decoration: none;
+}
+
+.airmonitor-grafana-banner nav a:hover,
+.airmonitor-grafana-banner nav a:focus-visible {
+  color: #ffffff;
+  background: #1675d1;
+  outline: none;
+}
+
+@media (max-width: 600px) {
+  .airmonitor-grafana-banner {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 4px;
+    padding: 7px 10px 5px;
+  }
+
+  .airmonitor-grafana-brand img {
+    height: 30px;
+  }
+
+  .airmonitor-grafana-banner nav {
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .airmonitor-grafana-banner nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .airmonitor-grafana-banner nav a {
+    flex: 0 0 auto;
+    padding: 7px 10px;
+    font-size: 12px;
+  }
 }

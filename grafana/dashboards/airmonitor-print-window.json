@@ -58,6 +58,17 @@
       "keepTime": false,
       "tags": [],
       "targetBlank": false,
+      "title": "AirMonitor Live",
+      "type": "link",
+      "url": "/grafana/d/airmonitor-live/airmonitor-live"
+    },
+    {
+      "asDropdown": false,
+      "icon": "dashboard",
+      "includeVars": false,
+      "keepTime": false,
+      "tags": [],
+      "targetBlank": false,
       "title": "Compare Prints",
       "type": "link",
       "url": "/grafana/d/airmonitor-compare-prints/airmonitor-compare-prints"

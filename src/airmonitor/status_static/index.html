@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#f4f8fb">
   <title>AirMonitor Status</title>
   <link rel="icon" href="/status-assets/favicon.ico">
-  <link rel="stylesheet" href="/status-assets/style.css?v=14">
+  <link rel="stylesheet" href="/status-assets/style.css?v=16">
 </head>
 <body>
   <main class="shell">
@@ -17,7 +17,7 @@
       </a>
       <div class="hero-copy">
         <div class="eyebrow">Appliance status</div>
-        <div class="status-line">
+        <div class="status-line" role="status" aria-live="polite">
           <span id="overall-dot" class="status-dot loading"></span>
           <h1 id="overall">Checking status…</h1>
         </div>
@@ -26,7 +26,11 @@
       </div>
       <div class="hero-actions">
         <a class="grafana-button" href="/grafana/d/airmonitor-live/airmonitor-live?kiosk&theme=light">Open Grafana Dashboard <span aria-hidden="true">→</span></a>
-        <a class="grafana-button secondary" href="/alerts">View Alerts <span aria-hidden="true">→</span></a>
+        <nav class="quick-links" aria-label="AirMonitor navigation">
+          <a href="/alerts">Alerts</a>
+          <a href="/grafana/d/airmonitor-print-window/airmonitor-print-window">Prints</a>
+          <a href="/grafana/d/airmonitor-compare-prints/airmonitor-compare-prints">Compare</a>
+        </nav>
         <div id="auth-panel" class="auth-panel">
           <a class="grafana-signin" href="/sign-in">Sign in <span aria-hidden="true">→</span><small>Administration and dashboards</small></a>
           <a class="password-reset" href="/grafana/user/password/send-reset-email">Forgot password?</a>
@@ -35,15 +39,25 @@
     </header>
 
     <section aria-labelledby="readings-title">
-      <div class="section-heading"><h2 id="readings-title">Current air</h2><span>Latest service samples</span></div>
-      <div class="metric-grid">
-        <a class="metric" href="/grafana/d/airmonitor-live/airmonitor-live?viewPanel=1&amp;kiosk&amp;theme=light" aria-label="Open VOC history in Grafana"><span>VOC</span><strong id="voc">—</strong><small>ppm <b>View history →</b></small></a>
-        <a class="metric" href="/grafana/d/airmonitor-live/airmonitor-live?viewPanel=2&amp;kiosk&amp;theme=light" aria-label="Open temperature history in Grafana"><span>Temperature</span><strong id="temperature">—</strong><small>°C <b>View history →</b></small></a>
-        <a class="metric" href="/grafana/d/airmonitor-live/airmonitor-live?viewPanel=2&amp;kiosk&amp;theme=light" aria-label="Open humidity history in Grafana"><span>Humidity</span><strong id="humidity">—</strong><small>% RH <b>View history →</b></small></a>
-        <a class="metric" href="/grafana/d/airmonitor-live/airmonitor-live?viewPanel=3&amp;kiosk&amp;theme=light" aria-label="Open PM1 history in Grafana"><span>PM1</span><strong id="pm1">—</strong><small>µg/m³ <b>View history →</b></small></a>
-        <a class="metric" href="/grafana/d/airmonitor-live/airmonitor-live?viewPanel=3&amp;kiosk&amp;theme=light" aria-label="Open PM2.5 history in Grafana"><span>PM2.5</span><strong id="pm25">—</strong><small>µg/m³ <b>View history →</b></small></a>
-        <a class="metric" href="/grafana/d/airmonitor-live/airmonitor-live?viewPanel=3&amp;kiosk&amp;theme=light" aria-label="Open PM4 history in Grafana"><span>PM4</span><strong id="pm4">—</strong><small>µg/m³ <b>View history →</b></small></a>
-        <a class="metric" href="/grafana/d/airmonitor-live/airmonitor-live?viewPanel=3&amp;kiosk&amp;theme=light" aria-label="Open PM10 history in Grafana"><span>PM10</span><strong id="pm10">—</strong><small>µg/m³ <b>View history →</b></small></a>
+      <div class="section-heading"><div><span class="section-kicker">Live environment</span><h2 id="readings-title">Current air</h2></div><span>Latest persisted samples</span></div>
+      <div class="reading-layout">
+        <article class="reading-group">
+          <div class="reading-group-heading"><h3>Environment</h3><span id="sgx-group-age">Waiting for SGX</span></div>
+          <div class="metric-grid environment-grid">
+            <a class="metric" href="/grafana/d/airmonitor-live/airmonitor-live?viewPanel=1&amp;kiosk&amp;theme=light" aria-label="Open VOC history in Grafana"><span>VOC</span><strong id="voc">—</strong><small><span>ppm</span><b>History →</b></small><em class="metric-age" id="voc-age">No sample</em></a>
+            <a class="metric" href="/grafana/d/airmonitor-live/airmonitor-live?viewPanel=2&amp;kiosk&amp;theme=light" aria-label="Open temperature history in Grafana"><span>Temperature</span><strong id="temperature">—</strong><small><span>°C</span><b>History →</b></small><em class="metric-age" id="temperature-age">No sample</em></a>
+            <a class="metric" href="/grafana/d/airmonitor-live/airmonitor-live?viewPanel=2&amp;kiosk&amp;theme=light" aria-label="Open humidity history in Grafana"><span>Humidity</span><strong id="humidity">—</strong><small><span>% RH</span><b>History →</b></small><em class="metric-age" id="humidity-age">No sample</em></a>
+          </div>
+        </article>
+        <article class="reading-group particulate-group">
+          <div class="reading-group-heading"><h3>Particulate matter</h3><span id="sps30-group-age">Waiting for SPS30</span></div>
+          <div class="metric-grid particulate-grid">
+            <a class="metric compact" href="/grafana/d/airmonitor-live/airmonitor-live?viewPanel=3&amp;kiosk&amp;theme=light" aria-label="Open PM1 history in Grafana"><span>PM1</span><strong id="pm1">—</strong><small><span>µg/m³</span><b>History →</b></small><em class="metric-age" id="pm1-age">No sample</em></a>
+            <a class="metric compact" href="/grafana/d/airmonitor-live/airmonitor-live?viewPanel=3&amp;kiosk&amp;theme=light" aria-label="Open PM2.5 history in Grafana"><span>PM2.5</span><strong id="pm25">—</strong><small><span>µg/m³</span><b>History →</b></small><em class="metric-age" id="pm25-age">No sample</em></a>
+            <a class="metric compact" href="/grafana/d/airmonitor-live/airmonitor-live?viewPanel=3&amp;kiosk&amp;theme=light" aria-label="Open PM4 history in Grafana"><span>PM4</span><strong id="pm4">—</strong><small><span>µg/m³</span><b>History →</b></small><em class="metric-age" id="pm4-age">No sample</em></a>
+            <a class="metric compact" href="/grafana/d/airmonitor-live/airmonitor-live?viewPanel=3&amp;kiosk&amp;theme=light" aria-label="Open PM10 history in Grafana"><span>PM10</span><strong id="pm10">—</strong><small><span>µg/m³</span><b>History →</b></small><em class="metric-age" id="pm10-age">No sample</em></a>
+          </div>
+        </article>
       </div>
     </section>
 
@@ -63,35 +77,38 @@
       </article>
     </section>
 
-    <section class="two-column">
-      <article class="panel">
-        <div class="section-heading"><h2>Sensor freshness</h2><span>From persisted samples</span></div>
-        <div id="freshness" class="state-list"><div class="skeleton"></div><div class="skeleton"></div></div>
-      </article>
-      <article class="panel">
-        <div class="section-heading"><h2>Appliance</h2><span>Host telemetry</span></div>
-        <dl class="details appliance-details">
-          <div><dt>Last backup</dt><dd id="last-backup">—</dd></div>
-          <div><dt>Update</dt><dd id="update-status">—</dd></div>
-          <div><dt>Uptime</dt><dd id="uptime">—</dd></div>
-          <div><dt>Disk</dt><dd id="disk">—</dd></div>
-          <div><dt>Database</dt><dd id="database-size">—</dd></div>
-          <div><dt>CPU temperature</dt><dd id="cpu-temperature">—</dd></div>
-          <div><dt>Backups kept</dt><dd id="backup-count">—</dd></div>
-        </dl>
-      </article>
-    </section>
-
-    <section aria-labelledby="services-title">
-      <div class="section-heading"><h2 id="services-title">Services</h2><span id="services-caption">Systemd state</span></div>
-      <div id="admin-notice" class="admin-notice" hidden>Administrator controls affect live data collection and automation.</div>
-      <div id="services" class="service-grid"><div class="skeleton"></div></div>
-      <div id="service-status-panel" class="service-output" hidden>
-        <div class="service-output-heading"><div><span>Live systemctl status</span><h3 id="service-status-title">Service output</h3></div><button id="service-status-clear" type="button">Clear</button></div>
-        <pre id="service-status-output" aria-live="polite">Select a service to view its status.</pre>
+    <details id="system-details" class="system-details">
+      <summary><span><span class="section-kicker">Diagnostics</span><strong>Appliance and service details</strong></span><span class="summary-hint">Freshness, host telemetry, and systemd state</span></summary>
+      <div class="two-column diagnostics-grid">
+        <article class="panel">
+          <div class="section-heading"><h2>Sensor freshness</h2><span>From persisted samples</span></div>
+          <div id="freshness" class="state-list"><div class="skeleton"></div><div class="skeleton"></div></div>
+        </article>
+        <article class="panel">
+          <div class="section-heading"><h2>Appliance</h2><span>Host telemetry</span></div>
+          <dl class="details appliance-details">
+            <div><dt>Last backup</dt><dd id="last-backup">—</dd></div>
+            <div><dt>Update</dt><dd id="update-status">—</dd></div>
+            <div><dt>Uptime</dt><dd id="uptime">—</dd></div>
+            <div><dt>Disk</dt><dd id="disk">—</dd></div>
+            <div><dt>Database</dt><dd id="database-size">—</dd></div>
+            <div><dt>CPU temperature</dt><dd id="cpu-temperature">—</dd></div>
+            <div><dt>Backups kept</dt><dd id="backup-count">—</dd></div>
+          </dl>
+        </article>
       </div>
-    </section>
+
+      <section class="services-section" aria-labelledby="services-title">
+        <div class="section-heading"><h2 id="services-title">Services</h2><span id="services-caption">Systemd state</span></div>
+        <div id="admin-notice" class="admin-notice" hidden>Administrator controls affect live data collection and automation.</div>
+        <div id="services" class="service-grid"><div class="skeleton"></div></div>
+        <div id="service-status-panel" class="service-output" hidden>
+          <div class="service-output-heading"><div><span>Live systemctl status</span><h3 id="service-status-title">Service output</h3></div><button id="service-status-clear" type="button">Clear</button></div>
+          <pre id="service-status-output" aria-live="polite">Select a service to view its status.</pre>
+        </div>
+      </section>
+    </details>
   </main>
-  <script src="/status-assets/app.js?v=21" defer></script>
+  <script src="/status-assets/app.js?v=22" defer></script>
 </body>
 </html>

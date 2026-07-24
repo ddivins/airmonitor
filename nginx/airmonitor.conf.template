@@ -162,8 +162,8 @@ server {
         # Same logo banner injected below for /grafana/ -- this exact-match
         # location serves the login page's HTML too, which the prefix
         # location below never sees.
-        sub_filter '</head>' '<link rel="stylesheet" href="/status-assets/grafana-banner.css?v=1"></head>';
-        sub_filter '<div id="reactRoot"></div>' '<a href="https://__DOMAIN__/" class="airmonitor-grafana-banner" aria-label="Back to AirMonitor status"><img src="/status-assets/airmonitor-logo-300px.webp" alt="AirMonitor"></a><div id="reactRoot"></div>';
+        sub_filter '</head>' '<link rel="stylesheet" href="/status-assets/grafana-banner.css?v=2"></head>';
+        sub_filter '<div id="reactRoot"></div>' '<header class="airmonitor-grafana-banner"><a href="https://__DOMAIN__/" class="airmonitor-grafana-brand" aria-label="AirMonitor home"><img src="/status-assets/airmonitor-logo-300px.webp" alt="AirMonitor"></a><nav aria-label="AirMonitor navigation"><a href="https://__DOMAIN__/">Home</a><a href="/grafana/d/airmonitor-live/airmonitor-live">Live</a><a href="/grafana/d/airmonitor-print-window/airmonitor-print-window">Prints</a><a href="/grafana/d/airmonitor-compare-prints/airmonitor-compare-prints">Compare</a><a href="https://__DOMAIN__/alerts">Alerts</a></nav></header><div id="reactRoot"></div>';
     }
 
     location /grafana/ {
@@ -195,8 +195,8 @@ server {
         # so a Grafana upgrade could someday stop matching (the banner would
         # just silently disappear, not break anything else).
         proxy_set_header Accept-Encoding "";
-        sub_filter '</head>' '<link rel="stylesheet" href="/status-assets/grafana-banner.css?v=1"></head>';
-        sub_filter '<div id="reactRoot"></div>' '<a href="https://__DOMAIN__/" class="airmonitor-grafana-banner" aria-label="Back to AirMonitor status"><img src="/status-assets/airmonitor-logo-300px.webp" alt="AirMonitor"></a><div id="reactRoot"></div>';
+        sub_filter '</head>' '<link rel="stylesheet" href="/status-assets/grafana-banner.css?v=2"></head>';
+        sub_filter '<div id="reactRoot"></div>' '<header class="airmonitor-grafana-banner"><a href="https://__DOMAIN__/" class="airmonitor-grafana-brand" aria-label="AirMonitor home"><img src="/status-assets/airmonitor-logo-300px.webp" alt="AirMonitor"></a><nav aria-label="AirMonitor navigation"><a href="https://__DOMAIN__/">Home</a><a href="/grafana/d/airmonitor-live/airmonitor-live">Live</a><a href="/grafana/d/airmonitor-print-window/airmonitor-print-window">Prints</a><a href="/grafana/d/airmonitor-compare-prints/airmonitor-compare-prints">Compare</a><a href="https://__DOMAIN__/alerts">Alerts</a></nav></header><div id="reactRoot"></div>';
     }
 
     # Preserve historical same-host Grafana bookmarks beneath the new subpath.
