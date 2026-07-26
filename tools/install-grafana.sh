@@ -151,9 +151,29 @@ EOF
 log "Installing AirMonitor brand asset"
 sudo install -o root -g grafana -m 0644 "$BRAND_ASSET" "$GRAFANA_HOME/public/img/airmonitor-brand-300.png"
 
+# Runs before the validate-db step below on purpose: a migrated or
+# already-populated $DB_FILE exists by the time this script runs, and this
+# invoking user's group membership can't take effect mid-session anyway
+# (usermod -aG never affects an already-running process), so validate-db
+# reads it as root instead of relying on group access.
+log "Configuring AirMonitor DB permissions"
+sudo groupadd --system "$DATA_GROUP" 2>/dev/null || true
+sudo usermod -aG "$DATA_GROUP" grafana
+sudo usermod -aG "$DATA_GROUP" automation 2>/dev/null || true
+sudo usermod -aG "$DATA_GROUP" "$(id -un)" || true
+if [[ -d "$DB_DIR" ]]; then
+  sudo chgrp "$DATA_GROUP" "$DB_DIR"
+  sudo chmod 750 "$DB_DIR"
+  sudo chmod g+s "$DB_DIR"
+fi
+if [[ -f "$DB_FILE" ]]; then
+  sudo chgrp "$DATA_GROUP" "$DB_FILE"
+  sudo chmod 640 "$DB_FILE"
+fi
+
 if [[ -f "$DB_FILE" ]]; then
   log "Validating dashboard SQL against $DB_FILE"
-  python3 "$DASHBOARD_GENERATOR" --validate-db "$DB_FILE"
+  sudo python3 "$DASHBOARD_GENERATOR" --validate-db "$DB_FILE"
 fi
 
 log "Generating dashboard artifact"
@@ -191,23 +211,6 @@ tmp_compare_prints="$(mktemp)"
 sed "s#__AIRMONITOR_STATUS_URL__#$STATUS_PAGE_URL#" "$COMPARE_PRINTS_DASHBOARD_SRC" > "$tmp_compare_prints"
 sudo install -o grafana -g grafana -m 0644 "$tmp_compare_prints" "$DASHBOARD_DIR/airmonitor-compare-prints.json"
 rm -f "$tmp_compare_prints"
-
-log "Configuring AirMonitor DB permissions"
-sudo groupadd --system "$DATA_GROUP" 2>/dev/null || true
-sudo usermod -aG "$DATA_GROUP" grafana
-sudo usermod -aG "$DATA_GROUP" automation 2>/dev/null || true
-if id "${SUDO_USER:-}" >/dev/null 2>&1; then
-  sudo usermod -aG "$DATA_GROUP" "$SUDO_USER" || true
-fi
-if [[ -d "$DB_DIR" ]]; then
-  sudo chgrp "$DATA_GROUP" "$DB_DIR"
-  sudo chmod 750 "$DB_DIR"
-  sudo chmod g+s "$DB_DIR"
-fi
-if [[ -f "$DB_FILE" ]]; then
-  sudo chgrp "$DATA_GROUP" "$DB_FILE"
-  sudo chmod 640 "$DB_FILE"
-fi
 
 if [[ "$FRESH_AIRMONITOR_GRAFANA" == "1" && -f "$GRAFANA_DB" ]]; then
   log "Backing up Grafana DB before provisioning refresh"

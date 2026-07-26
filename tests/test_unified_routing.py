@@ -26,6 +26,25 @@ def test_grafana_is_configured_under_appliance_subpath() -> None:
     assert 'GRAFANA_ANONYMOUS_ORG_NAME="$GRAFANA_ANONYMOUS_ORG_NAME"' in updater
 
 
+def test_grafana_installer_sets_db_permissions_before_validating_sql() -> None:
+    """A migrated or already-populated database exists by the time this
+    script runs, so the airmonitor-data group/chgrp setup must happen before
+    the validate-db step reads it -- otherwise this only ever worked on a
+    from-scratch host (no DB yet, so validation was skipped) or a host
+    that had already run this once before. Also: usermod -aG never affects
+    an already-running process, so validate-db must read as root (sudo)
+    rather than rely on this invocation's own group membership."""
+
+    installer = (ROOT / "tools" / "install-grafana.sh").read_text(encoding="utf-8")
+    permissions_pos = installer.index("Configuring AirMonitor DB permissions")
+    validate_pos = installer.index("Validating dashboard SQL against")
+    assert permissions_pos < validate_pos
+    assert 'sudo python3 "$DASHBOARD_GENERATOR" --validate-db "$DB_FILE"' in installer
+    assert "SUDO_USER" not in installer
+    assert 'sudo usermod -aG "$DATA_GROUP" "$(id -un)"' in installer
+    assert installer.count("Configuring AirMonitor DB permissions") == 1
+
+
 def test_install_sh_carries_grafana_org_name_through_migration() -> None:
     """--migrate-from copies the old host's install.conf, then immediately
     re-saves this run's resolved config over it. If GRAFANA_ANONYMOUS_ORG_NAME

@@ -79,7 +79,7 @@ The installer creates or reuses the `airmonitor-data` group and adds:
 
 - `grafana`
 - `automation`
-- the invoking sudo user when available
+- the user invoking this script
 
 The database directory is configured as:
 
