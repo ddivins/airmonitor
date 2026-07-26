@@ -66,6 +66,20 @@ def test_installer_makes_venv_world_readable_despite_global_umask() -> None:
     assert 'chmod -R a+rX "$APP_DIR/venv"' in text
 
 
+def test_installer_resets_umask_before_running_update() -> None:
+    """This script's global umask 077 (for the secrets/config files it
+    writes directly, all done earlier) is inherited by tools/update.sh as a
+    child process, and by extension its `pip install` -- leaving the freshly
+    installed package 0700 root:root, unreadable by the unprivileged
+    `automation` user the services run as. A standalone `tools/update.sh`
+    run is unaffected since it isn't a child of this umask."""
+
+    text = INSTALLER.read_text(encoding="utf-8")
+    run_update_start = text.index("run_update() {")
+    run_update_body = text[run_update_start : text.index("\n}", run_update_start)]
+    assert "umask 022" in run_update_body
+
+
 def test_installer_checks_hardware_before_running_update() -> None:
     text = INSTALLER.read_text(encoding="utf-8")
     assert "EXPECTED_CP2105_SERIAL" in text

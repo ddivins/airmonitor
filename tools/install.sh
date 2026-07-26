@@ -428,6 +428,14 @@ offer_configuration_edit() {
 
 run_update() {
   log "Installing AirMonitor application and services"
+  # This script's global `umask 077` only protects the secrets/config files
+  # it writes directly, all of which are already done by this point. Left in
+  # place, it's inherited by tools/update.sh (a child process) and its `pip
+  # install`, leaving the freshly installed package 0700 root:root --
+  # unreadable by the unprivileged `automation` user the services run as.
+  # An ordinary standalone `tools/update.sh` run never hits this since it
+  # isn't a child of this umask.
+  umask 022
   local grafana=0
   [[ "$MODE" == "full" ]] && grafana=1
   INSTALL_STATUS_PAGE=0 INSTALL_GRAFANA="$grafana" RUN_DOCTOR=0 bash "$REPO_DIR/tools/update.sh"
