@@ -72,6 +72,12 @@ cd "$REPO_DIR"
 
 log "Installing SQLite datasource plugin"
 sudo "${GRAFANA_CLI[@]}" --homepath "$GRAFANA_HOME" plugins install frser-sqlite-datasource || true
+# grafana-cli extracts the plugin as root regardless of umask, leaving it
+# unreadable by the grafana user the service runs as -- Grafana then starts
+# but can't find the plugin definition, so every AirMonitor dashboard shows
+# no data. Once installed once with bad permissions, later runs that only
+# detect it's "already installed" (skipping re-extraction) never repair it.
+sudo chmod -R a+rX /var/lib/grafana/plugins/frser-sqlite-datasource 2>/dev/null || true
 
 log "Configuring Grafana server defaults"
 sudo install -d -o root -g grafana -m 0750 /etc/grafana/grafana.ini.d

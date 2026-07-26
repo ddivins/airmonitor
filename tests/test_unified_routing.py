@@ -45,6 +45,20 @@ def test_grafana_installer_sets_db_permissions_before_validating_sql() -> None:
     assert installer.count("Configuring AirMonitor DB permissions") == 1
 
 
+def test_grafana_installer_makes_sqlite_plugin_readable() -> None:
+    """grafana-cli extracts this plugin as root regardless of umask, leaving
+    it unreadable by the grafana user -- Grafana then starts but can't find
+    the plugin definition, so every AirMonitor dashboard shows no data. Once
+    installed once with bad permissions, a later run that only detects it's
+    already installed (skipping re-extraction) never repairs it, so this
+    must run unconditionally rather than only right after a fresh install."""
+
+    installer = (ROOT / "tools" / "install-grafana.sh").read_text(encoding="utf-8")
+    install_pos = installer.index("plugins install frser-sqlite-datasource")
+    chmod_pos = installer.index("chmod -R a+rX /var/lib/grafana/plugins/frser-sqlite-datasource")
+    assert install_pos < chmod_pos
+
+
 def test_install_sh_carries_grafana_org_name_through_migration() -> None:
     """--migrate-from copies the old host's install.conf, then immediately
     re-saves this run's resolved config over it. If GRAFANA_ANONYMOUS_ORG_NAME
