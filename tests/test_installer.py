@@ -95,6 +95,25 @@ def test_migration_protects_database_consistency_and_destination_files() -> None
     assert "etc/letsencrypt" not in migration
 
 
+def test_migration_checkpoints_wal_and_verifies_integrity_before_installing() -> None:
+    """Both databases run in WAL mode: a copy of the main file alone, without
+    checkpointing first, can be an inconsistent snapshot even with every
+    writer stopped -- caught when a migrated database came back corrupt
+    (`database disk image is malformed`). Checkpoint on the source before
+    archiving, then verify integrity on the extracted copy before it's ever
+    installed, so a bad copy fails loudly instead of silently going live."""
+
+    text = INSTALLER.read_text(encoding="utf-8")
+    migration = text[text.index("migrate_from_old_host()") : text.index("install_config_templates()")]
+    stop_pos = migration.index("systemctl stop airmonitor.target")
+    checkpoint_pos = migration.index("wal_checkpoint(TRUNCATE)")
+    tar_pos = migration.index("sudo tar -C /")
+    integrity_pos = migration.index("integrity check")
+    assert stop_pos < checkpoint_pos < tar_pos < integrity_pos
+    assert migration.count("wal_checkpoint(TRUNCATE)") == 2
+    assert migration.count("PRAGMA integrity_check;") == 2
+
+
 def test_updater_can_explicitly_skip_status_page_provisioning() -> None:
     text = UPDATER.read_text(encoding="utf-8")
     assert 'INSTALL_STATUS_PAGE="${INSTALL_STATUS_PAGE:-auto}"' in text

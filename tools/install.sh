@@ -277,6 +277,13 @@ migrate_from_old_host() {
   warn "the source AirMonitor and Grafana services will pause briefly for a consistent database copy"
   ssh "$MIGRATE_FROM" "sudo systemctl stop airmonitor.target grafana-server 2>/dev/null || true"
   MIGRATION_SOURCE_STOPPED=true
+  # Both databases run in WAL mode: recently committed data lives in a
+  # sidecar -wal file that the tar below never captures, so a copy of the
+  # main file alone can be an inconsistent snapshot even with every writer
+  # stopped. Checkpointing merges the WAL back in and truncates it, leaving
+  # a single self-contained file safe to archive.
+  ssh "$MIGRATE_FROM" "sudo sqlite3 /var/lib/airmonitor/airmonitor.sqlite3 'PRAGMA wal_checkpoint(TRUNCATE);' 2>/dev/null || true"
+  ssh "$MIGRATE_FROM" "sudo sqlite3 /var/lib/grafana/grafana.db 'PRAGMA wal_checkpoint(TRUNCATE);' 2>/dev/null || true"
   if ! ssh "$MIGRATE_FROM" \
     "sudo tar -C / -cf - --ignore-failed-read etc/airmonitor var/lib/airmonitor/airmonitor.sqlite3 var/lib/grafana/grafana.db" \
     >"$archive"; then
@@ -287,6 +294,17 @@ migrate_from_old_host() {
   ssh "$MIGRATE_FROM" "sudo systemctl start airmonitor.target grafana-server 2>/dev/null || true"
   MIGRATION_SOURCE_STOPPED=false
   tar -C "$MIGRATION_STAGE" -xf "$archive"
+
+  # Fail loudly rather than installing a silently corrupt database -- the
+  # source host is untouched at this point, so it's safe to abort here.
+  if [[ -f "$MIGRATION_STAGE/var/lib/airmonitor/airmonitor.sqlite3" ]]; then
+    [[ "$(sqlite3 "$MIGRATION_STAGE/var/lib/airmonitor/airmonitor.sqlite3" 'PRAGMA integrity_check;')" == "ok" ]] \
+      || fail "migrated AirMonitor database failed integrity check; the source host was not modified"
+  fi
+  if [[ -f "$MIGRATION_STAGE/var/lib/grafana/grafana.db" ]]; then
+    [[ "$(sqlite3 "$MIGRATION_STAGE/var/lib/grafana/grafana.db" 'PRAGMA integrity_check;')" == "ok" ]] \
+      || fail "migrated Grafana database failed integrity check; the source host was not modified"
+  fi
 
   sudo install -d -o root -g root -m 0755 "$CONFIG_DIR"
   if [[ -d "$MIGRATION_STAGE/etc/airmonitor" ]]; then
