@@ -26,6 +26,19 @@ def test_grafana_is_configured_under_appliance_subpath() -> None:
     assert 'GRAFANA_ANONYMOUS_ORG_NAME="$GRAFANA_ANONYMOUS_ORG_NAME"' in updater
 
 
+def test_install_sh_carries_grafana_org_name_through_migration() -> None:
+    """--migrate-from copies the old host's install.conf, then immediately
+    re-saves this run's resolved config over it. If GRAFANA_ANONYMOUS_ORG_NAME
+    isn't a known key on both sides of that round trip, a migrated appliance
+    silently loses it and reproduces the anonymous-Grafana-requires-login bug
+    on the new host."""
+
+    installer = (ROOT / "tools" / "install.sh").read_text(encoding="utf-8")
+    assert 'GRAFANA_ANONYMOUS_ORG_NAME=""' in installer
+    assert "MIGRATE_FROM|LEGACY_GRAFANA_REDIRECT|GRAFANA_ANONYMOUS_ORG_NAME)" in installer
+    assert "printf 'GRAFANA_ANONYMOUS_ORG_NAME=%s\\n' \"$GRAFANA_ANONYMOUS_ORG_NAME\"" in installer
+
+
 def test_nginx_routes_grafana_and_shared_session_on_one_origin() -> None:
     config = (ROOT / "nginx" / "airmonitor.conf.template").read_text(encoding="utf-8")
     assert "location /grafana/" in config
