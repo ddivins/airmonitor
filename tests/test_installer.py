@@ -41,6 +41,19 @@ def test_installer_preserves_secrets_and_gates_public_routing() -> None:
     assert 'RUN_DOCTOR=0' in text
 
 
+def test_installer_acquires_sudo_without_ambiguous_validate_flag() -> None:
+    """`sudo -v` (no command) resolves ambiguously when a user has both a
+    password-required `ALL` grant (e.g. via the `sudo` group) and a separate
+    `NOPASSWD: ALL` grant -- sudo conservatively demands a password even
+    though every real command matches the NOPASSWD entry. This only surfaces
+    non-interactively (no controlling terminal), e.g. running --migrate-from
+    over SSH, so `sudo true` is used instead."""
+
+    text = INSTALLER.read_text(encoding="utf-8")
+    assert "\nsudo -v" not in text
+    assert "sudo true" in text
+
+
 def test_installer_checks_hardware_before_running_update() -> None:
     text = INSTALLER.read_text(encoding="utf-8")
     assert "EXPECTED_CP2105_SERIAL" in text

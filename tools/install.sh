@@ -210,7 +210,13 @@ case "$(uname -m)" in
 esac
 
 log "Acquiring administrative access"
-sudo -v
+# Deliberately `sudo true`, not `sudo -v`. When a user has both a
+# password-required `ALL` grant (e.g. via the `sudo` group) and a `NOPASSWD:
+# ALL` grant, `-v` alone (no command) resolves ambiguously and demands a
+# password even though every real command matches the NOPASSWD entry --
+# surfaced when running this installer non-interactively (no controlling
+# terminal) over SSH, e.g. for --migrate-from.
+sudo true
 
 resolve_config
 
