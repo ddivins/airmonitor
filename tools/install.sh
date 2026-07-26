@@ -251,6 +251,11 @@ ensure_virtualenv() {
   if [[ ! -x "$APP_DIR/venv/bin/python" ]]; then
     sudo python3 -m venv "$APP_DIR/venv"
   fi
+  # This script's global `umask 077` (set for the secrets/config files it
+  # writes elsewhere) otherwise leaks into `python3 -m venv`, leaving the
+  # venv root-only -- inaccessible to both this very check below and, later,
+  # to the unprivileged `automation` user the systemd services run as.
+  sudo chmod -R a+rX "$APP_DIR/venv"
   sudo "$APP_DIR/venv/bin/python" -m pip install --upgrade pip
   "$APP_DIR/venv/bin/python" -c 'import sys; raise SystemExit(sys.version_info < (3, 11))' \
     || fail "AirMonitor requires Python 3.11 or newer"

@@ -54,6 +54,18 @@ def test_installer_acquires_sudo_without_ambiguous_validate_flag() -> None:
     assert "sudo true" in text
 
 
+def test_installer_makes_venv_world_readable_despite_global_umask() -> None:
+    """The script's global `umask 077` (for the secrets/config files it writes
+    elsewhere) otherwise leaks into `python3 -m venv`, leaving the venv
+    root-only -- inaccessible to the unprivileged `automation` user the
+    systemd services actually run as. Caught on a from-scratch install; an
+    existing host's venv predates this and was never affected."""
+
+    text = INSTALLER.read_text(encoding="utf-8")
+    assert 'sudo python3 -m venv "$APP_DIR/venv"' in text
+    assert 'chmod -R a+rX "$APP_DIR/venv"' in text
+
+
 def test_installer_checks_hardware_before_running_update() -> None:
     text = INSTALLER.read_text(encoding="utf-8")
     assert "EXPECTED_CP2105_SERIAL" in text
