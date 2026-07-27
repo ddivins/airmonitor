@@ -108,9 +108,8 @@ build) and a secrets-redacted support-bundle command.
 
 ## Operations note (2026-07-23)
 
-The production appliance (`airmonitor.example.com`) predated the
-config-driven install flow. `/etc/airmonitor/install.conf` has since been
-backfilled (`MODE=full`, `DOMAIN=airmonitor.example.com`,
-`CERT_EMAIL`, `CERTBOT_CLOUDFLARE_CREDENTIALS`,
-`LEGACY_GRAFANA_REDIRECT=true`), and plain `bash tools/update.sh` (no
-env-var overrides) now runs cleanly end to end.
+An early production appliance predated the config-driven install flow. Its
+`/etc/airmonitor/install.conf` has since been backfilled (`MODE=full`,
+`DOMAIN=airmonitor.example.com`, `CERT_EMAIL`,
+`CERTBOT_CLOUDFLARE_CREDENTIALS`, `LEGACY_GRAFANA_REDIRECT=true`), and plain
+`bash tools/update.sh` (no env-var overrides) now runs cleanly end to end.
