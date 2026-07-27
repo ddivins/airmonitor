@@ -7,6 +7,9 @@ __pycache__/
 build/
 dist/
 
+# Local, unrelated MCP server configs (per-machine, not part of AirMonitor)
+.mcp.json
+
 # CAD editor backups and generated meshes
 *.FCStd1
 *.bak

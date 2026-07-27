@@ -21,9 +21,9 @@ below is assembled and wired.
 Nothing here is board-specific: the sensor and printer interfaces are all
 USB/network (no GPIO wiring in the recommended build), and the one
 board-read host metric (`/sys/class/thermal/thermal_zone0/temp` in
-`status.py`) is generic across both. Validated so far on Raspberry Pi 4
-Model B; a Pi 5 migration is planned imminently and this doc will be
-updated with the result rather than assumed to just work.
+`status.py`) is generic across both. Validated on both Raspberry Pi 4 Model B
+and Raspberry Pi 5 Model B, including a live production migration from one
+to the other via `tools/install.sh --migrate-from` (see `docs/install.md`).
 
 ## Sensors
 

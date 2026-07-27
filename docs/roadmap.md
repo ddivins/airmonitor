@@ -102,10 +102,9 @@ skipped in the pass that did the rest of it: EEPROM provisioning (low value —
 the project's own docs already call that path not part of the recommended
 build) and a secrets-redacted support-bundle command.
 
-1. Update `docs/hardware-bom.md`'s host section once the planned Raspberry Pi 5 migration completes.
-2. Decide when to actually cut the `1.0.0` release (the definition is written; the version bump is a separate decision).
-3. Add a support-bundle CLI command (doctor output + recent service logs, secrets redacted) if needed, or the EEPROM CLI command if it comes up.
-4. Begin Phase 6 (multiple sensors and service instances) — bigger, and only worth it once a second sensor unit exists.
+1. Decide when to actually cut the `1.0.0` release (the definition is written; the version bump is a separate decision).
+2. Add a support-bundle CLI command (doctor output + recent service logs, secrets redacted) if needed, or the EEPROM CLI command if it comes up.
+3. Begin Phase 6 (multiple sensors and service instances) — bigger, and only worth it once a second sensor unit exists.
 
 ## Operations note (2026-07-23)
 
