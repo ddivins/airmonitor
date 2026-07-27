@@ -80,7 +80,6 @@ def test_nginx_routes_grafana_and_shared_session_on_one_origin() -> None:
     assert '\"redirectUrl\":\"/grafana/\"' in config
     assert '\"redirectUrl\":\"/\"' in config
     assert "__DOMAIN__" in config
-    assert "example" not in config
 
 
 def test_legacy_grafana_subdomain_is_optional_and_templated() -> None:

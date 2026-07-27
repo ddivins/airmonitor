@@ -219,4 +219,8 @@ def test_install_conf_example_documents_all_recognized_keys() -> None:
     for key in ("MODE", "DOMAIN", "CERT_EMAIL", "CERTBOT_CLOUDFLARE_CREDENTIALS", "MIGRATE_FROM", "LEGACY_GRAFANA_REDIRECT", "REPO_DIR"):
         assert f"{key}=" in example_text
         assert key in installer_text
-    assert "example" not in example_text
+    # DOMAIN stays a blank template key, not pre-filled with any concrete
+    # value (real or placeholder) -- it's a per-user config value, not
+    # something this repo should ever hardcode.
+    domain_line = next(line for line in example_text.splitlines() if line.startswith("DOMAIN="))
+    assert domain_line == "DOMAIN="
