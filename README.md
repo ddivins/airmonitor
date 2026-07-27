@@ -6,8 +6,9 @@
 
 <p align="center"><strong><em>Monitor. Understand. Don’t Die.</em></strong></p>
 
-AirMonitor is an open-source DIY measurement platform for evaluating air-filtration
-performance in 3D-printing spaces.
+AirMonitor is a source-available DIY measurement platform, free to use for non-commercial
+purposes, for evaluating air-filtration performance in 3D-printing spaces. See
+[License](#license).
 
 The primary goal is **not** to treat inexpensive or cross-sensitive sensor readings as
 laboratory-grade measurements of indoor VOC concentration, particulate exposure, or personal
@@ -435,3 +436,12 @@ concentration or compared directly with OSHA, NIOSH, or other exposure limits. R
 limits apply to specific compounds, defined sampling periods, and validated measurement
 methods. AirMonitor's value is in trends, controlled comparisons, and documenting the relative
 effect of filtration, ventilation, materials, and operating conditions.
+
+## License
+
+AirMonitor is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE): free to use,
+modify, and share — including the software, hardware designs, and documentation in this
+repository — for personal, educational, research, nonprofit, or other non-commercial purposes.
+Commercial use requires a separate arrangement with the copyright holder. This is a
+source-available license, not an OSI-approved open-source license, because of that
+non-commercial restriction.
