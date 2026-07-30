@@ -259,22 +259,40 @@ class ComparePrintsDashboardTests(unittest.TestCase):
         for variable in self.dashboard["templating"]["list"]:
             self.assertFalse(variable["multi"])
 
-    def test_print_select_variables_offer_a_none_option_and_full_detail_text(self):
-        """Every print variable's own query must offer an explicit blank/None
-        choice -- without one, a single-select Grafana variable that's ever
-        been set to a real print has no way back to "not comparing this
-        slot" through the UI. Sorted first (sort_order 0) so it's easy to
-        find. Full date/filament detail in the label is intentional (a
-        shorter, truncated label was tried and reverted -- worse for
-        actually telling prints apart)."""
+    def test_print_select_variable_queries_return_exactly_two_fields(self):
+        """Regression test: a query variable returning more than two fields
+        breaks Grafana's variable parsing outright ("Received more than two
+        (N) fields"), which in turn corrupts the actual selected print id
+        downstream (seen live as wrong/duplicated print selections and the
+        start/end markers landing in the wrong place). An attempt to add a
+        "None" choice by unioning in extra sort_order/started_at columns hit
+        this exactly; reverted to the original, plain two-column query."""
 
-        for name in ("print_a", "print_b", "print_c", "print_d"):
-            variable = next(v for v in self.dashboard["templating"]["list"] if v["name"] == name)
-            query = variable["query"]
-            self.assertIn("'— None —' AS __text, '' AS __value, 0 AS sort_order", query)
-            self.assertIn("ORDER BY sort_order, started_at DESC", query)
-            self.assertIn("filament_type", query)
-            self.assertEqual(variable["current"], {"selected": True, "text": "", "value": ""})
+        conn = sqlite3.connect(":memory:")
+        try:
+            conn.execute(
+                """
+                CREATE TABLE prints (
+                    id INTEGER PRIMARY KEY, started_at TEXT, subtask_name TEXT,
+                    filament_type TEXT, started_gcode_state TEXT, last_gcode_state TEXT,
+                    ended_gcode_state TEXT
+                )
+                """
+            )
+            conn.execute(
+                "INSERT INTO prints (id, started_at, ended_gcode_state) VALUES (1, '2026-01-01T00:00:00Z', 'FINISH')"
+            )
+            for name in ("print_a", "print_b", "print_c", "print_d"):
+                variable = next(v for v in self.dashboard["templating"]["list"] if v["name"] == name)
+                query = variable["query"]
+                self.assertIn("filament_type", query)
+                self.assertEqual(variable["current"], {"selected": True, "text": "", "value": ""})
+                cursor = conn.execute(query.rstrip(";"))
+                cursor.fetchall()
+                self.assertEqual(len(cursor.description), 2)
+                self.assertEqual([c[0] for c in cursor.description], ["__text", "__value"])
+        finally:
+            conn.close()
 
     def test_overlay_charts_mark_print_start_and_each_prints_own_end(self):
         """Elapsed-time alignment means every compared print's own start is
@@ -398,10 +416,6 @@ class ComparePrintsDashboardTests(unittest.TestCase):
                 for target in panel["targets"]:
                     query = _interpolate_grafana_variables(target["queryText"]).rstrip(";")
                     conn.execute(f"SELECT * FROM ({query}) LIMIT 1").fetchall()
-
-            print_a_query = next(v for v in self.dashboard["templating"]["list"] if v["name"] == "print_a")["query"]
-            rows = conn.execute(print_a_query.rstrip(";")).fetchall()
-            self.assertEqual(rows[0], ("— None —", "", 0, ""))
         finally:
             conn.close()
 
