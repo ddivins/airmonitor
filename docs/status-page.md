@@ -125,6 +125,21 @@ static committed files rather than python-generated, so their banners (and their
 leaves off: four independent print-select variables (`print_a`..`print_d`, each the same
 query as `print-window`'s own `print_id`) feed a summary table (one row per slot: filament,
 duration, peak VOC, peak PM2.5, ...) plus VOC/PM2.5/temperature charts overlaying all four.
+Grafana's variable bar has no native "add another" control, so there's no dedicated button
+for this -- Print A and B are the two you're expected to fill in, and C/D simply start
+blank; every query already skips a blank slot cleanly (an empty `CAST('' AS INTEGER)` just
+matches no print), so leaving them unset reads as "comparing two" and filling one in is
+exactly the same action as picking A or B. Each print-select query is intentionally terse
+(`MM/DD HH:MM · name (#id)`, name truncated past ~22 characters) so the four pickers have a
+better chance of fitting on one row -- Grafana still wraps them onto multiple rows if the
+browser is too narrow, since dashboard JSON has no way to force a fixed layout for the
+variable bar the way panels have `gridPos`.
+
+A fifth variable, `window_minutes` (15/30/60/90/120, default 30), controls how much time
+before/after each print's own start/end is included -- widen it to see a longer post-print
+recovery tail, or narrow it to focus tightly on the print itself. Every query builds its
+`datetime()` modifier dynamically (`'-' || $window_minutes || ' minutes'`) instead of a
+hardcoded `'-30 minutes'`, relying on SQLite's implicit numeric-to-text coercion in `||`.
 
 The charts can't just plot real timestamps -- two prints being compared happened at
 different wall-clock times, so their curves would never overlap. Each chart's query instead

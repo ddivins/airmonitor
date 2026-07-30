@@ -236,6 +236,7 @@ def _interpolate_grafana_variables(query: str) -> str:
     for letter, print_id in zip("abcd", (1, 2, 3, 4)):
         query = query.replace(f"${{print_{letter}:text}}", f"Slot {letter.upper()}")
         query = query.replace(f"$print_{letter}", str(print_id))
+    query = query.replace("$window_minutes", "30")
     return query
 
 
@@ -252,11 +253,28 @@ class ComparePrintsDashboardTests(unittest.TestCase):
         path = Path(__file__).parents[1] / "grafana" / "dashboards" / "airmonitor-compare-prints.json"
         cls.dashboard = json.loads(path.read_text(encoding="utf-8"))
 
-    def test_has_four_independent_print_select_variables(self):
+    def test_has_four_independent_print_select_variables_and_a_window_control(self):
         names = [variable["name"] for variable in self.dashboard["templating"]["list"]]
-        self.assertEqual(names, ["print_a", "print_b", "print_c", "print_d"])
+        self.assertEqual(names, ["print_a", "print_b", "print_c", "print_d", "window_minutes"])
         for variable in self.dashboard["templating"]["list"]:
             self.assertFalse(variable["multi"])
+
+    def test_pre_post_window_is_adjustable_and_defaults_to_30_minutes(self):
+        """The pre/post window around each print used to be hardcoded to 30
+        minutes in every query; it's now a dashboard variable so a user can
+        widen it (e.g. to see a longer post-print recovery tail) without
+        editing the dashboard."""
+
+        variables = {v["name"]: v for v in self.dashboard["templating"]["list"]}
+        window = variables["window_minutes"]
+        self.assertEqual(window["current"]["value"], "30")
+        self.assertEqual({opt["value"] for opt in window["options"]}, {"15", "30", "60", "90", "120"})
+
+        for panel in self.dashboard["panels"]:
+            for target in panel.get("targets", []):
+                query = target["queryText"]
+                self.assertIn("$window_minutes", query)
+                self.assertNotIn("30 minutes'", query)
 
     def test_has_a_clickable_logo_banner_and_cross_links(self):
         brand = self.dashboard["panels"][0]

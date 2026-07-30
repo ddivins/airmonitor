@@ -58,10 +58,12 @@ focus on repeatable relative differences rather than treating a single VOC ppm v
 compound-specific exposure measurement.
 
 The `AirMonitor Compare Prints` Grafana dashboard is where these comparisons actually happen:
-pick up to four prints and it shows a side-by-side summary table (peak VOC, peak PM2.5,
-filament, duration) plus VOC, PM2.5, and temperature curves for all four aligned on elapsed
-time since each print's own start, rather than wall-clock time, since two prints being
-compared occurred at different real times. See `docs/status-page.md`.
+pick two to four prints (two by default; fill in a third or fourth to add them) and it shows
+a side-by-side summary table (peak VOC, peak PM2.5, filament, duration) plus VOC, PM2.5, and
+temperature curves aligned on elapsed time since each print's own start, rather than
+wall-clock time, since two prints being compared occurred at different real times. The
+pre/post time window around each print is adjustable (15/30/60/90/120 minutes, default 30).
+See `docs/status-page.md`.
 
 ## Hardware Connection
 
