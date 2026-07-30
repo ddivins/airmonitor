@@ -145,6 +145,20 @@ recovery tail, or narrow it to focus tightly on the print itself. Every query bu
 `datetime()` modifier dynamically (`'-' || $window_minutes || ' minutes'`) instead of a
 hardcoded `'-30 minutes'`, relying on SQLite's implicit numeric-to-text coercion in `||`.
 
+The three overlay charts also mark where each print actually started and stopped, so the
+pre/post buffer around it is visually distinguishable from the print itself. Elapsed-time
+alignment means every compared print's own start is always at elapsed minute 0 -- one shared
+"Print start" line covers all of them -- but each print's own end differs (different
+durations), so that's one column per slot (`Print A end` .. `Print D end`), each a synthetic
+row injected into the same `UNION ALL` at that print's own duration in minutes. Grafana's
+native annotations don't apply to this panel: they anchor to a real time axis, and this one
+is deliberately elapsed minutes, not epoch time (the same reason `timeColumns` stays empty --
+see the regression test above). Instead each marker column is a spike (value `1` at exactly
+one elapsed-minute position, `NULL` everywhere else) rendered as a thin bar on its own hidden
+0-1 axis via a field override (`custom.axisPlacement: hidden`, `min`/`max` forced to 0/1) --
+a full-height vertical line regardless of the real VOC/PM/temperature series' own Y-scale,
+without needing Grafana's time-based annotation system at all.
+
 The charts can't just plot real timestamps -- two prints being compared happened at
 different wall-clock times, so their curves would never overlap. Each chart's query instead
 computes `(sampled_at - print's own started_at)` in minutes per print, `UNION ALL`s the four

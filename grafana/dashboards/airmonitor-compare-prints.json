@@ -152,11 +152,31 @@
           "value": "30"
         },
         "options": [
-          {"text": "15 minutes", "value": "15", "selected": false},
-          {"text": "30 minutes", "value": "30", "selected": true},
-          {"text": "60 minutes", "value": "60", "selected": false},
-          {"text": "90 minutes", "value": "90", "selected": false},
-          {"text": "2 hours", "value": "120", "selected": false}
+          {
+            "text": "15 minutes",
+            "value": "15",
+            "selected": false
+          },
+          {
+            "text": "30 minutes",
+            "value": "30",
+            "selected": true
+          },
+          {
+            "text": "60 minutes",
+            "value": "60",
+            "selected": false
+          },
+          {
+            "text": "90 minutes",
+            "value": "90",
+            "selected": false
+          },
+          {
+            "text": "2 hours",
+            "value": "120",
+            "selected": false
+          }
         ],
         "multi": false,
         "includeAll": false
@@ -259,8 +279,8 @@
             "type": "frser-sqlite-datasource",
             "uid": "airmonitor-sqlite"
           },
-          "queryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'c' THEN value END) AS \"${print_c:text}\", MAX(CASE WHEN slot = 'd' THEN value END) AS \"${print_d:text}\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'c' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_c' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'd' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_d' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes')) combined GROUP BY time_bucket ORDER BY time_bucket;",
-          "rawQueryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'c' THEN value END) AS \"${print_c:text}\", MAX(CASE WHEN slot = 'd' THEN value END) AS \"${print_d:text}\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'c' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_c' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'd' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_d' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes')) combined GROUP BY time_bucket ORDER BY time_bucket;",
+          "queryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'c' THEN value END) AS \"${print_c:text}\", MAX(CASE WHEN slot = 'd' THEN value END) AS \"${print_d:text}\", MAX(CASE WHEN slot = 'start' THEN value END) AS \"Print start\", MAX(CASE WHEN slot = 'end_a' THEN value END) AS \"Print A end\", MAX(CASE WHEN slot = 'end_b' THEN value END) AS \"Print B end\", MAX(CASE WHEN slot = 'end_c' THEN value END) AS \"Print C end\", MAX(CASE WHEN slot = 'end_d' THEN value END) AS \"Print D end\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'c' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_c' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'd' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_d' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER) UNION ALL SELECT 'end_a' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'end_b' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'end_c' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'end_d' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER)) combined GROUP BY time_bucket ORDER BY time_bucket;",
+          "rawQueryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'c' THEN value END) AS \"${print_c:text}\", MAX(CASE WHEN slot = 'd' THEN value END) AS \"${print_d:text}\", MAX(CASE WHEN slot = 'start' THEN value END) AS \"Print start\", MAX(CASE WHEN slot = 'end_a' THEN value END) AS \"Print A end\", MAX(CASE WHEN slot = 'end_b' THEN value END) AS \"Print B end\", MAX(CASE WHEN slot = 'end_c' THEN value END) AS \"Print C end\", MAX(CASE WHEN slot = 'end_d' THEN value END) AS \"Print D end\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'c' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_c' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'd' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_d' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER) UNION ALL SELECT 'end_a' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'end_b' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'end_c' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'end_d' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER)) combined GROUP BY time_bucket ORDER BY time_bucket;",
           "queryType": "table",
           "timeColumns": [],
           "format": "table"
@@ -297,6 +317,301 @@
               {
                 "id": "custom.axisLabel",
                 "value": "Minutes since print start"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print start"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8E8E8E"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print A end"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5794F2"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print B end"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#FF9830"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print C end"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#73BF69"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print D end"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#F2495C"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
               }
             ]
           }
@@ -339,8 +654,8 @@
             "type": "frser-sqlite-datasource",
             "uid": "airmonitor-sqlite"
           },
-          "queryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'c' THEN value END) AS \"${print_c:text}\", MAX(CASE WHEN slot = 'd' THEN value END) AS \"${print_d:text}\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'c' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_c' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'd' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_d' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes')) combined GROUP BY time_bucket ORDER BY time_bucket;",
-          "rawQueryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'c' THEN value END) AS \"${print_c:text}\", MAX(CASE WHEN slot = 'd' THEN value END) AS \"${print_d:text}\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'c' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_c' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'd' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_d' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes')) combined GROUP BY time_bucket ORDER BY time_bucket;",
+          "queryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'c' THEN value END) AS \"${print_c:text}\", MAX(CASE WHEN slot = 'd' THEN value END) AS \"${print_d:text}\", MAX(CASE WHEN slot = 'start' THEN value END) AS \"Print start\", MAX(CASE WHEN slot = 'end_a' THEN value END) AS \"Print A end\", MAX(CASE WHEN slot = 'end_b' THEN value END) AS \"Print B end\", MAX(CASE WHEN slot = 'end_c' THEN value END) AS \"Print C end\", MAX(CASE WHEN slot = 'end_d' THEN value END) AS \"Print D end\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'c' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_c' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'd' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_d' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER) UNION ALL SELECT 'end_a' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'end_b' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'end_c' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'end_d' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER)) combined GROUP BY time_bucket ORDER BY time_bucket;",
+          "rawQueryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'c' THEN value END) AS \"${print_c:text}\", MAX(CASE WHEN slot = 'd' THEN value END) AS \"${print_d:text}\", MAX(CASE WHEN slot = 'start' THEN value END) AS \"Print start\", MAX(CASE WHEN slot = 'end_a' THEN value END) AS \"Print A end\", MAX(CASE WHEN slot = 'end_b' THEN value END) AS \"Print B end\", MAX(CASE WHEN slot = 'end_c' THEN value END) AS \"Print C end\", MAX(CASE WHEN slot = 'end_d' THEN value END) AS \"Print D end\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'c' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_c' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'd' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_d' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER) UNION ALL SELECT 'end_a' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'end_b' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'end_c' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'end_d' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER)) combined GROUP BY time_bucket ORDER BY time_bucket;",
           "queryType": "table",
           "timeColumns": [],
           "format": "table"
@@ -377,6 +692,301 @@
               {
                 "id": "custom.axisLabel",
                 "value": "Minutes since print start"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print start"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8E8E8E"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print A end"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5794F2"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print B end"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#FF9830"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print C end"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#73BF69"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print D end"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#F2495C"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
               }
             ]
           }
@@ -419,8 +1029,8 @@
             "type": "frser-sqlite-datasource",
             "uid": "airmonitor-sqlite"
           },
-          "queryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'c' THEN value END) AS \"${print_c:text}\", MAX(CASE WHEN slot = 'd' THEN value END) AS \"${print_d:text}\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'c' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_c' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'd' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_d' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes')) combined GROUP BY time_bucket ORDER BY time_bucket;",
-          "rawQueryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'c' THEN value END) AS \"${print_c:text}\", MAX(CASE WHEN slot = 'd' THEN value END) AS \"${print_d:text}\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'c' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_c' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'd' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_d' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes')) combined GROUP BY time_bucket ORDER BY time_bucket;",
+          "queryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'c' THEN value END) AS \"${print_c:text}\", MAX(CASE WHEN slot = 'd' THEN value END) AS \"${print_d:text}\", MAX(CASE WHEN slot = 'start' THEN value END) AS \"Print start\", MAX(CASE WHEN slot = 'end_a' THEN value END) AS \"Print A end\", MAX(CASE WHEN slot = 'end_b' THEN value END) AS \"Print B end\", MAX(CASE WHEN slot = 'end_c' THEN value END) AS \"Print C end\", MAX(CASE WHEN slot = 'end_d' THEN value END) AS \"Print D end\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'c' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_c' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'd' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_d' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER) UNION ALL SELECT 'end_a' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'end_b' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'end_c' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'end_d' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER)) combined GROUP BY time_bucket ORDER BY time_bucket;",
+          "rawQueryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'c' THEN value END) AS \"${print_c:text}\", MAX(CASE WHEN slot = 'd' THEN value END) AS \"${print_d:text}\", MAX(CASE WHEN slot = 'start' THEN value END) AS \"Print start\", MAX(CASE WHEN slot = 'end_a' THEN value END) AS \"Print A end\", MAX(CASE WHEN slot = 'end_b' THEN value END) AS \"Print B end\", MAX(CASE WHEN slot = 'end_c' THEN value END) AS \"Print C end\", MAX(CASE WHEN slot = 'end_d' THEN value END) AS \"Print D end\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'c' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_c' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'd' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 1) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_d' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER) UNION ALL SELECT 'end_a' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'end_b' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'end_c' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'end_d' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER)) combined GROUP BY time_bucket ORDER BY time_bucket;",
           "queryType": "table",
           "timeColumns": [],
           "format": "table"
@@ -459,6 +1069,301 @@
                 "value": "Minutes since print start"
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print start"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8E8E8E"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print A end"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5794F2"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print B end"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#FF9830"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print C end"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#73BF69"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print D end"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#F2495C"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
           }
         ]
       },
@@ -480,4 +1385,3 @@
     }
   ]
 }
-

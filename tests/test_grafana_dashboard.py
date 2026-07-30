@@ -276,6 +276,40 @@ class ComparePrintsDashboardTests(unittest.TestCase):
             self.assertIn("filament_type", query)
             self.assertEqual(variable["current"], {"selected": True, "text": "", "value": ""})
 
+    def test_overlay_charts_mark_print_start_and_each_prints_own_end(self):
+        """Elapsed-time alignment means every compared print's own start is
+        always at time_bucket 0 -- one shared marker column works for all of
+        them. Each print's own end differs (different durations), so that
+        needs one column per slot. Grafana's native annotations don't apply
+        here (they anchor to a real time axis; this one is deliberately
+        elapsed minutes, not epoch time -- see the timeColumns regression
+        test above), so these are synthetic marker series instead, rendered
+        as thin full-height bars on a hidden 0-1 axis via field overrides so
+        they don't distort the real data's own Y-scale."""
+
+        trend_panels = [p for p in self.dashboard["panels"] if p["type"] == "trend"]
+        marker_names = {"Print start", "Print A end", "Print B end", "Print C end", "Print D end"}
+        for panel in trend_panels:
+            query = panel["targets"][0]["queryText"]
+            for name in marker_names:
+                self.assertIn(f'AS "{name}"', query)
+            self.assertIn("UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value", query)
+            self.assertIn(
+                "'end_a' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1)",
+                query,
+            )
+
+            override_names = {o["matcher"]["options"] for o in panel["fieldConfig"]["overrides"]}
+            self.assertTrue(marker_names.issubset(override_names))
+            for override in panel["fieldConfig"]["overrides"]:
+                if override["matcher"]["options"] not in marker_names:
+                    continue
+                properties = {p["id"]: p["value"] for p in override["properties"]}
+                self.assertEqual(properties["custom.axisPlacement"], "hidden")
+                self.assertEqual(properties["min"], 0)
+                self.assertEqual(properties["max"], 1)
+                self.assertEqual(properties["custom.drawStyle"], "bars")
+
     def test_pre_post_window_is_adjustable_and_defaults_to_30_minutes(self):
         """The pre/post window around each print used to be hardcoded to 30
         minutes in every query; it's now a dashboard variable so a user can
