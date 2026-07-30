@@ -259,6 +259,23 @@ class ComparePrintsDashboardTests(unittest.TestCase):
         for variable in self.dashboard["templating"]["list"]:
             self.assertFalse(variable["multi"])
 
+    def test_print_select_variables_offer_a_none_option_and_full_detail_text(self):
+        """Every print variable's own query must offer an explicit blank/None
+        choice -- without one, a single-select Grafana variable that's ever
+        been set to a real print has no way back to "not comparing this
+        slot" through the UI. Sorted first (sort_order 0) so it's easy to
+        find. Full date/filament detail in the label is intentional (a
+        shorter, truncated label was tried and reverted -- worse for
+        actually telling prints apart)."""
+
+        for name in ("print_a", "print_b", "print_c", "print_d"):
+            variable = next(v for v in self.dashboard["templating"]["list"] if v["name"] == name)
+            query = variable["query"]
+            self.assertIn("'— None —' AS __text, '' AS __value, 0 AS sort_order", query)
+            self.assertIn("ORDER BY sort_order, started_at DESC", query)
+            self.assertIn("filament_type", query)
+            self.assertEqual(variable["current"], {"selected": True, "text": "", "value": ""})
+
     def test_pre_post_window_is_adjustable_and_defaults_to_30_minutes(self):
         """The pre/post window around each print used to be hardcoded to 30
         minutes in every query; it's now a dashboard variable so a user can
@@ -347,6 +364,10 @@ class ComparePrintsDashboardTests(unittest.TestCase):
                 for target in panel["targets"]:
                     query = _interpolate_grafana_variables(target["queryText"]).rstrip(";")
                     conn.execute(f"SELECT * FROM ({query}) LIMIT 1").fetchall()
+
+            print_a_query = next(v for v in self.dashboard["templating"]["list"] if v["name"] == "print_a")["query"]
+            rows = conn.execute(print_a_query.rstrip(";")).fetchall()
+            self.assertEqual(rows[0], ("— None —", "", 0, ""))
         finally:
             conn.close()
 
