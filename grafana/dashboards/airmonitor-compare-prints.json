@@ -1,7 +1,7 @@
 {
   "uid": "airmonitor-compare-prints",
   "title": "AirMonitor Compare Prints",
-  "description": "Side-by-side comparison of two to four prints (Print A/B by default; fill in C/D to add more) -- summary stats plus VOC, PM2.5, and temperature curves aligned on elapsed time since each print's own start, with an adjustable pre/post time window, so a filtered run can be compared against an unfiltered one, one filter medium against another, or different fan speeds/enclosure states, per the comparative-experiment goal in docs/architecture.md.",
+  "description": "Side-by-side comparison of exactly two prints (Print A and Print B) -- summary stats plus VOC, PM2.5, and temperature curves aligned on elapsed time since each print's own start, with an adjustable pre/post time window, so a filtered run can be compared against an unfiltered one, one filter medium against another, or different fan speeds/enclosure states, per the comparative-experiment goal in docs/architecture.md.",
   "tags": [
     "airmonitor",
     "prints",
@@ -87,44 +87,6 @@
       {
         "name": "print_b",
         "label": "Print B",
-        "type": "query",
-        "datasource": {
-          "type": "frser-sqlite-datasource",
-          "uid": "airmonitor-sqlite"
-        },
-        "query": "SELECT printf('%s — %s — %s (#%d)', substr(started_at, 1, 16), COALESCE(NULLIF(subtask_name, ''), 'Unnamed print'), COALESCE(NULLIF(filament_type, ''), 'unknown filament'), id) AS __text, CAST(id AS TEXT) AS __value FROM prints WHERE started_gcode_state = 'RUNNING' OR last_gcode_state = 'RUNNING' OR ended_gcode_state IS NOT NULL ORDER BY started_at DESC LIMIT 12;",
-        "refresh": 1,
-        "sort": 0,
-        "multi": false,
-        "includeAll": false,
-        "current": {
-          "selected": true,
-          "text": "",
-          "value": ""
-        }
-      },
-      {
-        "name": "print_c",
-        "label": "Print C",
-        "type": "query",
-        "datasource": {
-          "type": "frser-sqlite-datasource",
-          "uid": "airmonitor-sqlite"
-        },
-        "query": "SELECT printf('%s — %s — %s (#%d)', substr(started_at, 1, 16), COALESCE(NULLIF(subtask_name, ''), 'Unnamed print'), COALESCE(NULLIF(filament_type, ''), 'unknown filament'), id) AS __text, CAST(id AS TEXT) AS __value FROM prints WHERE started_gcode_state = 'RUNNING' OR last_gcode_state = 'RUNNING' OR ended_gcode_state IS NOT NULL ORDER BY started_at DESC LIMIT 12;",
-        "refresh": 1,
-        "sort": 0,
-        "multi": false,
-        "includeAll": false,
-        "current": {
-          "selected": true,
-          "text": "",
-          "value": ""
-        }
-      },
-      {
-        "name": "print_d",
-        "label": "Print D",
         "type": "query",
         "datasource": {
           "type": "frser-sqlite-datasource",
@@ -230,8 +192,8 @@
             "type": "frser-sqlite-datasource",
             "uid": "airmonitor-sqlite"
           },
-          "queryText": "SELECT 'A' AS slot, strftime('%m/%d %H:%M', p.started_at, 'localtime') AS started, COALESCE(NULLIF(p.subtask_name, ''), 'Unnamed') AS file, COALESCE(NULLIF(p.filament_type, ''), 'Not captured') AS filament, COALESCE(NULLIF(p.filament_emission_class, ''), 'n/a') AS emissions, CASE p.room_filter_recommended WHEN 1 THEN 'yes' WHEN 0 THEN 'no' ELSE '' END AS room_filter, COALESCE(NULLIF(p.ended_gcode_state, ''), NULLIF(p.last_gcode_state, ''), NULLIF(p.started_gcode_state, ''), '') AS final_state, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS duration_min, (SELECT ROUND(MAX(gas_ppm), 2) FROM sgx_voc_samples WHERE print_id = p.id) AS peak_voc_ppm, (SELECT ROUND(MAX(mass_pm2_5), 2) FROM sps30_samples WHERE datetime(sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes')) AS peak_pm2_5 FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'B' AS slot, strftime('%m/%d %H:%M', p.started_at, 'localtime') AS started, COALESCE(NULLIF(p.subtask_name, ''), 'Unnamed') AS file, COALESCE(NULLIF(p.filament_type, ''), 'Not captured') AS filament, COALESCE(NULLIF(p.filament_emission_class, ''), 'n/a') AS emissions, CASE p.room_filter_recommended WHEN 1 THEN 'yes' WHEN 0 THEN 'no' ELSE '' END AS room_filter, COALESCE(NULLIF(p.ended_gcode_state, ''), NULLIF(p.last_gcode_state, ''), NULLIF(p.started_gcode_state, ''), '') AS final_state, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS duration_min, (SELECT ROUND(MAX(gas_ppm), 2) FROM sgx_voc_samples WHERE print_id = p.id) AS peak_voc_ppm, (SELECT ROUND(MAX(mass_pm2_5), 2) FROM sps30_samples WHERE datetime(sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes')) AS peak_pm2_5 FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'C' AS slot, strftime('%m/%d %H:%M', p.started_at, 'localtime') AS started, COALESCE(NULLIF(p.subtask_name, ''), 'Unnamed') AS file, COALESCE(NULLIF(p.filament_type, ''), 'Not captured') AS filament, COALESCE(NULLIF(p.filament_emission_class, ''), 'n/a') AS emissions, CASE p.room_filter_recommended WHEN 1 THEN 'yes' WHEN 0 THEN 'no' ELSE '' END AS room_filter, COALESCE(NULLIF(p.ended_gcode_state, ''), NULLIF(p.last_gcode_state, ''), NULLIF(p.started_gcode_state, ''), '') AS final_state, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS duration_min, (SELECT ROUND(MAX(gas_ppm), 2) FROM sgx_voc_samples WHERE print_id = p.id) AS peak_voc_ppm, (SELECT ROUND(MAX(mass_pm2_5), 2) FROM sps30_samples WHERE datetime(sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes')) AS peak_pm2_5 FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'D' AS slot, strftime('%m/%d %H:%M', p.started_at, 'localtime') AS started, COALESCE(NULLIF(p.subtask_name, ''), 'Unnamed') AS file, COALESCE(NULLIF(p.filament_type, ''), 'Not captured') AS filament, COALESCE(NULLIF(p.filament_emission_class, ''), 'n/a') AS emissions, CASE p.room_filter_recommended WHEN 1 THEN 'yes' WHEN 0 THEN 'no' ELSE '' END AS room_filter, COALESCE(NULLIF(p.ended_gcode_state, ''), NULLIF(p.last_gcode_state, ''), NULLIF(p.started_gcode_state, ''), '') AS final_state, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS duration_min, (SELECT ROUND(MAX(gas_ppm), 2) FROM sgx_voc_samples WHERE print_id = p.id) AS peak_voc_ppm, (SELECT ROUND(MAX(mass_pm2_5), 2) FROM sps30_samples WHERE datetime(sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes')) AS peak_pm2_5 FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER);",
-          "rawQueryText": "SELECT 'A' AS slot, strftime('%m/%d %H:%M', p.started_at, 'localtime') AS started, COALESCE(NULLIF(p.subtask_name, ''), 'Unnamed') AS file, COALESCE(NULLIF(p.filament_type, ''), 'Not captured') AS filament, COALESCE(NULLIF(p.filament_emission_class, ''), 'n/a') AS emissions, CASE p.room_filter_recommended WHEN 1 THEN 'yes' WHEN 0 THEN 'no' ELSE '' END AS room_filter, COALESCE(NULLIF(p.ended_gcode_state, ''), NULLIF(p.last_gcode_state, ''), NULLIF(p.started_gcode_state, ''), '') AS final_state, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS duration_min, (SELECT ROUND(MAX(gas_ppm), 2) FROM sgx_voc_samples WHERE print_id = p.id) AS peak_voc_ppm, (SELECT ROUND(MAX(mass_pm2_5), 2) FROM sps30_samples WHERE datetime(sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes')) AS peak_pm2_5 FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'B' AS slot, strftime('%m/%d %H:%M', p.started_at, 'localtime') AS started, COALESCE(NULLIF(p.subtask_name, ''), 'Unnamed') AS file, COALESCE(NULLIF(p.filament_type, ''), 'Not captured') AS filament, COALESCE(NULLIF(p.filament_emission_class, ''), 'n/a') AS emissions, CASE p.room_filter_recommended WHEN 1 THEN 'yes' WHEN 0 THEN 'no' ELSE '' END AS room_filter, COALESCE(NULLIF(p.ended_gcode_state, ''), NULLIF(p.last_gcode_state, ''), NULLIF(p.started_gcode_state, ''), '') AS final_state, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS duration_min, (SELECT ROUND(MAX(gas_ppm), 2) FROM sgx_voc_samples WHERE print_id = p.id) AS peak_voc_ppm, (SELECT ROUND(MAX(mass_pm2_5), 2) FROM sps30_samples WHERE datetime(sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes')) AS peak_pm2_5 FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'C' AS slot, strftime('%m/%d %H:%M', p.started_at, 'localtime') AS started, COALESCE(NULLIF(p.subtask_name, ''), 'Unnamed') AS file, COALESCE(NULLIF(p.filament_type, ''), 'Not captured') AS filament, COALESCE(NULLIF(p.filament_emission_class, ''), 'n/a') AS emissions, CASE p.room_filter_recommended WHEN 1 THEN 'yes' WHEN 0 THEN 'no' ELSE '' END AS room_filter, COALESCE(NULLIF(p.ended_gcode_state, ''), NULLIF(p.last_gcode_state, ''), NULLIF(p.started_gcode_state, ''), '') AS final_state, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS duration_min, (SELECT ROUND(MAX(gas_ppm), 2) FROM sgx_voc_samples WHERE print_id = p.id) AS peak_voc_ppm, (SELECT ROUND(MAX(mass_pm2_5), 2) FROM sps30_samples WHERE datetime(sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes')) AS peak_pm2_5 FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'D' AS slot, strftime('%m/%d %H:%M', p.started_at, 'localtime') AS started, COALESCE(NULLIF(p.subtask_name, ''), 'Unnamed') AS file, COALESCE(NULLIF(p.filament_type, ''), 'Not captured') AS filament, COALESCE(NULLIF(p.filament_emission_class, ''), 'n/a') AS emissions, CASE p.room_filter_recommended WHEN 1 THEN 'yes' WHEN 0 THEN 'no' ELSE '' END AS room_filter, COALESCE(NULLIF(p.ended_gcode_state, ''), NULLIF(p.last_gcode_state, ''), NULLIF(p.started_gcode_state, ''), '') AS final_state, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS duration_min, (SELECT ROUND(MAX(gas_ppm), 2) FROM sgx_voc_samples WHERE print_id = p.id) AS peak_voc_ppm, (SELECT ROUND(MAX(mass_pm2_5), 2) FROM sps30_samples WHERE datetime(sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes')) AS peak_pm2_5 FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER);",
+          "queryText": "SELECT 'A' AS slot, strftime('%m/%d %H:%M', p.started_at, 'localtime') AS started, COALESCE(NULLIF(p.subtask_name, ''), 'Unnamed') AS file, COALESCE(NULLIF(p.filament_type, ''), 'Not captured') AS filament, COALESCE(NULLIF(p.filament_emission_class, ''), 'n/a') AS emissions, CASE p.room_filter_recommended WHEN 1 THEN 'yes' WHEN 0 THEN 'no' ELSE '' END AS room_filter, COALESCE(NULLIF(p.ended_gcode_state, ''), NULLIF(p.last_gcode_state, ''), NULLIF(p.started_gcode_state, ''), '') AS final_state, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS duration_min, (SELECT ROUND(MAX(gas_ppm), 2) FROM sgx_voc_samples WHERE print_id = p.id) AS peak_voc_ppm, (SELECT ROUND(MAX(mass_pm2_5), 2) FROM sps30_samples WHERE datetime(sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes')) AS peak_pm2_5 FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'B' AS slot, strftime('%m/%d %H:%M', p.started_at, 'localtime') AS started, COALESCE(NULLIF(p.subtask_name, ''), 'Unnamed') AS file, COALESCE(NULLIF(p.filament_type, ''), 'Not captured') AS filament, COALESCE(NULLIF(p.filament_emission_class, ''), 'n/a') AS emissions, CASE p.room_filter_recommended WHEN 1 THEN 'yes' WHEN 0 THEN 'no' ELSE '' END AS room_filter, COALESCE(NULLIF(p.ended_gcode_state, ''), NULLIF(p.last_gcode_state, ''), NULLIF(p.started_gcode_state, ''), '') AS final_state, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS duration_min, (SELECT ROUND(MAX(gas_ppm), 2) FROM sgx_voc_samples WHERE print_id = p.id) AS peak_voc_ppm, (SELECT ROUND(MAX(mass_pm2_5), 2) FROM sps30_samples WHERE datetime(sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes')) AS peak_pm2_5 FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER);",
+          "rawQueryText": "SELECT 'A' AS slot, strftime('%m/%d %H:%M', p.started_at, 'localtime') AS started, COALESCE(NULLIF(p.subtask_name, ''), 'Unnamed') AS file, COALESCE(NULLIF(p.filament_type, ''), 'Not captured') AS filament, COALESCE(NULLIF(p.filament_emission_class, ''), 'n/a') AS emissions, CASE p.room_filter_recommended WHEN 1 THEN 'yes' WHEN 0 THEN 'no' ELSE '' END AS room_filter, COALESCE(NULLIF(p.ended_gcode_state, ''), NULLIF(p.last_gcode_state, ''), NULLIF(p.started_gcode_state, ''), '') AS final_state, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS duration_min, (SELECT ROUND(MAX(gas_ppm), 2) FROM sgx_voc_samples WHERE print_id = p.id) AS peak_voc_ppm, (SELECT ROUND(MAX(mass_pm2_5), 2) FROM sps30_samples WHERE datetime(sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes')) AS peak_pm2_5 FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'B' AS slot, strftime('%m/%d %H:%M', p.started_at, 'localtime') AS started, COALESCE(NULLIF(p.subtask_name, ''), 'Unnamed') AS file, COALESCE(NULLIF(p.filament_type, ''), 'Not captured') AS filament, COALESCE(NULLIF(p.filament_emission_class, ''), 'n/a') AS emissions, CASE p.room_filter_recommended WHEN 1 THEN 'yes' WHEN 0 THEN 'no' ELSE '' END AS room_filter, COALESCE(NULLIF(p.ended_gcode_state, ''), NULLIF(p.last_gcode_state, ''), NULLIF(p.started_gcode_state, ''), '') AS final_state, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1) AS duration_min, (SELECT ROUND(MAX(gas_ppm), 2) FROM sgx_voc_samples WHERE print_id = p.id) AS peak_voc_ppm, (SELECT ROUND(MAX(mass_pm2_5), 2) FROM sps30_samples WHERE datetime(sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes')) AS peak_pm2_5 FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER);",
           "queryType": "table",
           "timeColumns": [],
           "format": "table"
@@ -279,8 +241,8 @@
             "type": "frser-sqlite-datasource",
             "uid": "airmonitor-sqlite"
           },
-          "queryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'c' THEN value END) AS \"${print_c:text}\", MAX(CASE WHEN slot = 'd' THEN value END) AS \"${print_d:text}\", MAX(CASE WHEN slot = 'start' THEN value END) AS \"Print start\", MAX(CASE WHEN slot = 'end_a' THEN value END) AS \"Print A end\", MAX(CASE WHEN slot = 'end_b' THEN value END) AS \"Print B end\", MAX(CASE WHEN slot = 'end_c' THEN value END) AS \"Print C end\", MAX(CASE WHEN slot = 'end_d' THEN value END) AS \"Print D end\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'c' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_c' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'd' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_d' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER) UNION ALL SELECT 'end_a' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'end_b' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'end_c' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'end_d' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER)) combined GROUP BY time_bucket ORDER BY time_bucket;",
-          "rawQueryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'c' THEN value END) AS \"${print_c:text}\", MAX(CASE WHEN slot = 'd' THEN value END) AS \"${print_d:text}\", MAX(CASE WHEN slot = 'start' THEN value END) AS \"Print start\", MAX(CASE WHEN slot = 'end_a' THEN value END) AS \"Print A end\", MAX(CASE WHEN slot = 'end_b' THEN value END) AS \"Print B end\", MAX(CASE WHEN slot = 'end_c' THEN value END) AS \"Print C end\", MAX(CASE WHEN slot = 'end_d' THEN value END) AS \"Print D end\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'c' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_c' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'd' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_d' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER) UNION ALL SELECT 'end_a' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'end_b' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'end_c' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'end_d' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER)) combined GROUP BY time_bucket ORDER BY time_bucket;",
+          "queryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'start' THEN value END) AS \"Print start\", MAX(CASE WHEN slot = 'end_a' THEN value END) AS \"Print A end\", MAX(CASE WHEN slot = 'end_b' THEN value END) AS \"Print B end\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'end_a' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'end_b' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER)) combined GROUP BY time_bucket ORDER BY time_bucket;",
+          "rawQueryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'start' THEN value END) AS \"Print start\", MAX(CASE WHEN slot = 'end_a' THEN value END) AS \"Print A end\", MAX(CASE WHEN slot = 'end_b' THEN value END) AS \"Print B end\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.gas_ppm AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'end_a' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'end_b' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER)) combined GROUP BY time_bucket ORDER BY time_bucket;",
           "queryType": "table",
           "timeColumns": [],
           "format": "table"
@@ -496,124 +458,6 @@
                 }
               }
             ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Print C end"
-            },
-            "properties": [
-              {
-                "id": "custom.drawStyle",
-                "value": "bars"
-              },
-              {
-                "id": "custom.barWidthFactor",
-                "value": 0.01
-              },
-              {
-                "id": "custom.barAlignment",
-                "value": 0
-              },
-              {
-                "id": "custom.fillOpacity",
-                "value": 70
-              },
-              {
-                "id": "custom.lineWidth",
-                "value": 1
-              },
-              {
-                "id": "custom.axisPlacement",
-                "value": "hidden"
-              },
-              {
-                "id": "custom.axisSoftMin",
-                "value": 0
-              },
-              {
-                "id": "min",
-                "value": 0
-              },
-              {
-                "id": "max",
-                "value": 1
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#73BF69"
-                }
-              },
-              {
-                "id": "custom.hideFrom",
-                "value": {
-                  "tooltip": false,
-                  "viz": false,
-                  "legend": false
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Print D end"
-            },
-            "properties": [
-              {
-                "id": "custom.drawStyle",
-                "value": "bars"
-              },
-              {
-                "id": "custom.barWidthFactor",
-                "value": 0.01
-              },
-              {
-                "id": "custom.barAlignment",
-                "value": 0
-              },
-              {
-                "id": "custom.fillOpacity",
-                "value": 70
-              },
-              {
-                "id": "custom.lineWidth",
-                "value": 1
-              },
-              {
-                "id": "custom.axisPlacement",
-                "value": "hidden"
-              },
-              {
-                "id": "custom.axisSoftMin",
-                "value": 0
-              },
-              {
-                "id": "min",
-                "value": 0
-              },
-              {
-                "id": "max",
-                "value": 1
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#F2495C"
-                }
-              },
-              {
-                "id": "custom.hideFrom",
-                "value": {
-                  "tooltip": false,
-                  "viz": false,
-                  "legend": false
-                }
-              }
-            ]
           }
         ]
       },
@@ -654,8 +498,8 @@
             "type": "frser-sqlite-datasource",
             "uid": "airmonitor-sqlite"
           },
-          "queryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'c' THEN value END) AS \"${print_c:text}\", MAX(CASE WHEN slot = 'd' THEN value END) AS \"${print_d:text}\", MAX(CASE WHEN slot = 'start' THEN value END) AS \"Print start\", MAX(CASE WHEN slot = 'end_a' THEN value END) AS \"Print A end\", MAX(CASE WHEN slot = 'end_b' THEN value END) AS \"Print B end\", MAX(CASE WHEN slot = 'end_c' THEN value END) AS \"Print C end\", MAX(CASE WHEN slot = 'end_d' THEN value END) AS \"Print D end\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'c' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_c' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'd' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_d' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER) UNION ALL SELECT 'end_a' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'end_b' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'end_c' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'end_d' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER)) combined GROUP BY time_bucket ORDER BY time_bucket;",
-          "rawQueryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'c' THEN value END) AS \"${print_c:text}\", MAX(CASE WHEN slot = 'd' THEN value END) AS \"${print_d:text}\", MAX(CASE WHEN slot = 'start' THEN value END) AS \"Print start\", MAX(CASE WHEN slot = 'end_a' THEN value END) AS \"Print A end\", MAX(CASE WHEN slot = 'end_b' THEN value END) AS \"Print B end\", MAX(CASE WHEN slot = 'end_c' THEN value END) AS \"Print C end\", MAX(CASE WHEN slot = 'end_d' THEN value END) AS \"Print D end\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'c' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_c' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'd' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_d' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER) UNION ALL SELECT 'end_a' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'end_b' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'end_c' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'end_d' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER)) combined GROUP BY time_bucket ORDER BY time_bucket;",
+          "queryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'start' THEN value END) AS \"Print start\", MAX(CASE WHEN slot = 'end_a' THEN value END) AS \"Print A end\", MAX(CASE WHEN slot = 'end_b' THEN value END) AS \"Print B end\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'end_a' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'end_b' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER)) combined GROUP BY time_bucket ORDER BY time_bucket;",
+          "rawQueryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'start' THEN value END) AS \"Print start\", MAX(CASE WHEN slot = 'end_a' THEN value END) AS \"Print A end\", MAX(CASE WHEN slot = 'end_b' THEN value END) AS \"Print B end\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.mass_pm2_5 AS value FROM sps30_samples s, prints p WHERE p.id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'end_a' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'end_b' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER)) combined GROUP BY time_bucket ORDER BY time_bucket;",
           "queryType": "table",
           "timeColumns": [],
           "format": "table"
@@ -871,124 +715,6 @@
                 }
               }
             ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Print C end"
-            },
-            "properties": [
-              {
-                "id": "custom.drawStyle",
-                "value": "bars"
-              },
-              {
-                "id": "custom.barWidthFactor",
-                "value": 0.01
-              },
-              {
-                "id": "custom.barAlignment",
-                "value": 0
-              },
-              {
-                "id": "custom.fillOpacity",
-                "value": 70
-              },
-              {
-                "id": "custom.lineWidth",
-                "value": 1
-              },
-              {
-                "id": "custom.axisPlacement",
-                "value": "hidden"
-              },
-              {
-                "id": "custom.axisSoftMin",
-                "value": 0
-              },
-              {
-                "id": "min",
-                "value": 0
-              },
-              {
-                "id": "max",
-                "value": 1
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#73BF69"
-                }
-              },
-              {
-                "id": "custom.hideFrom",
-                "value": {
-                  "tooltip": false,
-                  "viz": false,
-                  "legend": false
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Print D end"
-            },
-            "properties": [
-              {
-                "id": "custom.drawStyle",
-                "value": "bars"
-              },
-              {
-                "id": "custom.barWidthFactor",
-                "value": 0.01
-              },
-              {
-                "id": "custom.barAlignment",
-                "value": 0
-              },
-              {
-                "id": "custom.fillOpacity",
-                "value": 70
-              },
-              {
-                "id": "custom.lineWidth",
-                "value": 1
-              },
-              {
-                "id": "custom.axisPlacement",
-                "value": "hidden"
-              },
-              {
-                "id": "custom.axisSoftMin",
-                "value": 0
-              },
-              {
-                "id": "min",
-                "value": 0
-              },
-              {
-                "id": "max",
-                "value": 1
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#F2495C"
-                }
-              },
-              {
-                "id": "custom.hideFrom",
-                "value": {
-                  "tooltip": false,
-                  "viz": false,
-                  "legend": false
-                }
-              }
-            ]
           }
         ]
       },
@@ -1029,8 +755,8 @@
             "type": "frser-sqlite-datasource",
             "uid": "airmonitor-sqlite"
           },
-          "queryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'c' THEN value END) AS \"${print_c:text}\", MAX(CASE WHEN slot = 'd' THEN value END) AS \"${print_d:text}\", MAX(CASE WHEN slot = 'start' THEN value END) AS \"Print start\", MAX(CASE WHEN slot = 'end_a' THEN value END) AS \"Print A end\", MAX(CASE WHEN slot = 'end_b' THEN value END) AS \"Print B end\", MAX(CASE WHEN slot = 'end_c' THEN value END) AS \"Print C end\", MAX(CASE WHEN slot = 'end_d' THEN value END) AS \"Print D end\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'c' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_c' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'd' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_d' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER) UNION ALL SELECT 'end_a' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'end_b' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'end_c' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'end_d' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER)) combined GROUP BY time_bucket ORDER BY time_bucket;",
-          "rawQueryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'c' THEN value END) AS \"${print_c:text}\", MAX(CASE WHEN slot = 'd' THEN value END) AS \"${print_d:text}\", MAX(CASE WHEN slot = 'start' THEN value END) AS \"Print start\", MAX(CASE WHEN slot = 'end_a' THEN value END) AS \"Print A end\", MAX(CASE WHEN slot = 'end_b' THEN value END) AS \"Print B end\", MAX(CASE WHEN slot = 'end_c' THEN value END) AS \"Print C end\", MAX(CASE WHEN slot = 'end_d' THEN value END) AS \"Print D end\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'c' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_c' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'd' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_d' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER) UNION ALL SELECT 'end_a' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'end_b' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'end_c' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_c' AS INTEGER) UNION ALL SELECT 'end_d' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_d' AS INTEGER)) combined GROUP BY time_bucket ORDER BY time_bucket;",
+          "queryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'start' THEN value END) AS \"Print start\", MAX(CASE WHEN slot = 'end_a' THEN value END) AS \"Print A end\", MAX(CASE WHEN slot = 'end_b' THEN value END) AS \"Print B end\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'end_a' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'end_b' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER)) combined GROUP BY time_bucket ORDER BY time_bucket;",
+          "rawQueryText": "SELECT time_bucket AS time, MAX(CASE WHEN slot = 'a' THEN value END) AS \"${print_a:text}\", MAX(CASE WHEN slot = 'b' THEN value END) AS \"${print_b:text}\", MAX(CASE WHEN slot = 'start' THEN value END) AS \"Print start\", MAX(CASE WHEN slot = 'end_a' THEN value END) AS \"Print A end\", MAX(CASE WHEN slot = 'end_b' THEN value END) AS \"Print B end\" FROM (SELECT 'a' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_a' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'b' AS slot, ROUND((julianday(s.sampled_at) - julianday(p.started_at)) * 1440, 0) AS time_bucket, s.temperature_c AS value FROM sgx_voc_samples s JOIN prints p ON p.id = s.print_id WHERE s.print_id = CAST('$print_b' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER) UNION ALL SELECT 'end_a' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_a' AS INTEGER) UNION ALL SELECT 'end_b' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0) AS time_bucket, 1 AS value FROM prints p WHERE p.id = CAST('$print_b' AS INTEGER)) combined GROUP BY time_bucket ORDER BY time_bucket;",
           "queryType": "table",
           "timeColumns": [],
           "format": "table"
@@ -1235,124 +961,6 @@
                 "value": {
                   "mode": "fixed",
                   "fixedColor": "#FF9830"
-                }
-              },
-              {
-                "id": "custom.hideFrom",
-                "value": {
-                  "tooltip": false,
-                  "viz": false,
-                  "legend": false
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Print C end"
-            },
-            "properties": [
-              {
-                "id": "custom.drawStyle",
-                "value": "bars"
-              },
-              {
-                "id": "custom.barWidthFactor",
-                "value": 0.01
-              },
-              {
-                "id": "custom.barAlignment",
-                "value": 0
-              },
-              {
-                "id": "custom.fillOpacity",
-                "value": 70
-              },
-              {
-                "id": "custom.lineWidth",
-                "value": 1
-              },
-              {
-                "id": "custom.axisPlacement",
-                "value": "hidden"
-              },
-              {
-                "id": "custom.axisSoftMin",
-                "value": 0
-              },
-              {
-                "id": "min",
-                "value": 0
-              },
-              {
-                "id": "max",
-                "value": 1
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#73BF69"
-                }
-              },
-              {
-                "id": "custom.hideFrom",
-                "value": {
-                  "tooltip": false,
-                  "viz": false,
-                  "legend": false
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Print D end"
-            },
-            "properties": [
-              {
-                "id": "custom.drawStyle",
-                "value": "bars"
-              },
-              {
-                "id": "custom.barWidthFactor",
-                "value": 0.01
-              },
-              {
-                "id": "custom.barAlignment",
-                "value": 0
-              },
-              {
-                "id": "custom.fillOpacity",
-                "value": 70
-              },
-              {
-                "id": "custom.lineWidth",
-                "value": 1
-              },
-              {
-                "id": "custom.axisPlacement",
-                "value": "hidden"
-              },
-              {
-                "id": "custom.axisSoftMin",
-                "value": 0
-              },
-              {
-                "id": "min",
-                "value": 0
-              },
-              {
-                "id": "max",
-                "value": 1
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#F2495C"
                 }
               },
               {

@@ -122,24 +122,24 @@ static committed files rather than python-generated, so their banners (and their
 ### Comparing prints
 
 `airmonitor-compare-prints` picks up where `airmonitor-print-window`'s single-print view
-leaves off: four independent print-select variables (`print_a`..`print_d`, each the same
-query as `print-window`'s own `print_id`) feed a summary table (one row per slot: filament,
-duration, peak VOC, peak PM2.5, ...) plus VOC/PM2.5/temperature charts overlaying all four.
-Grafana's variable bar has no native "add another" control, so there's no dedicated button
-for this -- Print A and B are the two you're expected to fill in, and C/D simply start
-blank; every query already skips a blank slot cleanly (an empty `CAST('' AS INTEGER)` just
-matches no print), so leaving them unset reads as "comparing two" and filling one in is
-exactly the same action as picking A or B. Each print-select query's own result must stay
-exactly two columns (`__text`, `__value`) -- a query variable returning more fields breaks
-Grafana's variable parsing outright ("Received more than two (N) fields"), which in turn
-corrupts the actual selected print id downstream. An attempt to add an explicit "None" choice
-by unioning in extra sort/ordering columns hit exactly this and was reverted; a shorter,
-truncated label was tried separately and also reverted (saved width, but made prints harder
-to tell apart at a glance). Grafana still wraps the pickers onto multiple rows if the browser
-is too narrow, since dashboard JSON has no way to force a fixed layout for the variable bar
-the way panels have `gridPos`.
+leaves off: exactly two print-select variables (`print_a`, `print_b`, each the same query as
+`print-window`'s own `print_id`) feed a summary table (one row per slot: filament, duration,
+peak VOC, peak PM2.5, ...) plus VOC/PM2.5/temperature charts overlaying both. The dashboard
+originally supported up to four prints (`print_a`..`print_d`, with C/D left blank by default),
+but that flexibility read as confusing in practice -- Grafana's variable bar has no native
+"add another" control, so a blank C/D slot just looked like an unfinished picker rather than
+an optional one, and it made the always-two comparison this dashboard is actually used for
+harder to reason about at a glance. It was hard-limited back down to exactly two. Each
+print-select query's own result must stay exactly two columns (`__text`, `__value`) -- a
+query variable returning more fields breaks Grafana's variable parsing outright ("Received
+more than two (N) fields"), which in turn corrupts the actual selected print id downstream.
+An attempt to add an explicit "None" choice by unioning in extra sort/ordering columns hit
+exactly this and was reverted; a shorter, truncated label was tried separately and also
+reverted (saved width, but made prints harder to tell apart at a glance). Grafana still wraps
+the pickers onto multiple rows if the browser is too narrow, since dashboard JSON has no way
+to force a fixed layout for the variable bar the way panels have `gridPos`.
 
-A fifth variable, `window_minutes` (15/30/60/90/120, default 30), controls how much time
+A third variable, `window_minutes` (15/30/60/90/120, default 30), controls how much time
 before/after each print's own start/end is included -- widen it to see a longer post-print
 recovery tail, or narrow it to focus tightly on the print itself. Every query builds its
 `datetime()` modifier dynamically (`'-' || $window_minutes || ' minutes'`) instead of a
@@ -161,10 +161,10 @@ column) is a different, unrelated computation and keeps its own decimal precisio
 
 The three overlay charts also mark where each print actually started and stopped, so the
 pre/post buffer around it is visually distinguishable from the print itself. Elapsed-time
-alignment means every compared print's own start is always at elapsed minute 0 -- one shared
-"Print start" line covers all of them -- but each print's own end differs (different
-durations), so that's one column per slot (`Print A end` .. `Print D end`), each a synthetic
-row injected into the same `UNION ALL` at that print's own duration in minutes. Grafana's
+alignment means both compared prints' own start is always at elapsed minute 0 -- one shared
+"Print start" line covers both -- but each print's own end differs (different durations), so
+that's one column per slot (`Print A end`, `Print B end`), each a synthetic row injected into
+the same `UNION ALL` at that print's own duration in minutes. Grafana's
 native annotations don't apply to this panel: they anchor to a real time axis, and this one
 is deliberately elapsed minutes, not epoch time (the same reason `timeColumns` stays empty --
 see the regression test above). Instead each marker column is a spike (value `1` at exactly
@@ -175,8 +175,8 @@ without needing Grafana's time-based annotation system at all.
 
 The charts can't just plot real timestamps -- two prints being compared happened at
 different wall-clock times, so their curves would never overlap. Each chart's query instead
-computes `(sampled_at - print's own started_at)` in minutes per print, `UNION ALL`s the four
-slots together, and pivots into up to four named columns via
+computes `(sampled_at - print's own started_at)` in minutes per print, `UNION ALL`s the two
+slots together, and pivots into two named columns via
 `MAX(CASE WHEN slot = 'a' THEN value END) AS "${print_a:text}"` (one column per slot,
 aliased to the selected print's own label). This reuses two mechanisms already proven
 elsewhere in this codebase rather than anything exotic: "one query column = one series" (the

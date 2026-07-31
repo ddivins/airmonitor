@@ -259,7 +259,7 @@ def _interpolate_grafana_variables(query: str) -> str:
     sqlite3 connection can execute a dashboard's own query text directly,
     the same trick test_all_panel_queries_match_schema uses for the SQL dict."""
 
-    for letter, print_id in zip("abcd", (1, 2, 3, 4)):
+    for letter, print_id in zip("ab", (1, 2)):
         query = query.replace(f"${{print_{letter}:text}}", f"Slot {letter.upper()}")
         query = query.replace(f"$print_{letter}", str(print_id))
     query = query.replace("$window_minutes", "30")
@@ -279,9 +279,9 @@ class ComparePrintsDashboardTests(unittest.TestCase):
         path = Path(__file__).parents[1] / "grafana" / "dashboards" / "airmonitor-compare-prints.json"
         cls.dashboard = json.loads(path.read_text(encoding="utf-8"))
 
-    def test_has_four_independent_print_select_variables_and_a_window_control(self):
+    def test_has_two_independent_print_select_variables_and_a_window_control(self):
         names = [variable["name"] for variable in self.dashboard["templating"]["list"]]
-        self.assertEqual(names, ["print_a", "print_b", "print_c", "print_d", "window_minutes"])
+        self.assertEqual(names, ["print_a", "print_b", "window_minutes"])
         for variable in self.dashboard["templating"]["list"]:
             self.assertFalse(variable["multi"])
 
@@ -308,7 +308,7 @@ class ComparePrintsDashboardTests(unittest.TestCase):
             conn.execute(
                 "INSERT INTO prints (id, started_at, ended_gcode_state) VALUES (1, '2026-01-01T00:00:00Z', 'FINISH')"
             )
-            for name in ("print_a", "print_b", "print_c", "print_d"):
+            for name in ("print_a", "print_b"):
                 variable = next(v for v in self.dashboard["templating"]["list"] if v["name"] == name)
                 query = variable["query"]
                 self.assertIn("filament_type", query)
@@ -357,7 +357,7 @@ class ComparePrintsDashboardTests(unittest.TestCase):
         they don't distort the real data's own Y-scale."""
 
         trend_panels = [p for p in self.dashboard["panels"] if p["type"] == "trend"]
-        marker_names = {"Print start", "Print A end", "Print B end", "Print C end", "Print D end"}
+        marker_names = {"Print start", "Print A end", "Print B end"}
         for panel in trend_panels:
             query = panel["targets"][0]["queryText"]
             for name in marker_names:
