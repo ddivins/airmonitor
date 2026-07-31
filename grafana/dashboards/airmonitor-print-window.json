@@ -94,6 +94,46 @@
           "text": "Latest print",
           "value": "26"
         }
+      },
+      {
+        "name": "window_minutes",
+        "label": "Pre/post window",
+        "type": "custom",
+        "query": "15 minutes : 15,30 minutes : 30,60 minutes : 60,90 minutes : 90,2 hours : 120",
+        "current": {
+          "selected": true,
+          "text": "30 minutes",
+          "value": "30"
+        },
+        "options": [
+          {
+            "text": "15 minutes",
+            "value": "15",
+            "selected": false
+          },
+          {
+            "text": "30 minutes",
+            "value": "30",
+            "selected": true
+          },
+          {
+            "text": "60 minutes",
+            "value": "60",
+            "selected": false
+          },
+          {
+            "text": "90 minutes",
+            "value": "90",
+            "selected": false
+          },
+          {
+            "text": "2 hours",
+            "value": "120",
+            "selected": false
+          }
+        ],
+        "multi": false,
+        "includeAll": false
       }
     ]
   },
@@ -144,8 +184,8 @@
             "type": "frser-sqlite-datasource",
             "uid": "airmonitor-sqlite"
           },
-          "queryText": "SELECT subtask_name AS print, COALESCE(NULLIF(filament_type, ''), 'Not captured') AS material, CASE WHEN length(trim(COALESCE(filament_color, ''))) >= 6 THEN '#' || upper(substr(trim(filament_color), 1, 6)) ELSE 'Not captured' END AS color, COALESCE(NULLIF(filament_sub_brand, ''), NULLIF(filament_profile, ''), 'Not captured') AS filament_profile, strftime('%m/%d/%Y %H:%M:%S', started_at, 'localtime') AS running_started_local, strftime('%m/%d/%Y %H:%M:%S', COALESCE(ended_at, last_seen_at), 'localtime') AS print_ended_local, strftime('%m/%d/%Y %H:%M:%S', started_at, '-30 minutes', 'localtime') AS chart_from_local, strftime('%m/%d/%Y %H:%M:%S', COALESCE(ended_at, last_seen_at), '+30 minutes', 'localtime') AS chart_to_local, COALESCE(ended_gcode_state, last_gcode_state) AS final_state FROM prints WHERE id = CAST('$print_id' AS INTEGER);",
-          "rawQueryText": "SELECT subtask_name AS print, COALESCE(NULLIF(filament_type, ''), 'Not captured') AS material, CASE WHEN length(trim(COALESCE(filament_color, ''))) >= 6 THEN '#' || upper(substr(trim(filament_color), 1, 6)) ELSE 'Not captured' END AS color, COALESCE(NULLIF(filament_sub_brand, ''), NULLIF(filament_profile, ''), 'Not captured') AS filament_profile, strftime('%m/%d/%Y %H:%M:%S', started_at, 'localtime') AS running_started_local, strftime('%m/%d/%Y %H:%M:%S', COALESCE(ended_at, last_seen_at), 'localtime') AS print_ended_local, strftime('%m/%d/%Y %H:%M:%S', started_at, '-30 minutes', 'localtime') AS chart_from_local, strftime('%m/%d/%Y %H:%M:%S', COALESCE(ended_at, last_seen_at), '+30 minutes', 'localtime') AS chart_to_local, COALESCE(ended_gcode_state, last_gcode_state) AS final_state FROM prints WHERE id = CAST('$print_id' AS INTEGER);"
+          "queryText": "SELECT subtask_name AS print, COALESCE(NULLIF(filament_type, ''), 'Not captured') AS material, CASE WHEN length(trim(COALESCE(filament_color, ''))) >= 6 THEN '#' || upper(substr(trim(filament_color), 1, 6)) ELSE 'Not captured' END AS color, COALESCE(NULLIF(filament_sub_brand, ''), NULLIF(filament_profile, ''), 'Not captured') AS filament_profile, strftime('%m/%d/%Y %H:%M:%S', started_at, 'localtime') AS running_started_local, strftime('%m/%d/%Y %H:%M:%S', COALESCE(ended_at, last_seen_at), 'localtime') AS print_ended_local, strftime('%m/%d/%Y %H:%M:%S', started_at, '-' || $window_minutes || ' minutes', 'localtime') AS chart_from_local, strftime('%m/%d/%Y %H:%M:%S', COALESCE(ended_at, last_seen_at), '+' || $window_minutes || ' minutes', 'localtime') AS chart_to_local, COALESCE(ended_gcode_state, last_gcode_state) AS final_state FROM prints WHERE id = CAST('$print_id' AS INTEGER);",
+          "rawQueryText": "SELECT subtask_name AS print, COALESCE(NULLIF(filament_type, ''), 'Not captured') AS material, CASE WHEN length(trim(COALESCE(filament_color, ''))) >= 6 THEN '#' || upper(substr(trim(filament_color), 1, 6)) ELSE 'Not captured' END AS color, COALESCE(NULLIF(filament_sub_brand, ''), NULLIF(filament_profile, ''), 'Not captured') AS filament_profile, strftime('%m/%d/%Y %H:%M:%S', started_at, 'localtime') AS running_started_local, strftime('%m/%d/%Y %H:%M:%S', COALESCE(ended_at, last_seen_at), 'localtime') AS print_ended_local, strftime('%m/%d/%Y %H:%M:%S', started_at, '-' || $window_minutes || ' minutes', 'localtime') AS chart_from_local, strftime('%m/%d/%Y %H:%M:%S', COALESCE(ended_at, last_seen_at), '+' || $window_minutes || ' minutes', 'localtime') AS chart_to_local, COALESCE(ended_gcode_state, last_gcode_state) AS final_state FROM prints WHERE id = CAST('$print_id' AS INTEGER);"
         }
       ],
       "fieldConfig": {
@@ -232,7 +272,7 @@
     {
       "id": 2,
       "type": "trend",
-      "title": "VOC — 30 Minutes Before Through 30 Minutes After",
+      "title": "VOC — ${window_minutes} Minutes Before Through ${window_minutes} Minutes After",
       "datasource": {
         "type": "frser-sqlite-datasource",
         "uid": "airmonitor-sqlite"
@@ -250,8 +290,8 @@
             "type": "frser-sqlite-datasource",
             "uid": "airmonitor-sqlite"
           },
-          "queryText": "SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.gas_ppm AS voc_ppm FROM sgx_voc_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') ORDER BY s.sampled_at;",
-          "rawQueryText": "SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.gas_ppm AS voc_ppm FROM sgx_voc_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') ORDER BY s.sampled_at;",
+          "queryText": "SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.gas_ppm AS voc_ppm FROM sgx_voc_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') ORDER BY s.sampled_at;",
+          "rawQueryText": "SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.gas_ppm AS voc_ppm FROM sgx_voc_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') ORDER BY s.sampled_at;",
           "queryType": "table",
           "timeColumns": [],
           "format": "table"
@@ -377,8 +417,8 @@
             "type": "frser-sqlite-datasource",
             "uid": "airmonitor-sqlite"
           },
-          "queryText": "SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.temperature_c, s.humidity_rh, s.chamber_temperature_c FROM sgx_voc_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') ORDER BY s.sampled_at;",
-          "rawQueryText": "SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.temperature_c, s.humidity_rh, s.chamber_temperature_c FROM sgx_voc_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') ORDER BY s.sampled_at;",
+          "queryText": "SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.temperature_c, s.humidity_rh, s.chamber_temperature_c FROM sgx_voc_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') ORDER BY s.sampled_at;",
+          "rawQueryText": "SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.temperature_c, s.humidity_rh, s.chamber_temperature_c FROM sgx_voc_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') ORDER BY s.sampled_at;",
           "queryType": "table",
           "timeColumns": [],
           "format": "table"
@@ -491,8 +531,8 @@
             "type": "frser-sqlite-datasource",
             "uid": "airmonitor-sqlite"
           },
-          "queryText": "SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.mass_pm1_0 AS PM1, s.mass_pm2_5 AS PM2_5, s.mass_pm4_0 AS PM4, s.mass_pm10 AS PM10 FROM sps30_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') ORDER BY s.sampled_at;",
-          "rawQueryText": "SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.mass_pm1_0 AS PM1, s.mass_pm2_5 AS PM2_5, s.mass_pm4_0 AS PM4, s.mass_pm10 AS PM10 FROM sps30_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-30 minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+30 minutes') ORDER BY s.sampled_at;",
+          "queryText": "SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.mass_pm1_0 AS PM1, s.mass_pm2_5 AS PM2_5, s.mass_pm4_0 AS PM4, s.mass_pm10 AS PM10 FROM sps30_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') ORDER BY s.sampled_at;",
+          "rawQueryText": "SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.mass_pm1_0 AS PM1, s.mass_pm2_5 AS PM2_5, s.mass_pm4_0 AS PM4, s.mass_pm10 AS PM10 FROM sps30_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') ORDER BY s.sampled_at;",
           "queryType": "table",
           "timeColumns": [],
           "format": "table"
@@ -665,8 +705,8 @@
             "type": "frser-sqlite-datasource",
             "uid": "airmonitor-sqlite"
           },
-          "queryText": "WITH bounds AS (SELECT datetime(started_at, '-30 minutes') AS from_at, datetime(COALESCE(ended_at, last_seen_at), '+30 minutes') AS to_at FROM prints WHERE id = CAST('$print_id' AS INTEGER)), sgx AS (SELECT * FROM sgx_voc_samples, bounds WHERE datetime(sampled_at) BETWEEN from_at AND to_at), sps AS (SELECT * FROM sps30_samples, bounds WHERE datetime(sampled_at) BETWEEN from_at AND to_at) SELECT 'VOC' AS sensor, ROUND(MIN(gas_ppm), 3) AS minimum, ROUND(MAX(gas_ppm), 3) AS maximum, 'ppm' AS unit FROM sgx UNION ALL SELECT 'Temperature', ROUND(MIN(temperature_c), 2), ROUND(MAX(temperature_c), 2), '°C' FROM sgx UNION ALL SELECT 'Humidity', ROUND(MIN(humidity_rh), 2), ROUND(MAX(humidity_rh), 2), '%RH' FROM sgx UNION ALL SELECT 'PM1.0 mass', ROUND(MIN(mass_pm1_0), 2), ROUND(MAX(mass_pm1_0), 2), 'µg/m³' FROM sps UNION ALL SELECT 'PM2.5 mass', ROUND(MIN(mass_pm2_5), 2), ROUND(MAX(mass_pm2_5), 2), 'µg/m³' FROM sps UNION ALL SELECT 'PM4.0 mass', ROUND(MIN(mass_pm4_0), 2), ROUND(MAX(mass_pm4_0), 2), 'µg/m³' FROM sps UNION ALL SELECT 'PM10 mass', ROUND(MIN(mass_pm10), 2), ROUND(MAX(mass_pm10), 2), 'µg/m³' FROM sps UNION ALL SELECT 'Typical particle size', ROUND(MIN(typical_particle_size), 3), ROUND(MAX(typical_particle_size), 3), 'µm' FROM sps;",
-          "rawQueryText": "WITH bounds AS (SELECT datetime(started_at, '-30 minutes') AS from_at, datetime(COALESCE(ended_at, last_seen_at), '+30 minutes') AS to_at FROM prints WHERE id = CAST('$print_id' AS INTEGER)), sgx AS (SELECT * FROM sgx_voc_samples, bounds WHERE datetime(sampled_at) BETWEEN from_at AND to_at), sps AS (SELECT * FROM sps30_samples, bounds WHERE datetime(sampled_at) BETWEEN from_at AND to_at) SELECT 'VOC' AS sensor, ROUND(MIN(gas_ppm), 3) AS minimum, ROUND(MAX(gas_ppm), 3) AS maximum, 'ppm' AS unit FROM sgx UNION ALL SELECT 'Temperature', ROUND(MIN(temperature_c), 2), ROUND(MAX(temperature_c), 2), '°C' FROM sgx UNION ALL SELECT 'Humidity', ROUND(MIN(humidity_rh), 2), ROUND(MAX(humidity_rh), 2), '%RH' FROM sgx UNION ALL SELECT 'PM1.0 mass', ROUND(MIN(mass_pm1_0), 2), ROUND(MAX(mass_pm1_0), 2), 'µg/m³' FROM sps UNION ALL SELECT 'PM2.5 mass', ROUND(MIN(mass_pm2_5), 2), ROUND(MAX(mass_pm2_5), 2), 'µg/m³' FROM sps UNION ALL SELECT 'PM4.0 mass', ROUND(MIN(mass_pm4_0), 2), ROUND(MAX(mass_pm4_0), 2), 'µg/m³' FROM sps UNION ALL SELECT 'PM10 mass', ROUND(MIN(mass_pm10), 2), ROUND(MAX(mass_pm10), 2), 'µg/m³' FROM sps UNION ALL SELECT 'Typical particle size', ROUND(MIN(typical_particle_size), 3), ROUND(MAX(typical_particle_size), 3), 'µm' FROM sps;"
+          "queryText": "WITH bounds AS (SELECT datetime(started_at, '-' || $window_minutes || ' minutes') AS from_at, datetime(COALESCE(ended_at, last_seen_at), '+' || $window_minutes || ' minutes') AS to_at FROM prints WHERE id = CAST('$print_id' AS INTEGER)), sgx AS (SELECT * FROM sgx_voc_samples, bounds WHERE datetime(sampled_at) BETWEEN from_at AND to_at), sps AS (SELECT * FROM sps30_samples, bounds WHERE datetime(sampled_at) BETWEEN from_at AND to_at) SELECT 'VOC' AS sensor, ROUND(MIN(gas_ppm), 3) AS minimum, ROUND(MAX(gas_ppm), 3) AS maximum, 'ppm' AS unit FROM sgx UNION ALL SELECT 'Temperature', ROUND(MIN(temperature_c), 2), ROUND(MAX(temperature_c), 2), '°C' FROM sgx UNION ALL SELECT 'Humidity', ROUND(MIN(humidity_rh), 2), ROUND(MAX(humidity_rh), 2), '%RH' FROM sgx UNION ALL SELECT 'PM1.0 mass', ROUND(MIN(mass_pm1_0), 2), ROUND(MAX(mass_pm1_0), 2), 'µg/m³' FROM sps UNION ALL SELECT 'PM2.5 mass', ROUND(MIN(mass_pm2_5), 2), ROUND(MAX(mass_pm2_5), 2), 'µg/m³' FROM sps UNION ALL SELECT 'PM4.0 mass', ROUND(MIN(mass_pm4_0), 2), ROUND(MAX(mass_pm4_0), 2), 'µg/m³' FROM sps UNION ALL SELECT 'PM10 mass', ROUND(MIN(mass_pm10), 2), ROUND(MAX(mass_pm10), 2), 'µg/m³' FROM sps UNION ALL SELECT 'Typical particle size', ROUND(MIN(typical_particle_size), 3), ROUND(MAX(typical_particle_size), 3), 'µm' FROM sps;",
+          "rawQueryText": "WITH bounds AS (SELECT datetime(started_at, '-' || $window_minutes || ' minutes') AS from_at, datetime(COALESCE(ended_at, last_seen_at), '+' || $window_minutes || ' minutes') AS to_at FROM prints WHERE id = CAST('$print_id' AS INTEGER)), sgx AS (SELECT * FROM sgx_voc_samples, bounds WHERE datetime(sampled_at) BETWEEN from_at AND to_at), sps AS (SELECT * FROM sps30_samples, bounds WHERE datetime(sampled_at) BETWEEN from_at AND to_at) SELECT 'VOC' AS sensor, ROUND(MIN(gas_ppm), 3) AS minimum, ROUND(MAX(gas_ppm), 3) AS maximum, 'ppm' AS unit FROM sgx UNION ALL SELECT 'Temperature', ROUND(MIN(temperature_c), 2), ROUND(MAX(temperature_c), 2), '°C' FROM sgx UNION ALL SELECT 'Humidity', ROUND(MIN(humidity_rh), 2), ROUND(MAX(humidity_rh), 2), '%RH' FROM sgx UNION ALL SELECT 'PM1.0 mass', ROUND(MIN(mass_pm1_0), 2), ROUND(MAX(mass_pm1_0), 2), 'µg/m³' FROM sps UNION ALL SELECT 'PM2.5 mass', ROUND(MIN(mass_pm2_5), 2), ROUND(MAX(mass_pm2_5), 2), 'µg/m³' FROM sps UNION ALL SELECT 'PM4.0 mass', ROUND(MIN(mass_pm4_0), 2), ROUND(MAX(mass_pm4_0), 2), 'µg/m³' FROM sps UNION ALL SELECT 'PM10 mass', ROUND(MIN(mass_pm10), 2), ROUND(MAX(mass_pm10), 2), 'µg/m³' FROM sps UNION ALL SELECT 'Typical particle size', ROUND(MIN(typical_particle_size), 3), ROUND(MAX(typical_particle_size), 3), 'µm' FROM sps;"
         }
       ],
       "fieldConfig": {

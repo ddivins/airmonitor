@@ -144,6 +144,20 @@ before/after each print's own start/end is included -- widen it to see a longer 
 recovery tail, or narrow it to focus tightly on the print itself. Every query builds its
 `datetime()` modifier dynamically (`'-' || $window_minutes || ' minutes'`) instead of a
 hardcoded `'-30 minutes'`, relying on SQLite's implicit numeric-to-text coercion in `||`.
+`airmonitor-print-window.json` got the same variable, applied to all five panels that use a
+pre/post window there (three charts plus two summary tables) -- its VOC panel title also
+interpolates `${window_minutes}` directly rather than hardcoding "30".
+
+Each overlay chart's `time_bucket` rounds to whole minutes, not the original one decimal
+place (6-second precision). Sensors sample roughly every 10 seconds, so 6-second buckets were
+barely coarser than raw sample spacing -- a multi-hour print rendered thousands of points into
+a chart a few hundred pixels wide, which showed up live as a moire/banding pattern on the
+area-filled line (a ~5 hour print with ~1,755 raw VOC samples was the case that surfaced it).
+Whole-minute buckets cut that by roughly 6x. The existing outer
+`MAX(CASE WHEN slot = ... THEN value END)` pivot already collapses multiple raw samples
+sharing a bucket correctly on its own, so widening the bucket was sufficient by itself --
+no separate aggregation layer was needed. `duration_min` (the summary table's print-length
+column) is a different, unrelated computation and keeps its own decimal precision.
 
 The three overlay charts also mark where each print actually started and stopped, so the
 pre/post buffer around it is visually distinguishable from the print itself. Elapsed-time

@@ -77,11 +77,37 @@ class GrafanaDashboardTests(unittest.TestCase):
         dashboard = json.loads(path.read_text(encoding="utf-8"))
         positions = {panel["title"]: panel["gridPos"]["y"] for panel in dashboard["panels"]}
         environment = "Temperature, Humidity, and Chamber"
-        self.assertLess(positions["VOC — 30 Minutes Before Through 30 Minutes After"], positions[environment])
+        self.assertLess(
+            positions["VOC — ${window_minutes} Minutes Before Through ${window_minutes} Minutes After"],
+            positions[environment],
+        )
         self.assertLess(positions["Particulate Matter"], positions[environment])
 
         panel = next(panel for panel in dashboard["panels"] if panel["title"] == environment)
         self.assertIn("chamber_temperature_c", panel["targets"][0]["queryText"])
+
+    def test_print_dashboard_pre_post_window_is_adjustable(self):
+        """The pre/post window around the selected print used to be
+        hardcoded to 30 minutes in all five panels that use it (three
+        charts, two summary tables); it's now a dashboard variable, matching
+        the same fix made on airmonitor-compare-prints.json."""
+
+        path = Path(__file__).parents[1] / "grafana" / "dashboards" / "airmonitor-print-window.json"
+        dashboard = json.loads(path.read_text(encoding="utf-8"))
+        variables = {v["name"]: v for v in dashboard["templating"]["list"]}
+        window = variables["window_minutes"]
+        self.assertEqual(window["current"]["value"], "30")
+        self.assertEqual({opt["value"] for opt in window["options"]}, {"15", "30", "60", "90", "120"})
+
+        panels_using_window = 0
+        for panel in dashboard["panels"]:
+            for target in panel.get("targets", []):
+                query = target.get("queryText", "")
+                if "minutes'" in query or "window_minutes" in query:
+                    self.assertIn("$window_minutes", query)
+                    self.assertNotIn("30 minutes'", query)
+                    panels_using_window += 1
+        self.assertEqual(panels_using_window, 5)
 
     def test_print_dashboard_links_selected_print_to_public_export_page(self):
         path = Path(__file__).parents[1] / "grafana" / "dashboards" / "airmonitor-print-window.json"
@@ -294,6 +320,31 @@ class ComparePrintsDashboardTests(unittest.TestCase):
         finally:
             conn.close()
 
+    def test_overlay_chart_time_buckets_are_whole_minutes_not_seconds(self):
+        """Sensors sample roughly every 10 seconds, but time_bucket used to
+        round to 6-second precision (1 decimal of a minute) -- close enough
+        to raw sample spacing that the outer GROUP BY barely downsampled
+        anything, so a multi-hour print rendered thousands of points into a
+        chart a few hundred pixels wide. That point-count/pixel-count
+        mismatch is what produced a moire/banding artifact on the area-filled
+        line (reported live on a ~5 hour print with ~1,755 raw VOC samples).
+        Whole-minute buckets cut that by ~6x; the existing outer
+        MAX(CASE WHEN slot=... THEN value END) pivot already collapses
+        multiple raw samples sharing a bucket correctly, so widening the
+        bucket alone is sufficient -- no separate aggregation layer needed.
+        duration_min (the table panel's print-length column) is a different,
+        unrelated computation and must keep its own decimal precision."""
+
+        trend_panels = [p for p in self.dashboard["panels"] if p["type"] == "trend"]
+        self.assertEqual(len(trend_panels), 3)
+        for panel in trend_panels:
+            query = panel["targets"][0]["queryText"]
+            self.assertIn("* 1440, 0) AS time_bucket", query)
+            self.assertNotIn("* 1440, 1) AS time_bucket", query)
+
+        table_panel = next(p for p in self.dashboard["panels"] if p["title"] == "Selected Prints")
+        self.assertIn("* 1440, 1) AS duration_min", table_panel["targets"][0]["queryText"])
+
     def test_overlay_charts_mark_print_start_and_each_prints_own_end(self):
         """Elapsed-time alignment means every compared print's own start is
         always at time_bucket 0 -- one shared marker column works for all of
@@ -313,7 +364,7 @@ class ComparePrintsDashboardTests(unittest.TestCase):
                 self.assertIn(f'AS "{name}"', query)
             self.assertIn("UNION ALL SELECT 'start' AS slot, 0 AS time_bucket, 1 AS value", query)
             self.assertIn(
-                "'end_a' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 1)",
+                "'end_a' AS slot, ROUND((julianday(COALESCE(p.ended_at, p.last_seen_at)) - julianday(p.started_at)) * 1440, 0)",
                 query,
             )
 
