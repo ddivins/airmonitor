@@ -189,6 +189,19 @@ print -- so its PM2.5 queries correlate by time-range overlap against the print'
 `started_at`/`ended_at` instead, the same convention `airmonitor-print-window`'s own PM panel
 already uses.
 
+The VOC and temperature queries (both `sgx_voc_samples`) correlate the same way, even though
+that table *does* have a `print_id` column -- an earlier version filtered on `s.print_id =
+CAST($print_a AS INTEGER)` directly, which looked reasonable but silently hid real pre-print
+baseline data: the VOC logger only starts stamping samples with a print's id once that print
+begins, so any sample taken in the idle time beforehand still carries the *previous* print's
+id, not the new one. A `print_id` equality filter never sees those rows; a time-range filter
+against the selected print's own `started_at`/`ended_at` (identical to the PM2.5 approach)
+does, regardless of which print's id they happen to be stamped with. This was originally
+mistaken for a real sensor/data gap (VOC simply having no pre-print readings) until direct
+inspection of `sgx_voc_samples` turned up rows seconds before a print's `started_at`, stamped
+with the prior print's id -- confirming the samples existed and the query, not the sensor,
+was excluding them.
+
 Grafana's own built-in pages -- `/grafana/dashboards`, `/grafana/explore`, the login
 screen, and so on -- can't take a custom dashboard panel, so they don't get the banner
 from a dashboard JSON file. Instead, `nginx/airmonitor.conf.template`'s `/grafana/` and
