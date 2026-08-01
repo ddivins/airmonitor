@@ -119,6 +119,20 @@
             "time"
           ],
           "format": "table"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "airmonitor-sqlite"
+          },
+          "queryText": "SELECT time, MAX(CASE WHEN kind = 'start' THEN 1 END) AS \"Print start\", MAX(CASE WHEN kind = 'end' THEN 1 END) AS \"Print end\" FROM ( SELECT CAST(strftime('%s', started_at) AS INTEGER) AS time, 'start' AS kind FROM prints WHERE CAST(strftime('%s', started_at) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', started_at) AS INTEGER) < $__to / 1000 UNION ALL SELECT CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) AS time, 'end' AS kind FROM prints WHERE CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) < $__to / 1000 ) combined GROUP BY time ORDER BY time",
+          "rawQueryText": "SELECT time, MAX(CASE WHEN kind = 'start' THEN 1 END) AS \"Print start\", MAX(CASE WHEN kind = 'end' THEN 1 END) AS \"Print end\" FROM ( SELECT CAST(strftime('%s', started_at) AS INTEGER) AS time, 'start' AS kind FROM prints WHERE CAST(strftime('%s', started_at) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', started_at) AS INTEGER) < $__to / 1000 UNION ALL SELECT CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) AS time, 'end' AS kind FROM prints WHERE CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) < $__to / 1000 ) combined GROUP BY time ORDER BY time",
+          "queryType": "time series",
+          "timeColumns": [
+            "time"
+          ],
+          "format": "table"
         }
       ],
       "fieldConfig": {
@@ -136,7 +150,126 @@
           "mappings": [],
           "unit": "ppm"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print start"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8E8E8E"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print end"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5794F2"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "legend": {
@@ -182,6 +315,20 @@
             "time"
           ],
           "format": "table"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "airmonitor-sqlite"
+          },
+          "queryText": "SELECT time, MAX(CASE WHEN kind = 'start' THEN 1 END) AS \"Print start\", MAX(CASE WHEN kind = 'end' THEN 1 END) AS \"Print end\" FROM ( SELECT CAST(strftime('%s', started_at) AS INTEGER) AS time, 'start' AS kind FROM prints WHERE CAST(strftime('%s', started_at) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', started_at) AS INTEGER) < $__to / 1000 UNION ALL SELECT CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) AS time, 'end' AS kind FROM prints WHERE CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) < $__to / 1000 ) combined GROUP BY time ORDER BY time",
+          "rawQueryText": "SELECT time, MAX(CASE WHEN kind = 'start' THEN 1 END) AS \"Print start\", MAX(CASE WHEN kind = 'end' THEN 1 END) AS \"Print end\" FROM ( SELECT CAST(strftime('%s', started_at) AS INTEGER) AS time, 'start' AS kind FROM prints WHERE CAST(strftime('%s', started_at) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', started_at) AS INTEGER) < $__to / 1000 UNION ALL SELECT CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) AS time, 'end' AS kind FROM prints WHERE CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) < $__to / 1000 ) combined GROUP BY time ORDER BY time",
+          "queryType": "time series",
+          "timeColumns": [
+            "time"
+          ],
+          "format": "table"
         }
       ],
       "fieldConfig": {
@@ -197,7 +344,126 @@
           },
           "mappings": []
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print start"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8E8E8E"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print end"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5794F2"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "legend": {
@@ -243,6 +509,20 @@
             "time"
           ],
           "format": "table"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "airmonitor-sqlite"
+          },
+          "queryText": "SELECT time, MAX(CASE WHEN kind = 'start' THEN 1 END) AS \"Print start\", MAX(CASE WHEN kind = 'end' THEN 1 END) AS \"Print end\" FROM ( SELECT CAST(strftime('%s', started_at) AS INTEGER) AS time, 'start' AS kind FROM prints WHERE CAST(strftime('%s', started_at) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', started_at) AS INTEGER) < $__to / 1000 UNION ALL SELECT CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) AS time, 'end' AS kind FROM prints WHERE CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) < $__to / 1000 ) combined GROUP BY time ORDER BY time",
+          "rawQueryText": "SELECT time, MAX(CASE WHEN kind = 'start' THEN 1 END) AS \"Print start\", MAX(CASE WHEN kind = 'end' THEN 1 END) AS \"Print end\" FROM ( SELECT CAST(strftime('%s', started_at) AS INTEGER) AS time, 'start' AS kind FROM prints WHERE CAST(strftime('%s', started_at) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', started_at) AS INTEGER) < $__to / 1000 UNION ALL SELECT CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) AS time, 'end' AS kind FROM prints WHERE CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) < $__to / 1000 ) combined GROUP BY time ORDER BY time",
+          "queryType": "time series",
+          "timeColumns": [
+            "time"
+          ],
+          "format": "table"
         }
       ],
       "fieldConfig": {
@@ -259,7 +539,126 @@
           "mappings": [],
           "unit": "ug/m3"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print start"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8E8E8E"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print end"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5794F2"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "legend": {
@@ -305,6 +704,20 @@
             "time"
           ],
           "format": "table"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "airmonitor-sqlite"
+          },
+          "queryText": "SELECT time, MAX(CASE WHEN kind = 'start' THEN 1 END) AS \"Print start\", MAX(CASE WHEN kind = 'end' THEN 1 END) AS \"Print end\" FROM ( SELECT CAST(strftime('%s', started_at) AS INTEGER) AS time, 'start' AS kind FROM prints WHERE CAST(strftime('%s', started_at) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', started_at) AS INTEGER) < $__to / 1000 UNION ALL SELECT CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) AS time, 'end' AS kind FROM prints WHERE CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) < $__to / 1000 ) combined GROUP BY time ORDER BY time",
+          "rawQueryText": "SELECT time, MAX(CASE WHEN kind = 'start' THEN 1 END) AS \"Print start\", MAX(CASE WHEN kind = 'end' THEN 1 END) AS \"Print end\" FROM ( SELECT CAST(strftime('%s', started_at) AS INTEGER) AS time, 'start' AS kind FROM prints WHERE CAST(strftime('%s', started_at) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', started_at) AS INTEGER) < $__to / 1000 UNION ALL SELECT CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) AS time, 'end' AS kind FROM prints WHERE CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) < $__to / 1000 ) combined GROUP BY time ORDER BY time",
+          "queryType": "time series",
+          "timeColumns": [
+            "time"
+          ],
+          "format": "table"
         }
       ],
       "fieldConfig": {
@@ -321,7 +734,126 @@
           "mappings": [],
           "unit": "#/cm3"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print start"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8E8E8E"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print end"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5794F2"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "legend": {
@@ -367,6 +899,20 @@
             "time"
           ],
           "format": "table"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "airmonitor-sqlite"
+          },
+          "queryText": "SELECT time, MAX(CASE WHEN kind = 'start' THEN 1 END) AS \"Print start\", MAX(CASE WHEN kind = 'end' THEN 1 END) AS \"Print end\" FROM ( SELECT CAST(strftime('%s', started_at) AS INTEGER) AS time, 'start' AS kind FROM prints WHERE CAST(strftime('%s', started_at) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', started_at) AS INTEGER) < $__to / 1000 UNION ALL SELECT CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) AS time, 'end' AS kind FROM prints WHERE CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) < $__to / 1000 ) combined GROUP BY time ORDER BY time",
+          "rawQueryText": "SELECT time, MAX(CASE WHEN kind = 'start' THEN 1 END) AS \"Print start\", MAX(CASE WHEN kind = 'end' THEN 1 END) AS \"Print end\" FROM ( SELECT CAST(strftime('%s', started_at) AS INTEGER) AS time, 'start' AS kind FROM prints WHERE CAST(strftime('%s', started_at) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', started_at) AS INTEGER) < $__to / 1000 UNION ALL SELECT CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) AS time, 'end' AS kind FROM prints WHERE CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) >= $__from / 1000 AND CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) < $__to / 1000 ) combined GROUP BY time ORDER BY time",
+          "queryType": "time series",
+          "timeColumns": [
+            "time"
+          ],
+          "format": "table"
         }
       ],
       "fieldConfig": {
@@ -383,7 +929,126 @@
           "mappings": [],
           "unit": "um"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print start"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8E8E8E"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print end"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5794F2"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "legend": {

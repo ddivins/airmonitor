@@ -202,6 +202,36 @@ inspection of `sgx_voc_samples` turned up rows seconds before a print's `started
 with the prior print's id -- confirming the samples existed and the query, not the sensor,
 was excluding them.
 
+### Print start/end markers on every dashboard
+
+The same "Print start"/"Print end" vertical-line markers built for Compare Prints also appear
+on `airmonitor-print-window`'s three `trend` panels and on all five `timeseries` panels of
+`airmonitor-live`, so a print's boundaries are visible regardless of which dashboard you're
+looking at -- not just the one built specifically for print comparison.
+
+The two dashboards use different techniques because they face different problems:
+
+- **`airmonitor-print-window`** always shows exactly one selected print, so it reuses Compare
+  Prints' own pivot-into-named-columns approach directly: each panel's existing query is
+  wrapped in a subquery tagged `'data'`, with two more branches unioned in for `'start'` and
+  `'end'`, then pivoted with `MAX(CASE WHEN kind = ... THEN ... END)` into `"Print start"` and
+  `"Print end"` columns alongside the real data columns -- one query per panel, same as before.
+- **`airmonitor-live`** has no selected print at all -- it's a rolling view whose visible time
+  range can span zero, one, or many prints depending on how far the user has zoomed out, so
+  there's no fixed number of slots to pivot into. Instead each `timeseries()` panel gets a
+  *second* query target bounded by the same `$__from`/`$__to` macros every other panel here
+  already uses, returning however many start/end events actually fall in view as two plain
+  columns. Grafana's `timeseries` panels natively support multiple independently-timed query
+  targets layered into one chart, so this doesn't need the single-query-per-panel constraint
+  `trend` panels have.
+
+Both still use the same hidden-0-1-axis/thin-bar field override as Compare Prints (`custom.
+axisPlacement: hidden`, `min`/`max` forced to 0/1, `custom.drawStyle: bars`) rather than
+Grafana's native annotation system, for consistency: `airmonitor-compare-prints` can't use
+native annotations at all (its elapsed-minutes X axis isn't real time), so reusing the same
+synthetic-marker mechanism everywhere keeps all three dashboards' markers looking and behaving
+identically instead of mixing two different rendering systems across dashboards.
+
 Grafana's own built-in pages -- `/grafana/dashboards`, `/grafana/explore`, the login
 screen, and so on -- can't take a custom dashboard panel, so they don't get the banner
 from a dashboard JSON file. Instead, `nginx/airmonitor.conf.template`'s `/grafana/` and

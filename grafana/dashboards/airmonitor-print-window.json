@@ -290,8 +290,8 @@
             "type": "frser-sqlite-datasource",
             "uid": "airmonitor-sqlite"
           },
-          "queryText": "SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.gas_ppm AS voc_ppm FROM sgx_voc_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') ORDER BY s.sampled_at;",
-          "rawQueryText": "SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.gas_ppm AS voc_ppm FROM sgx_voc_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') ORDER BY s.sampled_at;",
+          "queryText": "SELECT time, MAX(CASE WHEN kind = 'data' THEN voc_ppm END) AS voc_ppm, MAX(CASE WHEN kind = 'start' THEN 1 END) AS \"Print start\", MAX(CASE WHEN kind = 'end' THEN 1 END) AS \"Print end\" FROM (SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.gas_ppm AS voc_ppm, 'data' AS kind FROM sgx_voc_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT CAST(strftime('%s', started_at) AS INTEGER) * 1000 AS time, NULL AS voc_ppm, 'start' AS kind FROM prints WHERE id = CAST('$print_id' AS INTEGER) UNION ALL SELECT CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) * 1000 AS time, NULL AS voc_ppm, 'end' AS kind FROM prints WHERE id = CAST('$print_id' AS INTEGER)) combined GROUP BY time ORDER BY time;",
+          "rawQueryText": "SELECT time, MAX(CASE WHEN kind = 'data' THEN voc_ppm END) AS voc_ppm, MAX(CASE WHEN kind = 'start' THEN 1 END) AS \"Print start\", MAX(CASE WHEN kind = 'end' THEN 1 END) AS \"Print end\" FROM (SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.gas_ppm AS voc_ppm, 'data' AS kind FROM sgx_voc_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT CAST(strftime('%s', started_at) AS INTEGER) * 1000 AS time, NULL AS voc_ppm, 'start' AS kind FROM prints WHERE id = CAST('$print_id' AS INTEGER) UNION ALL SELECT CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) * 1000 AS time, NULL AS voc_ppm, 'end' AS kind FROM prints WHERE id = CAST('$print_id' AS INTEGER)) combined GROUP BY time ORDER BY time;",
           "queryType": "table",
           "timeColumns": [],
           "format": "table"
@@ -377,6 +377,124 @@
                 }
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print start"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8E8E8E"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print end"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5794F2"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
           }
         ]
       },
@@ -417,8 +535,8 @@
             "type": "frser-sqlite-datasource",
             "uid": "airmonitor-sqlite"
           },
-          "queryText": "SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.temperature_c, s.humidity_rh, s.chamber_temperature_c FROM sgx_voc_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') ORDER BY s.sampled_at;",
-          "rawQueryText": "SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.temperature_c, s.humidity_rh, s.chamber_temperature_c FROM sgx_voc_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') ORDER BY s.sampled_at;",
+          "queryText": "SELECT time, MAX(CASE WHEN kind = 'data' THEN temperature_c END) AS temperature_c, MAX(CASE WHEN kind = 'data' THEN humidity_rh END) AS humidity_rh, MAX(CASE WHEN kind = 'data' THEN chamber_temperature_c END) AS chamber_temperature_c, MAX(CASE WHEN kind = 'start' THEN 1 END) AS \"Print start\", MAX(CASE WHEN kind = 'end' THEN 1 END) AS \"Print end\" FROM (SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.temperature_c, s.humidity_rh, s.chamber_temperature_c, 'data' AS kind FROM sgx_voc_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT CAST(strftime('%s', started_at) AS INTEGER) * 1000 AS time, NULL, NULL, NULL, 'start' AS kind FROM prints WHERE id = CAST('$print_id' AS INTEGER) UNION ALL SELECT CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) * 1000 AS time, NULL, NULL, NULL, 'end' AS kind FROM prints WHERE id = CAST('$print_id' AS INTEGER)) combined GROUP BY time ORDER BY time;",
+          "rawQueryText": "SELECT time, MAX(CASE WHEN kind = 'data' THEN temperature_c END) AS temperature_c, MAX(CASE WHEN kind = 'data' THEN humidity_rh END) AS humidity_rh, MAX(CASE WHEN kind = 'data' THEN chamber_temperature_c END) AS chamber_temperature_c, MAX(CASE WHEN kind = 'start' THEN 1 END) AS \"Print start\", MAX(CASE WHEN kind = 'end' THEN 1 END) AS \"Print end\" FROM (SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.temperature_c, s.humidity_rh, s.chamber_temperature_c, 'data' AS kind FROM sgx_voc_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT CAST(strftime('%s', started_at) AS INTEGER) * 1000 AS time, NULL, NULL, NULL, 'start' AS kind FROM prints WHERE id = CAST('$print_id' AS INTEGER) UNION ALL SELECT CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) * 1000 AS time, NULL, NULL, NULL, 'end' AS kind FROM prints WHERE id = CAST('$print_id' AS INTEGER)) combined GROUP BY time ORDER BY time;",
           "queryType": "table",
           "timeColumns": [],
           "format": "table"
@@ -491,6 +609,124 @@
                 "value": "right"
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print start"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8E8E8E"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print end"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5794F2"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
           }
         ]
       },
@@ -531,8 +767,8 @@
             "type": "frser-sqlite-datasource",
             "uid": "airmonitor-sqlite"
           },
-          "queryText": "SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.mass_pm1_0 AS PM1, s.mass_pm2_5 AS PM2_5, s.mass_pm4_0 AS PM4, s.mass_pm10 AS PM10 FROM sps30_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') ORDER BY s.sampled_at;",
-          "rawQueryText": "SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.mass_pm1_0 AS PM1, s.mass_pm2_5 AS PM2_5, s.mass_pm4_0 AS PM4, s.mass_pm10 AS PM10 FROM sps30_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') ORDER BY s.sampled_at;",
+          "queryText": "SELECT time, MAX(CASE WHEN kind = 'data' THEN PM1 END) AS PM1, MAX(CASE WHEN kind = 'data' THEN PM2_5 END) AS PM2_5, MAX(CASE WHEN kind = 'data' THEN PM4 END) AS PM4, MAX(CASE WHEN kind = 'data' THEN PM10 END) AS PM10, MAX(CASE WHEN kind = 'start' THEN 1 END) AS \"Print start\", MAX(CASE WHEN kind = 'end' THEN 1 END) AS \"Print end\" FROM (SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.mass_pm1_0 AS PM1, s.mass_pm2_5 AS PM2_5, s.mass_pm4_0 AS PM4, s.mass_pm10 AS PM10, 'data' AS kind FROM sps30_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT CAST(strftime('%s', started_at) AS INTEGER) * 1000 AS time, NULL, NULL, NULL, NULL, 'start' AS kind FROM prints WHERE id = CAST('$print_id' AS INTEGER) UNION ALL SELECT CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) * 1000 AS time, NULL, NULL, NULL, NULL, 'end' AS kind FROM prints WHERE id = CAST('$print_id' AS INTEGER)) combined GROUP BY time ORDER BY time;",
+          "rawQueryText": "SELECT time, MAX(CASE WHEN kind = 'data' THEN PM1 END) AS PM1, MAX(CASE WHEN kind = 'data' THEN PM2_5 END) AS PM2_5, MAX(CASE WHEN kind = 'data' THEN PM4 END) AS PM4, MAX(CASE WHEN kind = 'data' THEN PM10 END) AS PM10, MAX(CASE WHEN kind = 'start' THEN 1 END) AS \"Print start\", MAX(CASE WHEN kind = 'end' THEN 1 END) AS \"Print end\" FROM (SELECT CAST(strftime('%s', s.sampled_at) AS INTEGER) * 1000 AS time, s.mass_pm1_0 AS PM1, s.mass_pm2_5 AS PM2_5, s.mass_pm4_0 AS PM4, s.mass_pm10 AS PM10, 'data' AS kind FROM sps30_samples s, prints p WHERE p.id = CAST('$print_id' AS INTEGER) AND datetime(s.sampled_at) BETWEEN datetime(p.started_at, '-' || $window_minutes || ' minutes') AND datetime(COALESCE(p.ended_at, p.last_seen_at), '+' || $window_minutes || ' minutes') UNION ALL SELECT CAST(strftime('%s', started_at) AS INTEGER) * 1000 AS time, NULL, NULL, NULL, NULL, 'start' AS kind FROM prints WHERE id = CAST('$print_id' AS INTEGER) UNION ALL SELECT CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) * 1000 AS time, NULL, NULL, NULL, NULL, 'end' AS kind FROM prints WHERE id = CAST('$print_id' AS INTEGER)) combined GROUP BY time ORDER BY time;",
           "queryType": "table",
           "timeColumns": [],
           "format": "table"
@@ -663,6 +899,124 @@
               {
                 "id": "custom.axisSoftMin",
                 "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print start"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8E8E8E"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Print end"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.01
+              },
+              {
+                "id": "custom.barAlignment",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.axisSoftMin",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5794F2"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
               }
             ]
           }

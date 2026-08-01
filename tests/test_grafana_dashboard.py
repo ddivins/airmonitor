@@ -65,6 +65,41 @@ class GrafanaDashboardTests(unittest.TestCase):
                     self.assertEqual(target["queryType"], "table")
                     self.assertEqual(target["timeColumns"], [])
 
+    def test_timeseries_panels_mark_any_prints_start_and_end_in_view(self):
+        """Every timeseries panel on the live dashboard shows an unbounded,
+        variable number of prints depending on the selected time range (unlike
+        Compare Prints' fixed two-slot model), so there's no fixed set of
+        named columns to pivot into -- instead a single second query target,
+        bounded by $__from/$__to like every other panel here, returns however
+        many "Print start"/"Print end" events actually fall in the visible
+        range as one column each. Uses the same hidden-0-1-axis/thin-bar field
+        override technique as airmonitor-compare-prints.json's overlay charts."""
+
+        dashboard = self.generator.build()
+        for panel in dashboard["panels"]:
+            if panel["type"] != "timeseries":
+                continue
+            with self.subTest(panel=panel["title"]):
+                ref_ids = [t["refId"] for t in panel["targets"]]
+                self.assertEqual(ref_ids, ["A", "B"])
+                marker_target = panel["targets"][1]
+                self.assertEqual(marker_target["queryType"], "time series")
+                self.assertEqual(marker_target["timeColumns"], ["time"])
+                query = marker_target["queryText"]
+                self.assertIn('AS "Print start"', query)
+                self.assertIn('AS "Print end"', query)
+                self.assertIn("$__from / 1000", query)
+                self.assertIn("$__to / 1000", query)
+
+                override_names = {o["matcher"]["options"] for o in panel["fieldConfig"]["overrides"]}
+                self.assertEqual(override_names, {"Print start", "Print end"})
+                for override in panel["fieldConfig"]["overrides"]:
+                    properties = {p["id"]: p["value"] for p in override["properties"]}
+                    self.assertEqual(properties["custom.axisPlacement"], "hidden")
+                    self.assertEqual(properties["min"], 0)
+                    self.assertEqual(properties["max"], 1)
+                    self.assertEqual(properties["custom.drawStyle"], "bars")
+
     def test_all_committed_dashboards_are_read_only(self):
         dashboard_dir = Path(__file__).parents[1] / "grafana" / "dashboards"
         for path in dashboard_dir.glob("*.json"):
@@ -153,6 +188,36 @@ class GrafanaDashboardTests(unittest.TestCase):
         status_link = next(link for link in dashboard["links"] if link["title"] == "AirMonitor Status")
         self.assertEqual(status_link["url"], "__AIRMONITOR_STATUS_URL__")
 
+    def test_print_dashboard_trend_panels_mark_print_start_and_end(self):
+        """Unlike airmonitor-live's variable-number-of-prints case, exactly
+        one print is ever in view here, so this reuses Compare Prints' own
+        pivot-into-named-columns technique (one shared "Print start" plus a
+        single "Print end", since there's only one print, not per-slot A/B/C/D
+        columns) rather than airmonitor-live's second-query approach."""
+
+        path = Path(__file__).parents[1] / "grafana" / "dashboards" / "airmonitor-print-window.json"
+        dashboard = json.loads(path.read_text(encoding="utf-8"))
+        trend_panels = [p for p in dashboard["panels"] if p["type"] == "trend"]
+        self.assertEqual(len(trend_panels), 3)
+        for panel in trend_panels:
+            with self.subTest(panel=panel["title"]):
+                query = panel["targets"][0]["queryText"]
+                self.assertIn('AS "Print start"', query)
+                self.assertIn('AS "Print end"', query)
+                self.assertIn("'start' AS kind", query)
+                self.assertIn("'end' AS kind", query)
+
+                override_names = {o["matcher"]["options"] for o in panel["fieldConfig"]["overrides"]}
+                self.assertTrue({"Print start", "Print end"}.issubset(override_names))
+                for override in panel["fieldConfig"]["overrides"]:
+                    if override["matcher"]["options"] not in {"Print start", "Print end"}:
+                        continue
+                    properties = {p["id"]: p["value"] for p in override["properties"]}
+                    self.assertEqual(properties["custom.axisPlacement"], "hidden")
+                    self.assertEqual(properties["min"], 0)
+                    self.assertEqual(properties["max"], 1)
+                    self.assertEqual(properties["custom.drawStyle"], "bars")
+
     def test_all_panel_queries_match_schema(self):
         conn = sqlite3.connect(":memory:")
         try:
@@ -208,6 +273,40 @@ class GrafanaDashboardTests(unittest.TestCase):
             for sql in self.generator.SQL.values():
                 compact = self.generator.validation_sql(sql).rstrip(";")
                 conn.execute(f"SELECT * FROM ({compact}) LIMIT 1").fetchall()
+        finally:
+            conn.close()
+
+    def test_print_dashboard_panel_queries_execute_against_real_schema(self):
+        path = Path(__file__).parents[1] / "grafana" / "dashboards" / "airmonitor-print-window.json"
+        dashboard = json.loads(path.read_text(encoding="utf-8"))
+
+        conn = sqlite3.connect(":memory:")
+        try:
+            conn.executescript(
+                """
+                CREATE TABLE sgx_voc_samples (
+                    id INTEGER PRIMARY KEY, sampled_at TEXT, gas_ppm REAL,
+                    temperature_c REAL, humidity_rh REAL, chamber_temperature_c REAL, print_id INTEGER
+                );
+                CREATE TABLE sps30_samples (
+                    id INTEGER PRIMARY KEY, sampled_at TEXT,
+                    mass_pm1_0 REAL, mass_pm2_5 REAL, mass_pm4_0 REAL, mass_pm10 REAL,
+                    typical_particle_size REAL
+                );
+                CREATE TABLE prints (
+                    id INTEGER PRIMARY KEY, started_at TEXT, ended_at TEXT, last_seen_at TEXT,
+                    started_gcode_state TEXT, last_gcode_state TEXT, ended_gcode_state TEXT,
+                    subtask_name TEXT, filament_type TEXT, filament_color TEXT,
+                    filament_sub_brand TEXT, filament_profile TEXT
+                );
+                INSERT INTO prints (id, started_at, ended_at, last_seen_at)
+                VALUES (1, '2026-01-01T00:00:00Z', '2026-01-01T01:00:00Z', '2026-01-01T01:00:00Z');
+                """
+            )
+            for panel in dashboard["panels"]:
+                for t in panel.get("targets", []):
+                    query = t["queryText"].replace("$print_id", "1").replace("$window_minutes", "30")
+                    conn.execute(f"SELECT * FROM ({query.rstrip(';')}) LIMIT 1").fetchall()
         finally:
             conn.close()
 

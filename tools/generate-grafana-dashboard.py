@@ -145,6 +145,24 @@ SQL = {
         ORDER BY COALESCE(last_seen_at, started_at) DESC
         LIMIT 20
     """,
+    "print_markers": """
+        SELECT time,
+               MAX(CASE WHEN kind = 'start' THEN 1 END) AS "Print start",
+               MAX(CASE WHEN kind = 'end' THEN 1 END) AS "Print end"
+        FROM (
+            SELECT CAST(strftime('%s', started_at) AS INTEGER) AS time, 'start' AS kind
+            FROM prints
+            WHERE CAST(strftime('%s', started_at) AS INTEGER) >= $__from / 1000
+              AND CAST(strftime('%s', started_at) AS INTEGER) < $__to / 1000
+            UNION ALL
+            SELECT CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) AS time, 'end' AS kind
+            FROM prints
+            WHERE CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) >= $__from / 1000
+              AND CAST(strftime('%s', COALESCE(ended_at, last_seen_at)) AS INTEGER) < $__to / 1000
+        ) combined
+        GROUP BY time
+        ORDER BY time
+    """,
     "filters": """
         SELECT filter_id,
                manual_mode,
@@ -246,6 +264,34 @@ def table(panel_id: int, title: str, x: int, y: int, w: int, h: int, sql_key: st
     }
 
 
+def print_marker_override(name: str, color: str) -> dict[str, Any]:
+    """Field override rendering a "Print start"/"Print end" marker column as a
+    thin full-height vertical bar on its own hidden 0-1 axis, so it doesn't
+    distort the real data series' own Y-scale. Same technique proven on
+    airmonitor-compare-prints.json's overlay charts, where Grafana's native
+    time-based annotations don't apply (elapsed-minutes X axis there); reused
+    here for consistency even though airmonitor-live and airmonitor-print-window
+    do have a real time axis, so every dashboard's print markers look and
+    behave identically."""
+
+    return {
+        "matcher": {"id": "byName", "options": name},
+        "properties": [
+            {"id": "custom.drawStyle", "value": "bars"},
+            {"id": "custom.barWidthFactor", "value": 0.01},
+            {"id": "custom.barAlignment", "value": 0},
+            {"id": "custom.fillOpacity", "value": 70},
+            {"id": "custom.lineWidth", "value": 1},
+            {"id": "custom.axisPlacement", "value": "hidden"},
+            {"id": "custom.axisSoftMin", "value": 0},
+            {"id": "min", "value": 0},
+            {"id": "max", "value": 1},
+            {"id": "color", "value": {"mode": "fixed", "fixedColor": color}},
+            {"id": "custom.hideFrom", "value": {"tooltip": False, "viz": False, "legend": False}},
+        ],
+    }
+
+
 def timeseries(
     panel_id: int,
     title: str,
@@ -256,6 +302,7 @@ def timeseries(
     sql_key: str,
     unit: str | None = None,
     soft_max: int | None = None,
+    markers: bool = True,
 ) -> dict[str, Any]:
     custom: dict[str, Any] = {
         "drawStyle": "line",
@@ -271,14 +318,20 @@ def timeseries(
     defaults: dict[str, Any] = {"custom": custom, "mappings": []}
     if unit:
         defaults["unit"] = unit
+    targets = [target(sql_key, query_type="time series")]
+    overrides: list[dict[str, Any]] = []
+    if markers:
+        targets.append(target("print_markers", ref_id="B", query_type="time series"))
+        overrides.append(print_marker_override("Print start", "#8E8E8E"))
+        overrides.append(print_marker_override("Print end", "#5794F2"))
     return {
         "id": panel_id,
         "type": "timeseries",
         "title": title,
         "datasource": DS,
         "gridPos": {"h": h, "w": w, "x": x, "y": y},
-        "targets": [target(sql_key, query_type="time series")],
-        "fieldConfig": {"defaults": defaults, "overrides": []},
+        "targets": targets,
+        "fieldConfig": {"defaults": defaults, "overrides": overrides},
         "options": {
             "legend": {
                 "showLegend": True,
