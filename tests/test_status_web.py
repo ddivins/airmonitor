@@ -3,6 +3,7 @@ from __future__ import annotations
 import http.client
 import json
 from pathlib import Path
+import signal
 import sqlite3
 import subprocess
 import tempfile
@@ -21,6 +22,7 @@ from airmonitor.status_web import (
     service_enabled,
     service_status,
     set_filter_mode,
+    wake_levoit_service,
 )
 
 
@@ -87,6 +89,39 @@ class StatusWebTests(unittest.TestCase):
     def test_filter_mode_rejects_unknown_values(self):
         with self.assertRaises(ValueError):
             set_filter_mode(":memory:", "bento", "turbo")
+
+    @patch("airmonitor.status_web.os.kill")
+    @patch("airmonitor.status_web.subprocess.run")
+    def test_wake_levoit_service_signals_the_running_pid(self, mocked_run, mocked_kill):
+        mocked_run.return_value = subprocess.CompletedProcess([], 0, stdout="4242\n", stderr="")
+
+        wake_levoit_service()
+
+        mocked_run.assert_called_once_with(
+            ["systemctl", "show", "airmonitor-levoit.service", "-p", "MainPID", "--value"],
+            capture_output=True, text=True, timeout=3, check=False,
+        )
+        mocked_kill.assert_called_once_with(4242, signal.SIGUSR1)
+
+    @patch("airmonitor.status_web.os.kill")
+    @patch("airmonitor.status_web.subprocess.run")
+    def test_wake_levoit_service_is_a_noop_when_service_is_not_running(self, mocked_run, mocked_kill):
+        mocked_run.return_value = subprocess.CompletedProcess([], 0, stdout="0\n", stderr="")
+
+        wake_levoit_service()  # MainPID=0 means "not running" -- must not raise or signal PID 0
+
+        mocked_kill.assert_not_called()
+
+    @patch("airmonitor.status_web.os.kill", side_effect=ProcessLookupError)
+    @patch("airmonitor.status_web.subprocess.run")
+    def test_wake_levoit_service_swallows_failures(self, mocked_run, _mocked_kill):
+        """Best-effort only: the manual override is already persisted by the
+        time this runs, so a failure here must never surface as an error --
+        the change still applies on the next normal poll cycle regardless."""
+
+        mocked_run.return_value = subprocess.CompletedProcess([], 0, stdout="4242\n", stderr="")
+
+        wake_levoit_service()  # must not raise
 
     def test_control_helper_rejects_unknown_service_before_systemctl(self):
         helper = Path(__file__).parents[1] / "tools" / "airmonitor-service-control"
@@ -386,6 +421,58 @@ class BackupBundleEndpointTests(unittest.TestCase):
 
         self.assertEqual(response.status, 500)
         self.assertIn("permission denied", json.loads(data)["error"])
+
+
+class FilterControlWakeSignalTests(unittest.TestCase):
+    """A manual on/auto/off change wakes airmonitor-levoit immediately (see
+    wake_levoit_service) instead of leaving it to notice on its next
+    scheduled poll -- Bento needs no such nudge, since its own service is
+    already fully event-driven off MQTT with no polling delay."""
+
+    ADMIN_USER = {"login": "admin", "isGrafanaAdmin": True}
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmpdir.cleanup)
+        self.database = str(Path(self.tmpdir.name) / "airmonitor.sqlite3")
+
+        self.server = StatusServer(("127.0.0.1", 0), self.database, public_origin="http://testorigin")
+        self.addCleanup(self.server.server_close)
+        self.port = self.server.server_address[1]
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+        self.addCleanup(lambda: (self.server.shutdown(), self.thread.join(timeout=2)))
+
+    def _request(self, method: str, path: str, *, headers: dict | None = None, body: bytes | None = None):
+        conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+        try:
+            conn.request(method, path, body=body, headers=headers or {})
+            response = conn.getresponse()
+            return response, response.read()
+        finally:
+            conn.close()
+
+    @patch("airmonitor.status_web.wake_levoit_service")
+    @patch("airmonitor.status_web.grafana_user", return_value=ADMIN_USER)
+    def test_levoit_override_wakes_the_service(self, _mocked_user, mocked_wake):
+        response, _data = self._request(
+            "POST", "/api/filters/control",
+            headers={"Origin": "http://testorigin", "X-AirMonitor-Action": "filter-control"},
+            body=b'{"filter_id": "levoit", "mode": "on"}',
+        )
+        self.assertEqual(response.status, 200)
+        mocked_wake.assert_called_once()
+
+    @patch("airmonitor.status_web.wake_levoit_service")
+    @patch("airmonitor.status_web.grafana_user", return_value=ADMIN_USER)
+    def test_bento_override_does_not_wake_levoit(self, _mocked_user, mocked_wake):
+        response, _data = self._request(
+            "POST", "/api/filters/control",
+            headers={"Origin": "http://testorigin", "X-AirMonitor-Action": "filter-control"},
+            body=b'{"filter_id": "bento", "mode": "on"}',
+        )
+        self.assertEqual(response.status, 200)
+        mocked_wake.assert_not_called()
 
 
 if __name__ == "__main__":

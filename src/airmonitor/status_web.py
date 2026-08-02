@@ -9,6 +9,7 @@ import json
 import mimetypes
 import os
 from pathlib import PurePosixPath
+import signal
 import sqlite3
 import subprocess
 import threading
@@ -95,6 +96,34 @@ def set_filter_mode(database: str, filter_id: str, mode: str) -> dict:
         ).as_dict()
     finally:
         conn.close()
+
+
+def wake_levoit_service() -> None:
+    """Nudge airmonitor-levoit awake immediately after a manual on/auto/off
+    change instead of leaving it to notice on its next scheduled poll (up to
+    LEVOIT_POLL_INTERVAL_SECONDS later). A deliberate button click is a
+    one-off event, not sustained polling, so it doesn't carry the same
+    VeSync rate-limit risk that shortening the poll interval itself would.
+
+    airmonitor-status.service and airmonitor-levoit.service both run as the
+    automation user, so sending a signal needs no elevated privilege --
+    Unix only requires the sender and target process share a user (or the
+    sender be root). Best-effort only: if the service isn't running or
+    anything here fails, the change still applies on the next normal poll.
+    """
+    try:
+        result = subprocess.run(
+            ["systemctl", "show", "airmonitor-levoit.service", "-p", "MainPID", "--value"],
+            capture_output=True,
+            text=True,
+            timeout=3,
+            check=False,
+        )
+        pid = int(result.stdout.strip())
+        if pid > 0:
+            os.kill(pid, signal.SIGUSR1)
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        pass
 
 
 def grafana_user(cookie: str | None, api_url: str = GRAFANA_API) -> dict | None:
@@ -409,6 +438,8 @@ class StatusHandler(BaseHTTPRequestHandler):
             except (OSError, sqlite3.Error):
                 self._json(503, {"error": "Filter control database unavailable"})
                 return
+            if filter_id == "levoit":
+                wake_levoit_service()
             self._json(200, {"ok": True, "filter": record})
             return
         service = payload.get("service") if isinstance(payload, dict) else None

@@ -1,13 +1,19 @@
 from __future__ import annotations
 
+import threading
+import time
 from unittest import mock
 
+from airmonitor.filters.levoit import service
 from airmonitor.filters.levoit.service import (
     DesiredState,
     apply_desired_state,
     external_override_mode,
     printer_state_is_fresh,
+    sleep_until_next_poll,
+    stop_service,
     telemetry_from_device,
+    wake_now,
 )
 
 
@@ -139,3 +145,56 @@ def test_apply_desired_state_verifies_turn_off_too() -> None:
 
     assert result is False
     assert device.command_calls == 2
+
+
+def test_sleep_until_next_poll_waits_out_the_interval_when_not_woken() -> None:
+    service.wake_event.clear()
+    started = time.monotonic()
+
+    sleep_until_next_poll(1)
+
+    assert time.monotonic() - started >= 0.9
+
+
+def test_sleep_until_next_poll_wakes_immediately_on_signal() -> None:
+    """Regression test: a manual on/auto/off change from the status page
+    sends SIGUSR1 so the purifier responds right away instead of waiting out
+    the full LEVOIT_POLL_INTERVAL_SECONDS -- the poll interval itself stays
+    untouched (VeSync rate-limits more frequent polling), only a deliberate,
+    one-off button click gets this early wake."""
+
+    service.wake_event.clear()
+
+    def fire() -> None:
+        time.sleep(0.05)
+        wake_now(0, None)
+
+    threading.Thread(target=fire, daemon=True).start()
+    started = time.monotonic()
+
+    sleep_until_next_poll(5)
+
+    assert time.monotonic() - started < 1.0
+
+
+def test_stop_service_also_wakes_the_sleep_immediately() -> None:
+    """SIGTERM/SIGINT must keep waking the loop immediately (systemd stop
+    responsiveness), not just SIGUSR1 -- both share the same wake_event."""
+
+    service.wake_event.clear()
+    service.running = True
+    try:
+
+        def fire() -> None:
+            time.sleep(0.05)
+            stop_service(0, None)
+
+        threading.Thread(target=fire, daemon=True).start()
+        started = time.monotonic()
+
+        sleep_until_next_poll(5)
+
+        assert time.monotonic() - started < 1.0
+        assert service.running is False
+    finally:
+        service.running = True

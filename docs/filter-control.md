@@ -127,6 +127,32 @@ Levoit detects changes during its normal device poll. Bento polls its local Kasa
 outlet every `OUTLET_POLL_SECONDS` (15 seconds by default). The resulting manual
 mode and reason are persisted and shown on the status page.
 
+## Levoit's manual override wake signal
+
+Bento reacts to its own manual overrides essentially immediately -- it's fully
+event-driven off local MQTT, no cloud API involved. Levoit is different: it's
+controlled through VeSync's cloud API on a fixed poll cadence
+(`LEVOIT_POLL_INTERVAL_SECONDS`, 120s by default, deliberately not shortened --
+polling VeSync more often gets the account rate-limited), so a manual on/auto/off
+click from the status page used to sit unapplied for up to that long.
+
+`airmonitor-status.service` and `airmonitor-levoit.service` both run as the
+`automation` user, so after persisting a manual override for Levoit specifically,
+the status page sends `airmonitor-levoit.service`'s process `SIGUSR1`
+(`wake_levoit_service()` in `status_web.py`) -- no elevated privilege needed,
+since sending a signal only requires the sender and target share a user (or the
+sender be root). The service's main loop waits on a `threading.Event` instead of
+a plain sleep (`sleep_until_next_poll()`), and `SIGUSR1` sets that event, waking
+it immediately to apply the change. `SIGTERM`/`SIGINT` (systemd stop requests)
+set the same event, so shutdown responsiveness is unaffected.
+
+This only speeds up a deliberate, one-off button click -- the poll interval
+itself, and therefore VeSync's request volume in steady state, is unchanged. If
+the wake signal fails for any reason (service not running, `systemctl show`
+unavailable, etc.) it's swallowed silently: the manual override is already
+persisted by that point, so the change still applies on the next normal poll
+regardless.
+
 ## Persistence
 
 Manual override state should survive service restarts.

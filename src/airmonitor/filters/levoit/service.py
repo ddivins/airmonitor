@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import signal
 import sys
+import threading
 import time
 from typing import Any, Optional
 
@@ -33,6 +34,13 @@ running = True
 last_printer_state: Optional[dict[str, Any]] = None
 last_printer_state_at: Optional[float] = None
 last_action_signature: Optional[tuple[Any, ...]] = None
+
+# Set by SIGUSR1 (sent by the status page after a manual on/auto/off change)
+# to wake the poll loop immediately instead of waiting out the full
+# LEVOIT_POLL_INTERVAL_SECONDS -- a deliberate on/off click is a one-off
+# event, not sustained polling, so it doesn't carry the same VeSync
+# rate-limit risk that shortening the poll interval itself would.
+wake_event = threading.Event()
 
 
 def load_env_file(path: str = DEFAULT_ENV_FILE) -> None:
@@ -136,6 +144,12 @@ def stop_service(signum, frame) -> None:
     global running
     LOG.info("Received signal %s; stopping service", signum)
     running = False
+    wake_event.set()
+
+
+def wake_now(signum, frame) -> None:
+    LOG.info("Received signal %s; waking early to apply a manual change", signum)
+    wake_event.set()
 
 
 def setup_logging() -> None:
@@ -512,16 +526,18 @@ def build_mqtt_client() -> mqtt.Client:
 
 
 def sleep_until_next_poll(seconds: int) -> None:
-    """Sleep in short increments so systemd stop requests remain responsive."""
-    deadline = time.monotonic() + seconds
-    while running and time.monotonic() < deadline:
-        time.sleep(min(1.0, deadline - time.monotonic()))
+    """Wait for the next poll, waking immediately on SIGTERM/SIGINT (systemd
+    stop requests) or SIGUSR1 (a manual on/auto/off change from the status
+    page) instead of always waiting out the full interval."""
+    wake_event.wait(timeout=seconds)
+    wake_event.clear()
 
 
 def run_service() -> int:
     setup_logging()
     signal.signal(signal.SIGTERM, stop_service)
     signal.signal(signal.SIGINT, stop_service)
+    signal.signal(signal.SIGUSR1, wake_now)
 
     LOG.info("Starting %s version %s", APP_NAME, APP_VERSION)
     LOG.info("MQTT: %s:%s topic=%s", LOCAL_MQTT_HOST, LOCAL_MQTT_PORT, LOCAL_MQTT_TOPIC)
