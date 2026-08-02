@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 
 ROOT = Path(__file__).parents[1]
@@ -112,6 +113,27 @@ def test_nginx_routes_backup_bundle_endpoints() -> None:
     assert "proxy_pass http://127.0.0.1:8080/api/backup/run;" in config
     assert "location = /backup-download-api {" in config
     assert "proxy_pass http://127.0.0.1:8080/api/backup/download;" in config
+
+
+def test_nginx_gives_backup_endpoints_headroom_past_observed_backup_time() -> None:
+    """Regression test: create_backup() uses SQLite's online backup API
+    against a live, actively-written database -- measured at ~31s on
+    production under normal sensor write load, not the near-instant copy
+    it'd be against an idle DB. The original 30s proxy_read_timeout on
+    /backup-download-api sat almost exactly at that observed time and fired
+    in production (nginx logged "upstream timed out ... while reading
+    response header"), returning a 504 to the browser after the backend had
+    already committed to the slow backup but before it could respond -- the
+    backup completed anyway, just too late for anyone to see the result."""
+
+    config = (ROOT / "nginx" / "airmonitor.conf.template").read_text(encoding="utf-8")
+    for location in ("/backup-run-api", "/backup-download-api"):
+        start = config.index(f"location = {location} {{")
+        end = config.index("}", start)
+        block = config[start:end]
+        match = re.search(r"proxy_read_timeout\s+(\d+)s;", block)
+        assert match, f"{location} has no proxy_read_timeout"
+        assert int(match.group(1)) >= 90, f"{location} timeout too close to the observed ~31s backup time"
 
 
 def test_nginx_injects_airmonitor_banner_into_grafana_pages() -> None:

@@ -260,7 +260,7 @@ function setBackupStatus(text, warning = false) {
 async function backupNow(button) {
   if (!session.user?.admin) return;
   button.disabled = true;
-  setBackupStatus("Creating backup…");
+  setBackupStatus("Creating backup… this can take up to a minute on a live system.");
   try {
     const response = await fetch("/backup-run-api", {
       method: "POST",
@@ -282,7 +282,7 @@ async function backupNow(button) {
 async function downloadBackupBundle(button) {
   if (!session.user?.admin) return;
   button.disabled = true;
-  setBackupStatus("Preparing backup bundle…this can take a moment.");
+  setBackupStatus("Preparing backup bundle… this can take up to a minute on a live system.");
   try {
     const response = await fetch("/backup-download-api", {
       method: "GET",
