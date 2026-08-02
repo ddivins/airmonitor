@@ -11,12 +11,19 @@ EnvironmentFile=-/etc/airmonitor/airmonitor.env
 ExecStart=/opt/airmonitor/venv/bin/airmonitor-status
 Restart=always
 RestartSec=5
-# The process may invoke only the root-owned, allowlisted service-control helper
-# through its dedicated sudoers rule.
+# The process may invoke only the root-owned, allowlisted service-control
+# and backup-bundle helpers through their dedicated sudoers rules.
 NoNewPrivileges=false
 PrivateTmp=true
 ProtectSystem=full
-ProtectHome=true
+# read-only, not the default `true` (which bind-mounts /root empty and
+# inaccessible): the backup-bundle helper reads /root/.secrets/cloudflare.ini
+# via sudo, but sudo doesn't create a new mount namespace, so it inherited
+# this service's restricted view of /root and silently saw no such file --
+# confirmed live via /proc/<pid>/root/root showing empty. read-only grants
+# exactly the read access that legitimately needs while still blocking any
+# write into /root or another user's home from this service.
+ProtectHome=read-only
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true

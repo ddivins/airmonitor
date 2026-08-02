@@ -27,6 +27,10 @@ fi
 if [ -f /root/.secrets/cloudflare.ini ]; then
     mkdir -p "$WORKDIR/root/secrets"
     cp /root/.secrets/cloudflare.ini "$WORKDIR/root/secrets/cloudflare.ini"
+    # Plain cp preserves the source's restrictive 600 mode, which is right
+    # for the real file (owned by root) but not for a copy about to be
+    # extracted by a non-root user on their own machine.
+    chmod 644 "$WORKDIR/root/secrets/cloudflare.ini"
 fi
 
 # cp -a preserves live/<domain>/*.pem as symlinks into archive/<domain>/,

@@ -54,6 +54,22 @@ def test_export_service_is_read_only_and_resource_bounded():
     assert "ExecStart=/opt/airmonitor/venv/bin/airmonitor-export" in export
 
 
+def test_status_service_can_still_read_root_secrets_for_backup_bundle():
+    """Regression test: ProtectHome=true bind-mounts /root empty and
+    inaccessible inside this service's mount namespace. sudo doesn't create
+    a new mount namespace for the child it execs, so the backup-bundle
+    helper -- invoked via subprocess.run(["sudo", ...]) from this service,
+    escalating to root -- still inherited that same restricted view and
+    silently saw no /root/.secrets/cloudflare.ini (confirmed live via
+    /proc/<pid>/root/root showing empty). ProtectHome=read-only grants read
+    access to /root without reopening write access, which this service
+    never needed anyway."""
+
+    status = unit("airmonitor-status.service")
+    assert "ProtectHome=read-only" in status
+    assert "ProtectHome=true" not in status
+
+
 def test_target_managed_units_are_static():
     for name in (
         "airmonitor-voc.service",
