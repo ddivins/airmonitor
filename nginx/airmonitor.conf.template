@@ -105,27 +105,38 @@ server {
     }
 
     location = /backup-run-api {
-        # create_backup() uses SQLite's online backup API against a live,
-        # actively-written database (sensors sampling every ~10s) -- measured
-        # at ~31s on production under normal write load, not the near-instant
-        # copy it'd be against an idle DB. 120s leaves real headroom rather
-        # than just clearing the observed worst case.
+        # create_backup() itself runs in a background thread (see
+        # status_web.py's _run_backup_job) precisely so this request doesn't
+        # need to wait on it -- it starts the job and returns almost
+        # instantly regardless of database size. The browser polls
+        # /backup-status-api for completion instead of blocking here.
         proxy_pass http://127.0.0.1:8080/api/backup/run;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto https;
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_read_timeout 120s;
+        add_header Cache-Control "no-store" always;
+    }
+
+    location = /backup-status-api {
+        proxy_pass http://127.0.0.1:8080/api/backup/status;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Real-IP $remote_addr;
         add_header Cache-Control "no-store" always;
     }
 
     location = /backup-download-api {
-        # Takes a fresh backup (see /backup-run-api above) before bundling,
-        # so it inherits the same slow-backup headroom requirement.
+        # Deliberately does not take a fresh backup first (see
+        # status_web.py's /api/backup/download comment) -- it only bundles
+        # whatever backup already exists, which is cheap and stays cheap
+        # regardless of database size. 60s is generous headroom for that,
+        # not a value tuned against a slow operation like the old (now
+        # removed) synchronous create_backup() call was.
         proxy_pass http://127.0.0.1:8080/api/backup/download;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto https;
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_read_timeout 120s;
+        proxy_read_timeout 60s;
         add_header Cache-Control "no-store" always;
     }
 

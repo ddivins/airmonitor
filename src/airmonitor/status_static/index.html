@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#f4f8fb">
   <title>AirMonitor Status</title>
   <link rel="icon" href="/status-assets/favicon.ico">
-  <link rel="stylesheet" href="/status-assets/style.css?v=17">
+  <link rel="stylesheet" href="/status-assets/style.css?v=18">
 </head>
 <body>
   <main class="shell">
@@ -98,6 +98,7 @@
           <div id="backup-actions" class="backup-actions" hidden>
             <button id="backup-now-button" type="button">Backup now</button>
             <button id="backup-download-button" type="button">Download backup bundle</button>
+            <p class="backup-actions-hint">Download bundles the backup shown above as "Last backup" — click Backup now first if you want the bundle to include the latest data.</p>
             <p id="backup-actions-status" class="backup-actions-status" aria-live="polite"></p>
           </div>
         </article>
@@ -114,6 +115,6 @@
       </section>
     </details>
   </main>
-  <script src="/status-assets/app.js?v=24" defer></script>
+  <script src="/status-assets/app.js?v=25" defer></script>
 </body>
 </html>

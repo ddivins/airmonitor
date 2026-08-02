@@ -68,5 +68,10 @@ paths=""
 [ -d var ] && paths="$paths var"
 paths="$paths RESTORE.md"
 
+# -n .gz: the AirMonitor database backup is already gzip-compressed, so
+# store it rather than wasting CPU time attempting to deflate it again for
+# zero size benefit. This is the only large file in the bundle -- the rest
+# (configs, secrets, Grafana's DB) are small enough that compressing them
+# doesn't matter either way.
 # shellcheck disable=SC2086
-exec zip -q -r - $paths
+exec zip -q -n .gz -r - $paths

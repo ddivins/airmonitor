@@ -11,6 +11,7 @@ import os
 from pathlib import PurePosixPath
 import sqlite3
 import subprocess
+import threading
 import time
 from typing import Iterable
 from urllib.error import HTTPError, URLError
@@ -161,6 +162,45 @@ def cached_update_check() -> dict[str, object]:
     return _update_check_cache["result"]
 
 
+# create_backup() runs SQLite's online backup API against a live, actively
+# written database -- observed at ~31s in production and only growing as the
+# database does, since it's mostly bounded by concurrent write contention
+# over the copy window rather than raw I/O throughput. A synchronous HTTP
+# request waiting on it either needs an ever-increasing timeout or, as here,
+# runs it in a background thread and lets the browser poll for completion --
+# the only approach that stays correct regardless of how large the database
+# grows. Single-admin appliance, so a module-level dict guarded by one lock
+# is sufficient; no need for a real job queue.
+_backup_job_lock = threading.Lock()
+_backup_job_state: dict[str, object] = {
+    "status": "idle",  # idle | running | done | error
+    "result": None,
+    "error": None,
+    "started_at": None,
+    "finished_at": None,
+}
+
+
+def _run_backup_job(database: str, backup_dir: str) -> None:
+    with _backup_job_lock:
+        _backup_job_state.update(status="running", result=None, error=None, started_at=time.time(), finished_at=None)
+    try:
+        result = create_backup(database=database, backup_dir=backup_dir, retention=DEFAULT_RETENTION)
+        with _backup_job_lock:
+            _backup_job_state.update(
+                status="done",
+                result={
+                    "path": str(result.path),
+                    "size_bytes": result.size_bytes,
+                    "removed": [str(item) for item in result.removed],
+                },
+                finished_at=time.time(),
+            )
+    except (OSError, sqlite3.Error) as error:
+        with _backup_job_lock:
+            _backup_job_state.update(status="error", error=str(error), finished_at=time.time())
+
+
 class StatusHandler(BaseHTTPRequestHandler):
     server_version = "AirMonitorStatus"
 
@@ -243,7 +283,23 @@ class StatusHandler(BaseHTTPRequestHandler):
                 return
             self._json(200, {"service": service, "output": output})
             return
+        if path == "/api/backup/status":
+            user = self._current_user()
+            if not user or not bool(user.get("isGrafanaAdmin")):
+                self._json(403, {"error": "Grafana administrator access required"})
+                return
+            with _backup_job_lock:
+                self._json(200, dict(_backup_job_state))
+            return
         if path == "/api/backup/download":
+            # Deliberately does NOT take a fresh backup first -- it bundles
+            # whatever the latest backup on disk already is (the daily timer,
+            # or a prior Backup Now click). Bundling itself is cheap and stays
+            # cheap regardless of database size (see the bundle helper's own
+            # comment); the slow, size-scaling part is create_backup() alone,
+            # which Backup Now already runs as its own background job. A user
+            # who wants a maximally fresh bundle clicks Backup Now first.
+            #
             # Unlike POST, browsers don't reliably send an Origin header on a
             # same-origin GET fetch() (Safari omits it entirely) -- only
             # validate Origin when a browser did send one, and rely on the
@@ -258,12 +314,6 @@ class StatusHandler(BaseHTTPRequestHandler):
             if not user or not bool(user.get("isGrafanaAdmin")):
                 self._json(403, {"error": "Grafana administrator access required"})
                 return
-            try:
-                create_backup(
-                    database=self.server.database, backup_dir=self.server.backup_dir, retention=DEFAULT_RETENTION
-                )
-            except (OSError, sqlite3.Error):
-                pass  # bundle whatever backups already exist rather than failing the download outright
             try:
                 result = subprocess.run(
                     ["sudo", self.server.bundle_helper],
@@ -337,19 +387,16 @@ class StatusHandler(BaseHTTPRequestHandler):
             self._json(400, {"error": "Invalid JSON"})
             return
         if path == "/api/backup/run":
-            try:
-                result = create_backup(
-                    database=self.server.database, backup_dir=self.server.backup_dir, retention=DEFAULT_RETENTION
+            with _backup_job_lock:
+                already_running = _backup_job_state["status"] == "running"
+            if not already_running:
+                thread = threading.Thread(
+                    target=_run_backup_job,
+                    args=(self.server.database, self.server.backup_dir),
+                    daemon=True,
                 )
-            except (OSError, sqlite3.Error) as error:
-                self._json(503, {"error": f"Backup failed: {error}"})
-                return
-            self._json(200, {
-                "ok": True,
-                "path": str(result.path),
-                "size_bytes": result.size_bytes,
-                "removed": [str(item) for item in result.removed],
-            })
+                thread.start()
+            self._json(202, {"ok": True, "status": "running"})
             return
         if path == "/api/filters/control":
             filter_id = payload.get("filter_id") if isinstance(payload, dict) else None

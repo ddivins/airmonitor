@@ -257,10 +257,70 @@ function setBackupStatus(text, warning = false) {
   status.classList.toggle("value-warning", warning);
 }
 
+let backupPolling = false;
+
+async function readBackupStatus() {
+  const response = await fetch("/backup-status-api", {cache: "no-store", credentials: "same-origin"});
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.json();
+}
+
+// create_backup() runs SQLite's online backup API against a live database
+// (sensors writing every ~10s) and only gets slower as it grows -- the
+// backend runs it as a background job instead of blocking the request, so
+// this polls for completion rather than awaiting one long fetch(). Keeps
+// working correctly no matter how large the database eventually gets,
+// without ever needing another nginx timeout bump.
+async function watchBackupJob(button, startedAtMs) {
+  if (backupPolling) return;
+  backupPolling = true;
+  if (button) button.disabled = true;
+  try {
+    while (true) {
+      let status;
+      try {
+        status = await readBackupStatus();
+      } catch (error) {
+        setBackupStatus(`Unable to check backup status: ${error.message}`, true);
+        return;
+      }
+      const elapsed = Math.max(0, Math.round((Date.now() - startedAtMs) / 1000));
+      if (status.status === "running") {
+        setBackupStatus(`Backup running… ${elapsed}s elapsed.`);
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        continue;
+      }
+      if (status.status === "done" && status.result) {
+        setBackupStatus(`Backup created (${bytes(status.result.size_bytes)}, ${elapsed}s).`);
+        await refresh();
+      } else if (status.status === "error") {
+        setBackupStatus(`Backup failed: ${status.error}`, true);
+      }
+      return;
+    }
+  } finally {
+    backupPolling = false;
+    if (button) button.disabled = false;
+  }
+}
+
+async function checkForRunningBackupOnLoad() {
+  if (!session.user?.admin || backupPolling) return;
+  try {
+    const status = await readBackupStatus();
+    if (status.status === "running") {
+      const startedAtMs = status.started_at ? status.started_at * 1000 : Date.now();
+      watchBackupJob($("backup-now-button"), startedAtMs);
+    }
+  } catch (_) {
+    // Not critical -- the next manual click will surface any real problem.
+  }
+}
+
 async function backupNow(button) {
-  if (!session.user?.admin) return;
+  if (!session.user?.admin || backupPolling) return;
   button.disabled = true;
-  setBackupStatus("Creating backup… this can take up to a minute on a live system.");
+  setBackupStatus("Starting backup…");
   try {
     const response = await fetch("/backup-run-api", {
       method: "POST",
@@ -268,13 +328,13 @@ async function backupNow(button) {
       headers: {"Content-Type": "application/json", "X-AirMonitor-Action": "backup-run"},
       body: "{}",
     });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
-    setBackupStatus(`Backup created (${bytes(result.size_bytes)}).`);
-    await refresh();
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+      throw new Error(result.error || `HTTP ${response.status}`);
+    }
+    await watchBackupJob(button, Date.now());
   } catch (error) {
     setBackupStatus(`Backup failed: ${error.message}`, true);
-  } finally {
     button.disabled = false;
   }
 }
@@ -282,7 +342,7 @@ async function backupNow(button) {
 async function downloadBackupBundle(button) {
   if (!session.user?.admin) return;
   button.disabled = true;
-  setBackupStatus("Preparing backup bundle… this can take up to a minute on a live system.");
+  setBackupStatus("Preparing backup bundle…");
   try {
     const response = await fetch("/backup-download-api", {
       method: "GET",
@@ -373,6 +433,7 @@ async function initialize() {
   await refreshSession();
   await refresh();
   await refreshUpdateStatus();
+  await checkForRunningBackupOnLoad();
 }
 
 initialize();

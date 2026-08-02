@@ -7,6 +7,7 @@ import sqlite3
 import subprocess
 import tempfile
 import threading
+import time
 import unittest
 from unittest.mock import patch
 
@@ -184,6 +185,15 @@ class BackupBundleEndpointTests(unittest.TestCase):
     ADMIN_USER = {"login": "admin", "isGrafanaAdmin": True}
 
     def setUp(self):
+        # _backup_job_state is a module-level singleton (single-admin
+        # appliance, no per-request job tracking needed) -- reset it so
+        # tests don't observe state a previous test left behind.
+        import airmonitor.status_web as status_web
+
+        status_web._backup_job_state.update(
+            status="idle", result=None, error=None, started_at=None, finished_at=None
+        )
+
         self.tmpdir = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmpdir.cleanup)
         self.database = str(Path(self.tmpdir.name) / "airmonitor.sqlite3")
@@ -229,17 +239,57 @@ class BackupBundleEndpointTests(unittest.TestCase):
         self.assertEqual(response.status, 403)
 
     @patch("airmonitor.status_web.grafana_user", return_value=ADMIN_USER)
-    def test_backup_run_creates_a_real_backup(self, _mocked_user):
+    def test_backup_run_starts_a_background_job_instead_of_blocking(self, _mocked_user):
+        """Regression test for the actual production incident: create_backup()
+        can take 30s+ against a live database and only gets slower as the
+        database grows. A synchronous version of this endpoint either needs
+        an ever-increasing nginx timeout or eventually times out with a 504
+        (which happened in production). It must now return almost
+        immediately regardless of how long the backup itself takes."""
+
+        started = time.monotonic()
         response, data = self._request(
             "POST", "/api/backup/run",
             headers={"Origin": "http://testorigin", "X-AirMonitor-Action": "backup-run"},
             body=b"{}",
         )
+        elapsed = time.monotonic() - started
+        self.assertEqual(response.status, 202)
+        self.assertEqual(json.loads(data), {"ok": True, "status": "running"})
+        self.assertLess(elapsed, 2.0)
+
+    @patch("airmonitor.status_web.grafana_user", return_value=ADMIN_USER)
+    def test_backup_run_job_completes_and_is_visible_via_status(self, _mocked_user):
+        response, _data = self._request(
+            "POST", "/api/backup/run",
+            headers={"Origin": "http://testorigin", "X-AirMonitor-Action": "backup-run"},
+            body=b"{}",
+        )
+        self.assertEqual(response.status, 202)
+
+        deadline = time.monotonic() + 5.0
+        status = None
+        while time.monotonic() < deadline:
+            response, data = self._request("GET", "/api/backup/status")
+            status = json.loads(data)
+            if status["status"] != "running":
+                break
+            time.sleep(0.05)
+
+        self.assertEqual(status["status"], "done")
+        self.assertTrue(Path(status["result"]["path"]).exists())
+        self.assertGreater(status["result"]["size_bytes"], 0)
+
+    @patch("airmonitor.status_web.grafana_user", return_value=None)
+    def test_backup_status_rejects_unauthenticated_requests(self, _mocked_user):
+        response, _data = self._request("GET", "/api/backup/status")
+        self.assertEqual(response.status, 403)
+
+    @patch("airmonitor.status_web.grafana_user", return_value=ADMIN_USER)
+    def test_backup_status_reports_idle_before_any_run(self, _mocked_user):
+        response, data = self._request("GET", "/api/backup/status")
         self.assertEqual(response.status, 200)
-        payload = json.loads(data)
-        self.assertTrue(payload["ok"])
-        self.assertTrue(Path(payload["path"]).exists())
-        self.assertGreater(payload["size_bytes"], 0)
+        self.assertEqual(json.loads(data)["status"], "idle")
 
     @patch("airmonitor.status_web.grafana_user", return_value=None)
     def test_backup_download_rejects_unauthenticated_requests(self, _mocked_user):
@@ -300,12 +350,29 @@ class BackupBundleEndpointTests(unittest.TestCase):
         self.assertEqual(response.getheader("Content-Type"), "application/zip")
         self.assertIn("attachment; filename=", response.getheader("Content-Disposition"))
         self.assertEqual(data, b"PK\x03\x04fake-bundle-bytes")
-        # A fresh backup is taken before the bundle helper runs, so a download
-        # always includes the current database, not whatever the last daily
-        # timer run happened to produce.
-        self.assertTrue(any(Path(self.backup_dir).glob("airmonitor-*.sqlite3.gz")))
         mocked_run.assert_called_once()
         self.assertEqual(mocked_run.call_args.args[0][0], "sudo")
+
+    @patch("airmonitor.status_web.subprocess.run")
+    @patch("airmonitor.status_web.create_backup")
+    @patch("airmonitor.status_web.grafana_user", return_value=ADMIN_USER)
+    def test_backup_download_does_not_trigger_a_fresh_backup(self, _mocked_user, mocked_create_backup, mocked_run):
+        """Regression test for the decoupling fix: download bundles whatever
+        backup already exists (the daily timer, or a prior Backup Now click)
+        rather than taking a new one itself -- that's the whole point of
+        separating the two, since create_backup() is the slow, size-scaling
+        operation and bundling is cheap. A user who wants a fresh bundle
+        clicks Backup Now first."""
+
+        mocked_run.return_value = subprocess.CompletedProcess([], 0, stdout=b"PK\x03\x04fake-bundle-bytes", stderr=b"")
+
+        response, _data = self._request(
+            "GET", "/api/backup/download",
+            headers={"Origin": "http://testorigin", "X-AirMonitor-Action": "backup-download"},
+        )
+
+        self.assertEqual(response.status, 200)
+        mocked_create_backup.assert_not_called()
 
     @patch("airmonitor.status_web.subprocess.run")
     @patch("airmonitor.status_web.grafana_user", return_value=ADMIN_USER)

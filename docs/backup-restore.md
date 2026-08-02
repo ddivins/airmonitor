@@ -39,30 +39,60 @@ Prints the created path, its size, and any backups pruned by retention.
 Signed-in Grafana administrators see two buttons on the status page's
 Appliance panel:
 
-- **Backup now** triggers the same `airmonitor backup` logic immediately
-  (in-process, as the `automation` user the status service already runs as
-  -- no elevated privilege needed for this one).
-- **Download backup bundle** takes a fresh backup, then downloads a `.zip`
-  containing everything a from-scratch restore onto new hardware needs:
-  `/etc/airmonitor/` (install.conf and every `.env` secret), the Cloudflare
-  DNS-01 credential at `/root/.secrets/cloudflare.ini`, Grafana's own
-  database, the fresh AirMonitor database backup, and a `RESTORE.md` with
-  the exact restore steps. Every one of those files needs root to read, so
-  this goes through a dedicated, narrowly-scoped root helper
-  (`tools/airmonitor-backup-bundle`, installed to
-  `/usr/local/sbin/airmonitor-backup-bundle`, granted to the `automation`
-  user only via `config/sudoers/airmonitor-backup-bundle`) that assembles
-  the zip and streams it straight to stdout -- nothing sensitive is ever
-  written to a predictable path on disk.
+- **Backup now** starts `create_backup()` as a background job and returns
+  immediately; the browser polls `/api/backup/status` (every ~1.5s) and
+  updates in place until it's done. This runs in-process as the
+  `automation` user the status service already runs as -- no elevated
+  privilege needed for this one.
+- **Download backup bundle** downloads a `.zip` containing everything a
+  from-scratch restore onto new hardware needs: `/etc/airmonitor/`
+  (install.conf and every `.env` secret), the Cloudflare DNS-01 credential
+  at `/root/.secrets/cloudflare.ini`, Grafana's own database, the most
+  recent AirMonitor database backup on disk, and a `RESTORE.md` with the
+  exact restore steps.
 
-Both endpoints (`/api/backup/run`, `/api/backup/download`) require a Grafana
-administrator session *and* a matching `Origin` header plus a custom
+Backup Now and Download bundle are deliberately decoupled: downloading does
+**not** take a fresh backup first, it only bundles whatever the latest one
+already is (the daily timer's, or a prior Backup Now click). The page says
+so next to the button, pointing at the "Last backup" age shown above it --
+click Backup Now first if you want the bundle to include the latest data.
+
+This split exists because `create_backup()` uses SQLite's online backup API
+against a live, actively-written database -- measured at ~31s in production
+under normal sensor write load and only getting slower (worse than
+linearly, in fact, since a longer copy window gives concurrent writers more
+chances to force retries) as the database grows. An earlier version of this
+feature took a fresh backup as part of every download, which combined with
+the zip step to occasionally exceed nginx's `proxy_read_timeout` and return
+a 504 to the browser -- the backup had actually completed by then, just too
+late for anyone to see the result. Running it as a background job the
+browser polls for, rather than a single blocking HTTP request, is the only
+approach that stays correct no matter how large the database eventually
+gets; bundling stays decoupled from it entirely, and stays cheap on its own
+regardless of database size since `tools/airmonitor-backup-bundle` stores
+(rather than re-compresses) the already-gzipped backup file inside the zip.
+
+Every file the bundle exposes needs root to read, so downloading goes
+through a dedicated, narrowly-scoped root helper
+(`tools/airmonitor-backup-bundle`, installed to
+`/usr/local/sbin/airmonitor-backup-bundle`, granted to the `automation`
+user only via `config/sudoers/airmonitor-backup-bundle`) that assembles the
+zip and streams it straight to stdout -- nothing sensitive is ever written
+to a predictable path on disk.
+
+All three endpoints (`/api/backup/run`, `/api/backup/status`,
+`/api/backup/download`) require a Grafana administrator session.
+`/api/backup/run` and `/api/backup/download` additionally require a
+matching `Origin` header (when the browser sends one -- Safari omits it on
+same-origin GET, so it's only validated when present) plus a custom
 `X-AirMonitor-Action` header, the same CSRF defense the service/filter
 control endpoints already use. The custom header specifically rules out a
-plain link or `<img>` tag triggering the download cross-site, since only
-same-origin JS (`fetch`) can set it -- important here because the response
-body is close to "every credential the appliance holds" rather than
-ordinary status data.
+plain link or `<img>` tag triggering either action cross-site, since only
+same-origin JS (`fetch`) can set it -- important here because the download
+response body is close to "every credential the appliance holds" rather
+than ordinary status data. `/api/backup/status` skips that extra check
+since it's a plain read with no side effects and nothing sensitive in the
+response, matching the existing `/api/services/status` precedent.
 
 The downloaded bundle is exactly as sensitive as the files inside it.
 Delete it once you no longer need it.

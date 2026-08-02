@@ -111,29 +111,52 @@ def test_nginx_routes_backup_bundle_endpoints() -> None:
     config = (ROOT / "nginx" / "airmonitor.conf.template").read_text(encoding="utf-8")
     assert "location = /backup-run-api {" in config
     assert "proxy_pass http://127.0.0.1:8080/api/backup/run;" in config
+    assert "location = /backup-status-api {" in config
+    assert "proxy_pass http://127.0.0.1:8080/api/backup/status;" in config
     assert "location = /backup-download-api {" in config
     assert "proxy_pass http://127.0.0.1:8080/api/backup/download;" in config
 
 
-def test_nginx_gives_backup_endpoints_headroom_past_observed_backup_time() -> None:
-    """Regression test: create_backup() uses SQLite's online backup API
-    against a live, actively-written database -- measured at ~31s on
-    production under normal sensor write load, not the near-instant copy
-    it'd be against an idle DB. The original 30s proxy_read_timeout on
-    /backup-download-api sat almost exactly at that observed time and fired
-    in production (nginx logged "upstream timed out ... while reading
-    response header"), returning a 504 to the browser after the backend had
-    already committed to the slow backup but before it could respond -- the
-    backup completed anyway, just too late for anyone to see the result."""
+def _nginx_location_block(config: str, location: str) -> str:
+    start = config.index(f"location = {location} {{")
+    end = config.index("}", start)
+    return config[start:end]
+
+
+def test_nginx_backup_run_does_not_wait_on_the_slow_backup_itself() -> None:
+    """Regression test for the actual production incident: create_backup()
+    runs SQLite's online backup API against a live, actively-written
+    database -- measured at ~31s under normal sensor write load, growing
+    with database size (and worse than linearly, since a longer copy window
+    gives concurrent writers more chances to force retries). A version of
+    this endpoint that waited on create_backup() synchronously needed an
+    ever-increasing timeout as the database grew; /api/backup/run now starts
+    it as a background job and returns immediately instead, so this location
+    should never need a large proxy_read_timeout again."""
 
     config = (ROOT / "nginx" / "airmonitor.conf.template").read_text(encoding="utf-8")
-    for location in ("/backup-run-api", "/backup-download-api"):
-        start = config.index(f"location = {location} {{")
-        end = config.index("}", start)
-        block = config[start:end]
-        match = re.search(r"proxy_read_timeout\s+(\d+)s;", block)
-        assert match, f"{location} has no proxy_read_timeout"
-        assert int(match.group(1)) >= 90, f"{location} timeout too close to the observed ~31s backup time"
+    block = _nginx_location_block(config, "/backup-run-api")
+    match = re.search(r"proxy_read_timeout\s+(\d+)s;", block)
+    if match:
+        assert int(match.group(1)) <= 30, (
+            "backup-run-api has a large proxy_read_timeout again -- did create_backup() get "
+            "called synchronously from this route instead of the background job?"
+        )
+
+
+def test_nginx_gives_backup_download_headroom_for_the_cheap_bundling_step() -> None:
+    """/api/backup/download only zips whatever backup already exists (see
+    its own comment in status_web.py) -- cheap and scales gently with
+    backup size since the bundle helper stores rather than re-compresses
+    the already-gzipped backup file. Still wants real headroom since that
+    file only grows over time, just nowhere near the ~31s+ create_backup()
+    itself needed before this endpoint stopped calling it synchronously."""
+
+    config = (ROOT / "nginx" / "airmonitor.conf.template").read_text(encoding="utf-8")
+    block = _nginx_location_block(config, "/backup-download-api")
+    match = re.search(r"proxy_read_timeout\s+(\d+)s;", block)
+    assert match, "backup-download-api has no proxy_read_timeout"
+    assert int(match.group(1)) >= 45
 
 
 def test_nginx_injects_airmonitor_banner_into_grafana_pages() -> None:
