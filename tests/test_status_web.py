@@ -259,6 +259,33 @@ class BackupBundleEndpointTests(unittest.TestCase):
         response, _data = self._request("GET", "/api/backup/download")
         self.assertEqual(response.status, 403)
 
+    @patch("airmonitor.status_web.grafana_user", return_value=ADMIN_USER)
+    def test_backup_download_rejects_mismatched_origin(self, _mocked_user):
+        response, _data = self._request(
+            "GET", "/api/backup/download",
+            headers={"Origin": "http://attacker.example", "X-AirMonitor-Action": "backup-download"},
+        )
+        self.assertEqual(response.status, 403)
+
+    @patch("airmonitor.status_web.subprocess.run")
+    @patch("airmonitor.status_web.grafana_user", return_value=ADMIN_USER)
+    def test_backup_download_succeeds_without_an_origin_header(self, _mocked_user, mocked_run):
+        """Regression test: Safari (confirmed live in production) doesn't
+        send an Origin header on a same-origin GET fetch(), unlike POST where
+        it's spec-guaranteed. The download must still work in that case --
+        the custom X-AirMonitor-Action header is the real CSRF defense here,
+        not Origin."""
+
+        mocked_run.return_value = subprocess.CompletedProcess([], 0, stdout=b"PK\x03\x04fake-bundle-bytes", stderr=b"")
+
+        response, data = self._request(
+            "GET", "/api/backup/download",
+            headers={"X-AirMonitor-Action": "backup-download"},
+        )
+
+        self.assertEqual(response.status, 200)
+        self.assertEqual(data, b"PK\x03\x04fake-bundle-bytes")
+
     @patch("airmonitor.status_web.subprocess.run")
     @patch("airmonitor.status_web.grafana_user", return_value=ADMIN_USER)
     def test_backup_download_streams_zip_with_attachment_header(self, _mocked_user, mocked_run):

@@ -244,7 +244,14 @@ class StatusHandler(BaseHTTPRequestHandler):
             self._json(200, {"service": service, "output": output})
             return
         if path == "/api/backup/download":
-            if self.headers.get("Origin") != self.server.public_origin or self.headers.get("X-AirMonitor-Action") != "backup-download":
+            # Unlike POST, browsers don't reliably send an Origin header on a
+            # same-origin GET fetch() (Safari omits it entirely) -- only
+            # validate Origin when a browser did send one, and rely on the
+            # custom header as the real CSRF defense: a cross-site fetch()
+            # that tries to set it triggers a CORS preflight this server
+            # doesn't allow, and a plain <a>/<img> GET can't set it at all.
+            origin = self.headers.get("Origin")
+            if (origin is not None and origin != self.server.public_origin) or self.headers.get("X-AirMonitor-Action") != "backup-download":
                 self._json(403, {"error": "Request origin rejected"})
                 return
             user = self._current_user()
