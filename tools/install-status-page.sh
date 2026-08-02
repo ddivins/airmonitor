@@ -14,6 +14,10 @@ CONTROL_HELPER_SRC="${CONTROL_HELPER_SRC:-tools/airmonitor-service-control}"
 CONTROL_HELPER_DST="${CONTROL_HELPER_DST:-/usr/local/sbin/airmonitor-service-control}"
 SUDOERS_SRC="${SUDOERS_SRC:-config/sudoers/airmonitor-status-control}"
 SUDOERS_DST="${SUDOERS_DST:-/etc/sudoers.d/airmonitor-status-control}"
+BUNDLE_HELPER_SRC="${BUNDLE_HELPER_SRC:-tools/airmonitor-backup-bundle}"
+BUNDLE_HELPER_DST="${BUNDLE_HELPER_DST:-/usr/local/sbin/airmonitor-backup-bundle}"
+BUNDLE_SUDOERS_SRC="${BUNDLE_SUDOERS_SRC:-config/sudoers/airmonitor-backup-bundle}"
+BUNDLE_SUDOERS_DST="${BUNDLE_SUDOERS_DST:-/etc/sudoers.d/airmonitor-backup-bundle}"
 
 if command -v nginx >/dev/null; then
   NGINX_BIN="$(command -v nginx)"
@@ -27,10 +31,17 @@ fi
 [[ -f "$REPO_DIR/$OFFLINE_SRC" ]] || { echo "ERROR: missing $OFFLINE_SRC" >&2; exit 1; }
 [[ -f "$REPO_DIR/$CONTROL_HELPER_SRC" ]] || { echo "ERROR: missing $CONTROL_HELPER_SRC" >&2; exit 1; }
 [[ -f "$REPO_DIR/$SUDOERS_SRC" ]] || { echo "ERROR: missing $SUDOERS_SRC" >&2; exit 1; }
+[[ -f "$REPO_DIR/$BUNDLE_HELPER_SRC" ]] || { echo "ERROR: missing $BUNDLE_HELPER_SRC" >&2; exit 1; }
+[[ -f "$REPO_DIR/$BUNDLE_SUDOERS_SRC" ]] || { echo "ERROR: missing $BUNDLE_SUDOERS_SRC" >&2; exit 1; }
+command -v zip >/dev/null || { echo "ERROR: zip is required (should be installed by tools/install.sh)" >&2; exit 1; }
 
 sudo visudo -cf "$REPO_DIR/$SUDOERS_SRC"
 sudo install -o root -g root -m 0755 "$REPO_DIR/$CONTROL_HELPER_SRC" "$CONTROL_HELPER_DST"
 sudo install -o root -g root -m 0440 "$REPO_DIR/$SUDOERS_SRC" "$SUDOERS_DST"
+
+sudo visudo -cf "$REPO_DIR/$BUNDLE_SUDOERS_SRC"
+sudo install -o root -g root -m 0755 "$REPO_DIR/$BUNDLE_HELPER_SRC" "$BUNDLE_HELPER_DST"
+sudo install -o root -g root -m 0440 "$REPO_DIR/$BUNDLE_SUDOERS_SRC" "$BUNDLE_SUDOERS_DST"
 
 sudo install -d -o root -g root -m 0755 "$(dirname "$NGINX_DST")" "$OFFLINE_DIR"
 

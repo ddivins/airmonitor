@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import http.client
+import json
 from pathlib import Path
+import sqlite3
 import subprocess
 import tempfile
+import threading
 import unittest
 from unittest.mock import patch
 
@@ -10,6 +14,7 @@ from airmonitor.status_web import (
     NO_STORE_FILENAMES,
     SERVICE_ACTIONS,
     STATIC_FILENAMES,
+    StatusServer,
     cached_update_check,
     grafana_user,
     service_enabled,
@@ -168,6 +173,125 @@ class StatusWebTests(unittest.TestCase):
             result = cached_update_check()
         self.assertEqual(result, {"update_available": True})
         mocked.assert_called_once()
+
+
+class BackupBundleEndpointTests(unittest.TestCase):
+    """Backup Now and Download Bundle are admin-only, sensitive endpoints (the
+    bundle contains every credential the appliance holds), so these exercise
+    the actual HTTP routing/auth/CSRF logic end to end rather than just the
+    underlying pure functions like the rest of this file does."""
+
+    ADMIN_USER = {"login": "admin", "isGrafanaAdmin": True}
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmpdir.cleanup)
+        self.database = str(Path(self.tmpdir.name) / "airmonitor.sqlite3")
+        self.backup_dir = str(Path(self.tmpdir.name) / "backups")
+        conn = sqlite3.connect(self.database)
+        conn.execute("CREATE TABLE placeholder (id INTEGER)")
+        conn.commit()
+        conn.close()
+
+        self.server = StatusServer(
+            ("127.0.0.1", 0),
+            self.database,
+            public_origin="http://testorigin",
+            backup_dir=self.backup_dir,
+        )
+        self.addCleanup(self.server.server_close)
+        self.port = self.server.server_address[1]
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+        self.addCleanup(lambda: (self.server.shutdown(), self.thread.join(timeout=2)))
+
+    def _request(self, method: str, path: str, *, headers: dict | None = None, body: bytes | None = None):
+        conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+        try:
+            conn.request(method, path, body=body, headers=headers or {})
+            response = conn.getresponse()
+            return response, response.read()
+        finally:
+            conn.close()
+
+    @patch("airmonitor.status_web.grafana_user", return_value=None)
+    def test_backup_run_rejects_unauthenticated_requests(self, _mocked_user):
+        response, _data = self._request(
+            "POST", "/api/backup/run",
+            headers={"Origin": "http://testorigin", "X-AirMonitor-Action": "backup-run"},
+            body=b"{}",
+        )
+        self.assertEqual(response.status, 403)
+
+    @patch("airmonitor.status_web.grafana_user", return_value=ADMIN_USER)
+    def test_backup_run_rejects_missing_csrf_header(self, _mocked_user):
+        response, _data = self._request("POST", "/api/backup/run", body=b"{}")
+        self.assertEqual(response.status, 403)
+
+    @patch("airmonitor.status_web.grafana_user", return_value=ADMIN_USER)
+    def test_backup_run_creates_a_real_backup(self, _mocked_user):
+        response, data = self._request(
+            "POST", "/api/backup/run",
+            headers={"Origin": "http://testorigin", "X-AirMonitor-Action": "backup-run"},
+            body=b"{}",
+        )
+        self.assertEqual(response.status, 200)
+        payload = json.loads(data)
+        self.assertTrue(payload["ok"])
+        self.assertTrue(Path(payload["path"]).exists())
+        self.assertGreater(payload["size_bytes"], 0)
+
+    @patch("airmonitor.status_web.grafana_user", return_value=None)
+    def test_backup_download_rejects_unauthenticated_requests(self, _mocked_user):
+        response, _data = self._request(
+            "GET", "/api/backup/download",
+            headers={"Origin": "http://testorigin", "X-AirMonitor-Action": "backup-download"},
+        )
+        self.assertEqual(response.status, 403)
+
+    @patch("airmonitor.status_web.grafana_user", return_value=ADMIN_USER)
+    def test_backup_download_rejects_missing_csrf_header(self, _mocked_user):
+        """A plain <a href> or <img src> navigation can't set a custom header,
+        so requiring one here means the download can only be triggered by
+        same-origin JS (fetch), not by a cross-site link tricking an admin's
+        browser into downloading the bundle."""
+
+        response, _data = self._request("GET", "/api/backup/download")
+        self.assertEqual(response.status, 403)
+
+    @patch("airmonitor.status_web.subprocess.run")
+    @patch("airmonitor.status_web.grafana_user", return_value=ADMIN_USER)
+    def test_backup_download_streams_zip_with_attachment_header(self, _mocked_user, mocked_run):
+        mocked_run.return_value = subprocess.CompletedProcess([], 0, stdout=b"PK\x03\x04fake-bundle-bytes", stderr=b"")
+
+        response, data = self._request(
+            "GET", "/api/backup/download",
+            headers={"Origin": "http://testorigin", "X-AirMonitor-Action": "backup-download"},
+        )
+
+        self.assertEqual(response.status, 200)
+        self.assertEqual(response.getheader("Content-Type"), "application/zip")
+        self.assertIn("attachment; filename=", response.getheader("Content-Disposition"))
+        self.assertEqual(data, b"PK\x03\x04fake-bundle-bytes")
+        # A fresh backup is taken before the bundle helper runs, so a download
+        # always includes the current database, not whatever the last daily
+        # timer run happened to produce.
+        self.assertTrue(any(Path(self.backup_dir).glob("airmonitor-*.sqlite3.gz")))
+        mocked_run.assert_called_once()
+        self.assertEqual(mocked_run.call_args.args[0][0], "sudo")
+
+    @patch("airmonitor.status_web.subprocess.run")
+    @patch("airmonitor.status_web.grafana_user", return_value=ADMIN_USER)
+    def test_backup_download_reports_bundle_helper_failure(self, _mocked_user, mocked_run):
+        mocked_run.return_value = subprocess.CompletedProcess([], 1, stdout=b"", stderr=b"permission denied")
+
+        response, data = self._request(
+            "GET", "/api/backup/download",
+            headers={"Origin": "http://testorigin", "X-AirMonitor-Action": "backup-download"},
+        )
+
+        self.assertEqual(response.status, 500)
+        self.assertIn("permission denied", json.loads(data)["error"])
 
 
 if __name__ == "__main__":

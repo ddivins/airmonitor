@@ -226,7 +226,7 @@ install_packages() {
     mosquitto mosquitto-clients udev
   )
   if [[ "$MODE" == "full" ]]; then
-    packages+=(apt-transport-https certbot gnupg nginx python3-certbot-dns-cloudflare wget)
+    packages+=(apt-transport-https certbot gnupg nginx python3-certbot-dns-cloudflare wget zip)
   fi
   log "Installing host packages"
   sudo apt-get update

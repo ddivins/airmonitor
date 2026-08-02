@@ -1,0 +1,72 @@
+#!/bin/sh
+set -eu
+
+# Assembles a zip of everything needed to restore AirMonitor onto fresh
+# hardware from scratch -- /etc/airmonitor (install.conf + all .env secrets),
+# the Cloudflare DNS-01 credential used to reissue TLS certs, Grafana's own
+# database, and the latest AirMonitor sensor/print database backup -- and
+# writes the zip to stdout. Run only via the automation user's dedicated
+# sudoers rule (config/sudoers/airmonitor-backup-bundle); the caller is
+# responsible for creating a fresh database backup first if it wants one
+# included; this script only bundles whatever already exists on disk.
+
+WORKDIR="$(mktemp -d)"
+trap 'rm -rf "$WORKDIR"' EXIT
+
+if [ -d /etc/airmonitor ]; then
+    mkdir -p "$WORKDIR/etc/airmonitor"
+    cp -a /etc/airmonitor/. "$WORKDIR/etc/airmonitor/"
+fi
+
+if [ -f /root/.secrets/cloudflare.ini ]; then
+    mkdir -p "$WORKDIR/root/.secrets"
+    cp /root/.secrets/cloudflare.ini "$WORKDIR/root/.secrets/cloudflare.ini"
+fi
+
+if [ -f /var/lib/grafana/grafana.db ]; then
+    mkdir -p "$WORKDIR/var/lib/grafana"
+    cp /var/lib/grafana/grafana.db "$WORKDIR/var/lib/grafana/grafana.db"
+fi
+
+latest_backup="$(ls -1t /var/lib/airmonitor/backups/airmonitor-*.sqlite3.gz 2>/dev/null | head -n1 || true)"
+if [ -n "$latest_backup" ]; then
+    mkdir -p "$WORKDIR/var/lib/airmonitor/backups"
+    cp "$latest_backup" "$WORKDIR/var/lib/airmonitor/backups/"
+fi
+
+cat > "$WORKDIR/RESTORE.md" <<'EOF'
+# Restoring AirMonitor from this bundle
+
+This bundle is not a self-installing archive -- it's the raw files a fresh
+install needs, gathered in one place. On the new host:
+
+1. Fresh-install the OS, install git, and clone the airmonitor repo.
+2. Restore configuration and secrets BEFORE running the installer, so it
+   picks up the saved answers instead of prompting:
+   - Copy `etc/airmonitor/` to `/etc/airmonitor/` (owner root:root).
+   - Copy `root/.secrets/cloudflare.ini` to `/root/.secrets/cloudflare.ini`
+     (owner root:root, mode 600).
+3. Run `bash tools/install.sh` (it reuses the restored install.conf).
+4. After install finishes (the `grafana` system user now exists), stop
+   grafana-server, copy `var/lib/grafana/grafana.db` to
+   `/var/lib/grafana/grafana.db`, chown it grafana:grafana, and restart
+   grafana-server.
+5. Restore the AirMonitor database: stop airmonitor.target,
+   airmonitor-status.service, and airmonitor-export.service, then run
+   `airmonitor restore var/lib/airmonitor/backups/<file>.sqlite3.gz --yes`
+   as the automation user, then restart those services.
+6. Run `airmonitor-doctor` to confirm everything is healthy.
+
+Every file in this bundle is sensitive (contains passwords, API tokens, or
+your printer/DB history). Delete it once you no longer need it.
+EOF
+
+cd "$WORKDIR"
+paths=""
+[ -d etc ] && paths="$paths etc"
+[ -d root ] && paths="$paths root"
+[ -d var ] && paths="$paths var"
+paths="$paths RESTORE.md"
+
+# shellcheck disable=SC2086
+exec zip -q -r - $paths

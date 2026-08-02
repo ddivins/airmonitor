@@ -106,6 +106,14 @@ def test_nginx_routes_alerts_page_and_api_not_the_catchall() -> None:
     assert "proxy_pass http://127.0.0.1:8080/api/update;" in config
 
 
+def test_nginx_routes_backup_bundle_endpoints() -> None:
+    config = (ROOT / "nginx" / "airmonitor.conf.template").read_text(encoding="utf-8")
+    assert "location = /backup-run-api {" in config
+    assert "proxy_pass http://127.0.0.1:8080/api/backup/run;" in config
+    assert "location = /backup-download-api {" in config
+    assert "proxy_pass http://127.0.0.1:8080/api/backup/download;" in config
+
+
 def test_nginx_injects_airmonitor_banner_into_grafana_pages() -> None:
     """Grafana's own pages (e.g. /grafana/dashboards) can't take a custom
     dashboard panel, so the logo banner is injected at the nginx layer

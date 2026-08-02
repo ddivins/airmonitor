@@ -64,11 +64,13 @@ function renderSession() {
     stopServiceStatusStream();
     panel.innerHTML = `<a class="grafana-signin" href="/sign-in">Sign in <span aria-hidden="true">→</span><small>Administration and dashboards</small></a><a class="password-reset" href="/grafana/user/password/send-reset-email">Forgot password?</a>`;
     $("admin-notice").hidden = true;
+    $("backup-actions").hidden = true;
     $("services-caption").textContent = "Systemd state";
     return;
   }
   panel.innerHTML = `<div class="signed-in"><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(user.role)} · ${escapeHtml(user.email || user.login)}</small><a class="dashboard-browser-link" href="/grafana/dashboards">Browse dashboards <span aria-hidden="true">→</span></a><div class="account-links"><a href="/grafana/profile">Account</a><a href="/grafana/logout">Sign out</a></div></div>`;
   $("admin-notice").hidden = !user.admin;
+  $("backup-actions").hidden = !user.admin;
   $("services-caption").textContent = user.admin ? "Administrator controls" : "Systemd state";
   const details = $("system-details");
   if (user.admin && !details.dataset.adminOpened) {
@@ -248,6 +250,71 @@ async function controlFilter(filterId, mode, button) {
     button.disabled = false;
   }
 }
+
+function setBackupStatus(text, warning = false) {
+  const status = $("backup-actions-status");
+  status.textContent = text;
+  status.classList.toggle("value-warning", warning);
+}
+
+async function backupNow(button) {
+  if (!session.user?.admin) return;
+  button.disabled = true;
+  setBackupStatus("Creating backup…");
+  try {
+    const response = await fetch("/backup-run-api", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {"Content-Type": "application/json", "X-AirMonitor-Action": "backup-run"},
+      body: "{}",
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
+    setBackupStatus(`Backup created (${bytes(result.size_bytes)}).`);
+    await refresh();
+  } catch (error) {
+    setBackupStatus(`Backup failed: ${error.message}`, true);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function downloadBackupBundle(button) {
+  if (!session.user?.admin) return;
+  button.disabled = true;
+  setBackupStatus("Preparing backup bundle…this can take a moment.");
+  try {
+    const response = await fetch("/backup-download-api", {
+      method: "GET",
+      credentials: "same-origin",
+      headers: {"X-AirMonitor-Action": "backup-download"},
+    });
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+      throw new Error(result.error || `HTTP ${response.status}`);
+    }
+    const disposition = response.headers.get("Content-Disposition") || "";
+    const match = /filename="([^"]+)"/.exec(disposition);
+    const filename = match ? match[1] : "airmonitor-backup.zip";
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setBackupStatus(`Downloaded ${filename}. This file contains credentials — delete it once you no longer need it.`);
+  } catch (error) {
+    setBackupStatus(`Download failed: ${error.message}`, true);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+$("backup-now-button").addEventListener("click", (event) => backupNow(event.currentTarget));
+$("backup-download-button").addEventListener("click", (event) => downloadBackupBundle(event.currentTarget));
 
 document.addEventListener("click", (event) => {
   const filterButton = event.target.closest("[data-filter-mode]");

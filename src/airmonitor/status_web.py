@@ -17,6 +17,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, urlsplit
 from urllib.request import Request, urlopen
 
+from airmonitor.backup import DEFAULT_RETENTION, create_backup
 from airmonitor.database import connect, init_db
 from airmonitor.database.repositories import FilterControlRepository
 from airmonitor.filters.control import resolve_filter_state
@@ -28,6 +29,7 @@ STATIC = files("airmonitor").joinpath("status_static")
 GRAFANA_API = os.environ.get("AIRMONITOR_GRAFANA_API", "http://127.0.0.1:3000")
 PUBLIC_ORIGIN = os.environ.get("AIRMONITOR_PUBLIC_ORIGIN", "http://localhost:8080")
 CONTROL_HELPER = os.environ.get("AIRMONITOR_CONTROL_HELPER", "/usr/local/sbin/airmonitor-service-control")
+BUNDLE_HELPER = os.environ.get("AIRMONITOR_BUNDLE_HELPER", "/usr/local/sbin/airmonitor-backup-bundle")
 BACKUP_DIR = os.environ.get("AIRMONITOR_BACKUP_DIR", "/var/lib/airmonitor/backups")
 CONTROLLED_SERVICES = (
     "airmonitor.target",
@@ -162,7 +164,9 @@ def cached_update_check() -> dict[str, object]:
 class StatusHandler(BaseHTTPRequestHandler):
     server_version = "AirMonitorStatus"
 
-    def _headers(self, status: int, content_type: str, length: int, cache: str) -> None:
+    def _headers(
+        self, status: int, content_type: str, length: int, cache: str, extra: dict[str, str] | None = None
+    ) -> None:
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(length))
@@ -170,10 +174,14 @@ class StatusHandler(BaseHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Frame-Options", "DENY")
         self.send_header("Content-Security-Policy", "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self'; connect-src 'self'")
+        for key, value in (extra or {}).items():
+            self.send_header(key, value)
         self.end_headers()
 
-    def _send(self, status: int, body: bytes, content_type: str, cache: str = "no-store") -> None:
-        self._headers(status, content_type, len(body), cache)
+    def _send(
+        self, status: int, body: bytes, content_type: str, cache: str = "no-store", extra: dict[str, str] | None = None
+    ) -> None:
+        self._headers(status, content_type, len(body), cache, extra)
         if self.command != "HEAD":
             self.wfile.write(body)
 
@@ -235,6 +243,43 @@ class StatusHandler(BaseHTTPRequestHandler):
                 return
             self._json(200, {"service": service, "output": output})
             return
+        if path == "/api/backup/download":
+            if self.headers.get("Origin") != self.server.public_origin or self.headers.get("X-AirMonitor-Action") != "backup-download":
+                self._json(403, {"error": "Request origin rejected"})
+                return
+            user = self._current_user()
+            if not user or not bool(user.get("isGrafanaAdmin")):
+                self._json(403, {"error": "Grafana administrator access required"})
+                return
+            try:
+                create_backup(
+                    database=self.server.database, backup_dir=self.server.backup_dir, retention=DEFAULT_RETENTION
+                )
+            except (OSError, sqlite3.Error):
+                pass  # bundle whatever backups already exist rather than failing the download outright
+            try:
+                result = subprocess.run(
+                    ["sudo", self.server.bundle_helper],
+                    check=False,
+                    capture_output=True,
+                    timeout=30,
+                )
+            except (FileNotFoundError, subprocess.TimeoutExpired):
+                self._json(503, {"error": "Backup bundle helper unavailable"})
+                return
+            if result.returncode or not result.stdout:
+                error_text = (result.stderr or b"Bundle creation failed").decode("utf-8", errors="replace").strip()
+                self._json(500, {"error": error_text or "Bundle creation failed"})
+                return
+            filename = f"airmonitor-backup-{time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())}.zip"
+            self._send(
+                200,
+                result.stdout,
+                "application/zip",
+                "no-store",
+                {"Content-Disposition": f'attachment; filename="{filename}"'},
+            )
+            return
         if path == "/healthz":
             self._send(200, b'{"ok":true}', "application/json; charset=utf-8")
             return
@@ -258,10 +303,13 @@ class StatusHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = self.path.split("?", 1)[0]
-        if path not in {"/api/services/control", "/api/filters/control"}:
+        if path not in {"/api/services/control", "/api/filters/control", "/api/backup/run"}:
             self._json(404, {"error": "Not found"})
             return
-        expected_action = "filter-control" if path == "/api/filters/control" else "service-control"
+        expected_action = {
+            "/api/filters/control": "filter-control",
+            "/api/backup/run": "backup-run",
+        }.get(path, "service-control")
         if self.headers.get("Origin") != self.server.public_origin or self.headers.get("X-AirMonitor-Action") != expected_action:
             self._json(403, {"error": "Request origin rejected"})
             return
@@ -280,6 +328,21 @@ class StatusHandler(BaseHTTPRequestHandler):
             payload = json.loads(self.rfile.read(length))
         except (json.JSONDecodeError, UnicodeDecodeError):
             self._json(400, {"error": "Invalid JSON"})
+            return
+        if path == "/api/backup/run":
+            try:
+                result = create_backup(
+                    database=self.server.database, backup_dir=self.server.backup_dir, retention=DEFAULT_RETENTION
+                )
+            except (OSError, sqlite3.Error) as error:
+                self._json(503, {"error": f"Backup failed: {error}"})
+                return
+            self._json(200, {
+                "ok": True,
+                "path": str(result.path),
+                "size_bytes": result.size_bytes,
+                "removed": [str(item) for item in result.removed],
+            })
             return
         if path == "/api/filters/control":
             filter_id = payload.get("filter_id") if isinstance(payload, dict) else None
@@ -332,6 +395,7 @@ class StatusServer(ThreadingHTTPServer):
         grafana_api: str = GRAFANA_API,
         public_origin: str = PUBLIC_ORIGIN,
         control_helper: str = CONTROL_HELPER,
+        bundle_helper: str = BUNDLE_HELPER,
         backup_dir: str = BACKUP_DIR,
     ):
         super().__init__(address, StatusHandler)
@@ -339,6 +403,7 @@ class StatusServer(ThreadingHTTPServer):
         self.grafana_api = grafana_api
         self.public_origin = public_origin
         self.control_helper = control_helper
+        self.bundle_helper = bundle_helper
         self.backup_dir = backup_dir
 
 
