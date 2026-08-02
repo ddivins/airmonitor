@@ -88,17 +88,9 @@ function serviceControl(name) {
 
 function filterControl(item) {
   if (!session.user?.admin) return "";
-  // Levoit is controlled via VeSync's cloud API, polled on a fixed interval
-  // (deliberately not shortened -- polling more often gets the account
-  // rate-limited by VeSync) rather than acted on immediately like Bento's
-  // local-network Kasa outlet, so a mode change here can sit for up to that
-  // long before the purifier actually responds.
-  const delayNote = item.filter_id === "levoit"
-    ? `<p class="filter-control-hint">VeSync cloud actions can take up to ~2 minutes to take effect.</p>`
-    : "";
   return `<div class="filter-controls" role="group" aria-label="Control ${escapeHtml(item.filter_id)}">
     ${["auto", "on", "off"].map((mode) => `<button type="button" data-filter="${escapeHtml(item.filter_id)}" data-filter-mode="${mode}" class="${item.manual_mode === mode ? "selected" : ""}" aria-pressed="${item.manual_mode === mode}">${mode}</button>`).join("")}
-  </div>${delayNote}`;
+  </div>`;
 }
 
 function showServiceStatus(service, output, scroll = false) {
