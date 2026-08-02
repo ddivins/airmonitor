@@ -1,10 +1,42 @@
 from __future__ import annotations
 
+from unittest import mock
+
 from airmonitor.filters.levoit.service import (
+    DesiredState,
+    apply_desired_state,
     external_override_mode,
     printer_state_is_fresh,
     telemetry_from_device,
 )
+
+
+class FakePurifier:
+    """Minimal pyvesync-shaped fake: turn_on/turn_off flip is_on, but only
+    after `succeed_after` prior calls to the same method -- simulating
+    VeSync's cloud occasionally accepting a command without the device
+    actually toggling on the first attempt."""
+
+    def __init__(self, succeed_after: int = 0):
+        self.is_on = False
+        self.update_calls = 0
+        self.command_calls = 0
+        self._succeed_after = succeed_after
+
+    def update(self):
+        self.update_calls += 1
+
+    def turn_on(self):
+        self.command_calls += 1
+        if self.command_calls > self._succeed_after:
+            self.is_on = True
+
+    def turn_off(self):
+        self.command_calls += 1
+        if self.command_calls > self._succeed_after:
+            self.is_on = False
+        else:
+            self.is_on = True
 
 
 def test_external_on_change_becomes_manual_on() -> None:
@@ -48,3 +80,62 @@ def test_printer_state_within_window_is_fresh() -> None:
 
 def test_printer_state_past_window_is_not_fresh() -> None:
     assert printer_state_is_fresh(1000.0, now=1301.0, stale_after_seconds=300) is False
+
+
+def test_apply_desired_state_does_nothing_when_already_matching() -> None:
+    device = FakePurifier()
+    device.is_on = True
+
+    result = apply_desired_state(device, DesiredState(True, "already on"), current=True)
+
+    assert result is True
+    assert device.command_calls == 0
+
+
+def test_apply_desired_state_succeeds_on_first_command() -> None:
+    device = FakePurifier(succeed_after=0)
+
+    with mock.patch("airmonitor.filters.levoit.service.time.sleep") as sleep:
+        result = apply_desired_state(device, DesiredState(True, "print active"), current=False)
+
+    assert result is True
+    assert device.command_calls == 1
+    sleep.assert_not_called()
+
+
+def test_apply_desired_state_retries_once_when_cloud_command_silently_fails() -> None:
+    """Regression test: VeSync's cloud API occasionally accepts a command
+    without the device actually toggling. Previously this went unnoticed
+    until the next scheduled poll (up to LEVOIT_POLL_INTERVAL_SECONDS later),
+    which read to an operator as needing to "tell it twice." One immediate,
+    verified retry closes that gap within the same automation cycle."""
+
+    device = FakePurifier(succeed_after=1)
+
+    with mock.patch("airmonitor.filters.levoit.service.time.sleep") as sleep:
+        result = apply_desired_state(device, DesiredState(True, "print active"), current=False)
+
+    assert result is True
+    assert device.command_calls == 2
+    sleep.assert_called_once_with(2)
+
+
+def test_apply_desired_state_gives_up_after_one_retry() -> None:
+    device = FakePurifier(succeed_after=99)
+
+    with mock.patch("airmonitor.filters.levoit.service.time.sleep"):
+        result = apply_desired_state(device, DesiredState(True, "print active"), current=False)
+
+    assert result is False
+    assert device.command_calls == 2
+
+
+def test_apply_desired_state_verifies_turn_off_too() -> None:
+    device = FakePurifier(succeed_after=1)
+    device.is_on = True
+
+    with mock.patch("airmonitor.filters.levoit.service.time.sleep"):
+        result = apply_desired_state(device, DesiredState(False, "print finished"), current=True)
+
+    assert result is False
+    assert device.command_calls == 2

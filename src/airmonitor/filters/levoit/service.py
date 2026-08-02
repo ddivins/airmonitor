@@ -429,12 +429,33 @@ def desired_from_printer_state(state: dict[str, Any] | None, off_deadline: float
     return DesiredState(False, f"printer inactive: state={gcode_state}", None)
 
 
-def apply_desired_state(device: Any, desired: DesiredState, current: bool | None) -> bool | None:
-    """Apply a state change using the already-refreshed device state.
+def send_command_with_verification(device: Any, should_run: bool) -> bool | None:
+    """Send an on/off command and verify it actually took effect.
 
-    No cloud refresh occurs here. The returned value reflects the requested state
-    when a command was sent and is verified on the next scheduled poll.
+    VeSync's cloud API occasionally accepts a command without the device
+    actually toggling (a known flakiness of the service, not this code) --
+    previously that went unnoticed until the next scheduled poll, up to
+    LEVOIT_POLL_INTERVAL_SECONDS later, which read to an operator as needing
+    to "tell it twice." One immediate retry, verified against a fresh cloud
+    refresh, closes most of that gap without waiting for the next poll cycle.
     """
+    action = turn_on if should_run else turn_off
+    current: bool | None = None
+    for attempt in range(2):
+        action(device)
+        refresh_device(device)
+        current = is_on(device)
+        if current == should_run:
+            return current
+        if attempt == 0:
+            LOG.warning("Purifier did not report the expected state after command; retrying once")
+            time.sleep(2)
+    LOG.warning("Purifier still not in expected state after retry; will re-check on next poll")
+    return current
+
+
+def apply_desired_state(device: Any, desired: DesiredState, current: bool | None) -> bool | None:
+    """Apply a state change using the already-refreshed device state."""
     global last_action_signature
     signature = (desired.should_run, desired.reason, int(desired.delay_off_until or 0))
     if signature != last_action_signature:
@@ -442,11 +463,9 @@ def apply_desired_state(device: Any, desired: DesiredState, current: bool | None
         last_action_signature = signature
 
     if desired.should_run and current is not True:
-        turn_on(device)
-        return True
+        return send_command_with_verification(device, True)
     if not desired.should_run and current is not False:
-        turn_off(device)
-        return False
+        return send_command_with_verification(device, False)
     return current
 
 
