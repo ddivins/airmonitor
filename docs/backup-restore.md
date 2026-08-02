@@ -47,9 +47,17 @@ Appliance panel:
 - **Download backup bundle** downloads a `.zip` containing everything a
   from-scratch restore onto new hardware needs: `/etc/airmonitor/`
   (install.conf and every `.env` secret), the Cloudflare DNS-01 credential
-  at `/root/.secrets/cloudflare.ini`, Grafana's own database, the most
-  recent AirMonitor database backup on disk, and a `RESTORE.md` with the
-  exact restore steps.
+  at `/root/.secrets/cloudflare.ini`, the current Let's Encrypt certificates
+  themselves (`/etc/letsencrypt/`, symlink structure preserved via `cp -a`
+  and `zip -y` so certbot's own renewal bookkeeping keeps working after a
+  restore), Grafana's own database, the most recent AirMonitor database
+  backup on disk, and a `RESTORE.md` with the exact restore steps. Including
+  the certs (only ~150KB) means `install.sh`'s `certificate_exists()` check
+  finds them already in place and skips reissuing entirely -- faster
+  restore, and one less dependency (Cloudflare's API, DNS propagation) on
+  the critical path. If they've expired by the time of an actual restore,
+  just delete `/etc/letsencrypt/` before running the installer and it
+  issues fresh ones the normal way.
 
 Backup Now and Download bundle are deliberately decoupled: downloading does
 **not** take a fresh backup first, it only bundles whatever the latest one

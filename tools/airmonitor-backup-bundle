@@ -3,12 +3,13 @@ set -eu
 
 # Assembles a zip of everything needed to restore AirMonitor onto fresh
 # hardware from scratch -- /etc/airmonitor (install.conf + all .env secrets),
-# the Cloudflare DNS-01 credential used to reissue TLS certs, Grafana's own
-# database, and the latest AirMonitor sensor/print database backup -- and
-# writes the zip to stdout. Run only via the automation user's dedicated
-# sudoers rule (config/sudoers/airmonitor-backup-bundle); the caller is
-# responsible for creating a fresh database backup first if it wants one
-# included; this script only bundles whatever already exists on disk.
+# the Cloudflare DNS-01 credential, the current Let's Encrypt certificates
+# themselves, Grafana's own database, and the latest AirMonitor sensor/print
+# database backup -- and writes the zip to stdout. Run only via the
+# automation user's dedicated sudoers rule
+# (config/sudoers/airmonitor-backup-bundle); the caller is responsible for
+# creating a fresh database backup first if it wants one included; this
+# script only bundles whatever already exists on disk.
 
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
@@ -18,9 +19,24 @@ if [ -d /etc/airmonitor ]; then
     cp -a /etc/airmonitor/. "$WORKDIR/etc/airmonitor/"
 fi
 
+# Named root/secrets (no leading dot) rather than mirroring the real
+# /root/.secrets path exactly -- a dot-prefixed directory is hidden by
+# default in macOS Finder, so a straight mirror silently disappeared for
+# anyone who just extracted the zip and looked. RESTORE.md spells out the
+# real destination path either way.
 if [ -f /root/.secrets/cloudflare.ini ]; then
-    mkdir -p "$WORKDIR/root/.secrets"
-    cp /root/.secrets/cloudflare.ini "$WORKDIR/root/.secrets/cloudflare.ini"
+    mkdir -p "$WORKDIR/root/secrets"
+    cp /root/.secrets/cloudflare.ini "$WORKDIR/root/secrets/cloudflare.ini"
+fi
+
+# cp -a preserves live/<domain>/*.pem as symlinks into archive/<domain>/,
+# not the files they point to -- certbot's own renewal bookkeeping depends
+# on that structure, not just on the certs being readable. zip -y (below)
+# then stores those symlinks as symlinks in the archive too, rather than
+# dereferencing them a second time.
+if [ -d /etc/letsencrypt ]; then
+    mkdir -p "$WORKDIR/etc/letsencrypt"
+    cp -a /etc/letsencrypt/. "$WORKDIR/etc/letsencrypt/"
 fi
 
 if [ -f /var/lib/grafana/grafana.db ]; then
@@ -44,8 +60,14 @@ install needs, gathered in one place. On the new host:
 2. Restore configuration and secrets BEFORE running the installer, so it
    picks up the saved answers instead of prompting:
    - Copy `etc/airmonitor/` to `/etc/airmonitor/` (owner root:root).
-   - Copy `root/.secrets/cloudflare.ini` to `/root/.secrets/cloudflare.ini`
-     (owner root:root, mode 600).
+   - Copy `root/secrets/cloudflare.ini` to `/root/.secrets/cloudflare.ini`
+     (owner root:root, mode 600) -- note the destination path has a
+     leading dot that this bundle's own path doesn't.
+   - Copy `etc/letsencrypt/` to `/etc/letsencrypt/` (owner root:root,
+     `cp -a` to preserve the live/ -> archive/ symlinks). If the certs are
+     still valid, the installer detects and reuses them instead of
+     reissuing -- if they've since expired, delete this directory instead
+     and let the installer issue fresh ones via the Cloudflare credential.
 3. Run `bash tools/install.sh` (it reuses the restored install.conf).
 4. After install finishes (the `grafana` system user now exists), stop
    grafana-server, copy `var/lib/grafana/grafana.db` to
@@ -73,5 +95,8 @@ paths="$paths RESTORE.md"
 # zero size benefit. This is the only large file in the bundle -- the rest
 # (configs, secrets, Grafana's DB) are small enough that compressing them
 # doesn't matter either way.
+# -y: store /etc/letsencrypt/live/*'s symlinks as symlinks rather than
+# dereferencing them into duplicate plain files, preserving the structure
+# certbot's own renewal bookkeeping expects.
 # shellcheck disable=SC2086
-exec zip -q -n .gz -r - $paths
+exec zip -q -n .gz -y -r - $paths
