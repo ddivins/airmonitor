@@ -1,4 +1,4 @@
-# Filter comparison: baseline vs. chamber filters vs. room filter (EXP1–EXP5)
+# Filter Efficacy: Baseline vs. Chamber Filters vs. Room filter (EXP1–EXP5)
 
 **Printer:** Bambu X1-Carbon, same `.3mf` file and ABS spool (GFB99, `#76D9F4`, Inland ABS) for every run.
 **Sensor:** fixed position at the top of the enclosure, near the AMS filament feed-through — a
