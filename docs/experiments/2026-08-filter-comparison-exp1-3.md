@@ -1,6 +1,6 @@
 # Filter comparison: baseline vs. chamber filters vs. room filter (EXP1–EXP4)
 
-**Printer:** Bambu X1-Carbon, same `.3mf` file and ABS spool (GFB99, `#76D9F4`) for every run.
+**Printer:** Bambu X1-Carbon, same `.3mf` file and ABS spool (GFB99, `#76D9F4`, Inland ABS) for every run.
 **Sensor:** fixed position at the top of the enclosure, near the AMS filament feed-through — a
 known, unsealed leak point on this printer, not the chamber's own exhaust port.
 **Dashboard:** [AirMonitor Compare Prints](../../grafana/dashboards/airmonitor-compare-prints.json),
@@ -23,7 +23,7 @@ these are consumer products, purchased and tested independently.
 
 *EXP3's VOC number needs a footnote — see below.
 
-## EXP1 vs. EXP2: the chamber filter helps PM, and makes VOC worse
+## EXP1 vs. EXP2: the Bento helps PM, and makes VOC worse
 
 ![EXP1 vs EXP2](images/exp1-vs-exp2-full.png)
 
@@ -48,11 +48,11 @@ cycle. Net effect: more internal air movement in a leaky enclosure works *for* P
 (near-total per-pass capture) and *against* VOC containment (partial, flow-sensitive capture), from
 the very same fan.
 
-## EXP1 vs. EXP3: the room filter doesn't touch the leak, and that's the point
+## EXP1 vs. EXP3: room filter really scrubs the air
 
 ![EXP1 vs EXP3](images/exp1-vs-exp3-full.png)
 
-Levoit is a standalone HEPA+carbon room purifier — it processes air *after* it's already escaped
+Levoit Core 400S is a standalone HEPA+carbon room purifier — it processes air *after* it's already escaped
 into the room, completely independent of whatever is or isn't sealed on the printer's own
 enclosure. It was switched on manually about 18 minutes before EXP3 started (verified via the
 `airmonitor-levoit` service log: `Turning purifier ON ... Setting purifier fan speed: 4` at
