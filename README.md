@@ -102,6 +102,9 @@ filter placements, enclosure states, and room ventilation conditions. Absolute v
 visible because they are useful for plotting and repeatability, but the project emphasizes
 changes in peak, area under the response curve, and time to return toward baseline.
 
+See [docs/experiments](docs/experiments/) for real recorded runs using this model, including a
+baseline-vs-chamber-filters-vs-room-filter comparison with charts and raw numbers.
+
 ## AI-Assisted Development
 
 AirMonitor was developed with extensive AI assistance. The majority of the software and
