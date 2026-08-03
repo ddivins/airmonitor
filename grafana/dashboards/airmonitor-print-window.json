@@ -233,23 +233,33 @@
                         "text": "#688197",
                         "color": "#688197"
                       },
-                      "#7CD82B": {
+                      "#76D9F4": {
                         "index": 3,
+                        "text": "#76D9F4",
+                        "color": "#76D9F4"
+                      },
+                      "#7CD82B": {
+                        "index": 4,
                         "text": "#7CD82B",
                         "color": "#7CD82B"
                       },
                       "#DE4343": {
-                        "index": 4,
+                        "index": 5,
                         "text": "#DE4343",
                         "color": "#DE4343"
                       },
+                      "#F98C36": {
+                        "index": 6,
+                        "text": "#F98C36",
+                        "color": "#F98C36"
+                      },
                       "#FFF144": {
-                        "index": 5,
+                        "index": 7,
                         "text": "#FFF144",
                         "color": "#FFF144"
                       },
                       "#FFFFFF": {
-                        "index": 6,
+                        "index": 8,
                         "text": "#FFFFFF",
                         "color": "#FFFFFF"
                       }
