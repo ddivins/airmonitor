@@ -1,4 +1,4 @@
-# Filter comparison: baseline vs. chamber filters vs. room filter (EXP1–EXP4)
+# Filter comparison: baseline vs. chamber filters vs. room filter (EXP1–EXP5)
 
 **Printer:** Bambu X1-Carbon, same `.3mf` file and ABS spool (GFB99, `#76D9F4`) for every run.
 **Sensor:** fixed position at the top of the enclosure, near the AMS filament feed-through — a
@@ -20,6 +20,7 @@ these are consumer products, purchased and tested independently.
 | EXP2-bento-only | [Voxel Bento Box](https://voxelpla.com/products/bento-box) (HEPA13+carbon), closed-loop recirculating, own fans | 1.58 ppm | 3.70 ppm | 33.9 µg/m³ | 159 min |
 | EXP3-levoit-only | Standalone room HEPA+carbon (Levoit), fan speed 4 | ~0 ppm* | 2.30 ppm* | 9.51 µg/m³ | 168 min |
 | EXP4-xfilter-only | [Voxel X-Filter](https://voxelpla.com/products/bambu-lab-x-filter) (HEPA13+carbon), drop-in replacement for the OEM chamber filter cartridge | 0.17 ppm | 1.0 ppm | 29.3 µg/m³ | 167 min |
+| EXP5-All-3 | Bento + Levoit + X-Filter, all running simultaneously | 0.00 ppm | 0.0 ppm | 4.68 µg/m³ | 167 min |
 
 *EXP3's VOC number needs a footnote — see below.
 
@@ -104,21 +105,44 @@ nothing. Net result: EXP4 roughly halves both peak VOC (2.0 → 1.0 ppm) and pea
 baseline — a filter sitting in the chamber's actual exhaust path helps both metrics, for as long as
 (and even somewhat after) it has capacity left.
 
-## Practical takeaway
+## EXP1 vs. EXP5: stacking every mechanism closes every gap
 
-For VOC specifically, *whether a chamber filter sits in the enclosure's actual exhaust path or just
-recirculates air internally* matters as much as filtration technology. Bento (a separate, closed-loop
-recirculating unit with its own fans) fights a battle it can't win on gas-phase emissions from minute
-one — it was never positioned to govern what leaves via the enclosure's own leak, and its own fan's
-constant internal air movement actively makes that leak worse for VOC even while repeated HEPA passes
-improve particulate capture. EXP4 (sitting in the chamber's actual exhaust path, driven by the
-printer's own fan) avoids that problem and gets a genuine protected window before saturating, after
-which it still helps, just less. A room-level filter (Levoit) sidesteps the whole chamber-airflow
-question entirely, at some cost to peak PM performance right at the source.
+![EXP1 vs EXP5](images/exp1-vs-exp5-full.png)
 
-This is single runs per condition, not replicates — worth treating the ~2x VOC gap (EXP1 vs EXP2),
-the near-total VOC suppression (EXP3), and the breakthrough curve (EXP4) as strong first
-observations, not final claims, until EXP5–EXP6 either reproduce or complicate the pattern.
+EXP5 runs all three filters at once — Bento (in-chamber recirculating), X-Filter (in the chamber's
+actual exhaust path), and Levoit (room-level) simultaneously. The result is about as complete as this
+setup can measure: **every one of the 1,164 VOC samples across the full 167-minute print reads
+exactly `0.0` ppm** — not "mostly flat with a few blips" like EXP4, genuinely zero variance the
+entire print, matching EXP3's floor. PM2.5 peaked at **4.68 µg/m³**, better than any single-filter
+condition, including Levoit alone (9.51 µg/m³).
+
+This makes sense as three mechanisms covering three different pathways at once: X-Filter captures
+a real fraction of whatever the printer actively exhausts before it can reach the leak, Bento adds
+extra internal HEPA passes on top of that for chamber air generally, and Levoit mops up whatever
+still escapes into the room regardless of how any of that went. None of the three depends on the
+others working, so stacking them doesn't just add marginal improvement — it closes off each pathway
+the other two don't cover. Notably, EXP3 alone already zeroed out VOC, so EXP5's VOC result isn't
+new information; the genuinely new finding here is that the *two chamber filters together* pushed
+PM2.5 below what Levoit achieves by itself (9.51 → 4.68 µg/m³) — a real, additional contribution on
+top of the room filter, even though neither chamber filter improved VOC on its own.
+
+## Conclusion
+
+Five runs, one variable changed at a time, converging on a clear, actionable answer: **for VOC,
+filter position relative to the enclosure's leak matters more than filtration technology** — a
+chamber-adjacent filter that doesn't control the printer's actual exhaust path (Bento) can make VOC
+containment *worse* even while helping PM, while a filter in the true exhaust path (X-Filter) or
+off the enclosure entirely (Levoit) both help. **For PM, more filtration is close to strictly
+better** — every condition tested improved over baseline, and stacking chamber filters on top of a
+room filter kept improving PM even after VOC had already hit its floor. Running all three together
+(EXP5) is the strongest result of the whole series on both metrics simultaneously, and there's no
+further headroom left to demonstrate on VOC specifically — a planned EXP6 was left unrun for that
+reason; VOC was already immeasurably suppressed as of EXP3, and EXP5 already answers the remaining
+open question about whether the two chamber filters add anything on top of a room filter for PM.
+
+This is single runs per condition, not replicates. Treat the ~2x VOC gap (EXP1 vs EXP2), the
+near-total VOC suppression (EXP3, EXP5), and the breakthrough curve (EXP4) as strong first
+observations from one physical setup, one filament, one print geometry — not universal claims.
 
 ## Data provenance note
 
