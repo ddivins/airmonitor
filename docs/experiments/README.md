@@ -1,20 +1,25 @@
-# Filter Efficacy: Baseline vs. Chamber Filters vs. Room filter (EXP1–EXP5)
+# Filter Efficacy: Baseline vs. Chamber Filters vs. Room Filter
 
 **Printer:** Bambu X1-Carbon, same `.3mf` file and ABS spool (GFB99, `#76D9F4`, Inland ABS) for every run.
+
 **Sensor:** fixed position at the top of the enclosure, near the AMS filament feed-through — a
 known, unsealed leak point on this printer, not the chamber's own exhaust port.
+
 **Dashboard:** [AirMonitor Compare Prints](../../grafana/dashboards/airmonitor-compare-prints.json),
 which overlays VOC (SGX sensor) and PM2.5 (SPS30 sensor) time series for two prints, aligned to
 minutes-since-print-start.
+
 **Room filter:** Levoit Core 400S, rated for 400 sq ft, used in a 255 sq ft room — meaningfully
 oversized (~1.6x rated capacity) for this space.
+
 **"No filter" (EXP1-baseline):** means *no filtration at all* — not just Bento/Levoit disabled.
 The X1-Carbon's own built-in chamber filter cartridge was physically removed for this run, so
 EXP1 represents the printer's raw, completely unfiltered emissions, not "stock filter only."
+
 **Disclosure:** no affiliation with any sensor or filter manufacturer named in this write-up —
 these are consumer products, purchased and tested independently.
 
-| Run | Condition | VOC avg | VOC max | PM2.5 max | Duration |
+| Test Case | Condition | VOC avg | VOC max | PM2.5 max | Duration |
 |---|---|---|---|---|---|
 | EXP1-baseline | No filtration (built-in chamber filter removed) | 0.81 ppm | 2.0 ppm | 55.1 µg/m³ | 155 min |
 | EXP2-bento-only | [Voxel Bento Box](https://voxelpla.com/products/bento-box) (HEPA13+carbon), closed-loop recirculating, own fans | 1.58 ppm | 3.70 ppm | 33.9 µg/m³ | 159 min |
@@ -24,7 +29,9 @@ these are consumer products, purchased and tested independently.
 
 *EXP3's VOC number needs a footnote — see below.
 
-## EXP1 vs. EXP2: the Bento helps PM, and makes VOC worse
+## EXP1: Baseline
+
+## EXP2: Bento Box Only
 
 ![EXP1 vs EXP2](images/exp1-vs-exp2-full.png)
 
@@ -49,7 +56,7 @@ cycle. Net effect: more internal air movement in a leaky enclosure works *for* P
 (near-total per-pass capture) and *against* VOC containment (partial, flow-sensitive capture), from
 the very same fan.
 
-## EXP1 vs. EXP3: room filter really scrubs the air
+## EXP3: Adjacent External Air Filter
 
 ![EXP1 vs EXP3](images/exp1-vs-exp3-full.png)
 
@@ -74,7 +81,7 @@ sensor's temperature/humidity channels varied normally throughout on the same fr
 PM sensor kept reporting real data too) — it's the Levoit legitimately holding VOC below what this
 setup can detect.
 
-## EXP1 vs. EXP4: a filter in the actual exhaust path helps both, until it saturates
+## EXP4: Built In Chamber Filter
 
 ![EXP1 vs EXP4](images/exp1-vs-exp4-full.png)
 
@@ -105,7 +112,7 @@ nothing. Net result: EXP4 roughly halves both peak VOC (2.0 → 1.0 ppm) and pea
 baseline — a filter sitting in the chamber's actual exhaust path helps both metrics, for as long as
 (and even somewhat after) it has capacity left.
 
-## EXP1 vs. EXP5: stacking every mechanism closes every gap
+## EXP5: Chamber Filter, Bento Box, and Room Filter-- Together
 
 ![EXP1 vs EXP5](images/exp1-vs-exp5-full.png)
 
@@ -146,13 +153,6 @@ observations from one physical setup, one filament, one print geometry — not u
 
 ## Data provenance note
 
-Two things worth knowing if you're digging into the underlying database:
-
-- A print-session-tracking bug (fixed in [`print_tracker.py`](../../src/airmonitor/print_tracker.py))
-  briefly fragmented each of these prints into extra short "phantom" rows around the real start of
-  the print, caused by a transient printer state reported during bed-leveling/calibration. The
-  affected sample rows were reattached to the correct real print before this analysis; the fix
-  prevents it from recurring for EXP4 onward.
 - A short IPA cleaning-alcohol spike on the sensor between runs was independently confirmed via its
   decay curve and alert history, unrelated to any print, and does not appear in these charts' time
   windows.
