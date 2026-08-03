@@ -429,14 +429,33 @@ async function refreshUpdateStatus() {
   }
 }
 
+async function refreshAlertsBadge() {
+  const link = $("alerts-nav-link");
+  try {
+    const response = await fetch("/alerts-api", {cache: "no-store"});
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    const open = data.open || [];
+    const level = open.some((item) => item.level === "critical")
+      ? "critical"
+      : (open.length ? "warning" : "healthy");
+    link.classList.remove("alerts-healthy", "alerts-warning", "alerts-critical");
+    link.classList.add(`alerts-${level}`);
+  } catch (_) {
+    link.classList.remove("alerts-healthy", "alerts-warning", "alerts-critical");
+  }
+}
+
 async function initialize() {
   await refreshSession();
   await refresh();
   await refreshUpdateStatus();
+  await refreshAlertsBadge();
   await checkForRunningBackupOnLoad();
 }
 
 initialize();
 setInterval(refresh, 10000);
+setInterval(refreshAlertsBadge, 10000);
 setInterval(async () => { await refreshSession(); await refresh(); }, 60000);
 setInterval(refreshUpdateStatus, 600000);

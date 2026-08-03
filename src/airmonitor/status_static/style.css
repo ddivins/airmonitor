@@ -42,6 +42,9 @@ body { margin: 0; color: var(--ink); background: var(--canvas); }
 .quick-links { display: grid; grid-template-columns: repeat(3,1fr); border: 1px solid var(--line); border-radius: 11px; overflow: hidden; background: white; }
 .quick-links a { padding: 9px 5px; color: var(--navy); border-left: 1px solid var(--line); font-size: .68rem; font-weight: 800; text-decoration: none; }
 .quick-links a:first-child { border-left: 0; }
+.quick-links a.alerts-link.alerts-healthy { color: var(--healthy); background: #ddf3e9; }
+.quick-links a.alerts-link.alerts-warning { color: var(--degraded); background: #fff0cc; }
+.quick-links a.alerts-link.alerts-critical { color: var(--offline); background: #fae0e2; }
 .quick-links a:hover, .quick-links a:focus-visible { color: white; background: var(--blue); outline: 0; }
 .grafana-signin { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 1px 8px; padding: 11px 14px; color: var(--navy); background: #f7fafc; border: 1px solid var(--line); border-radius: 12px; font-size: .84rem; font-weight: 800; line-height: 1.2; text-align: left; text-decoration: none; }
 .grafana-signin small { grid-column: 1 / -1; color: var(--muted); font-size: .68rem; font-weight: 600; }
