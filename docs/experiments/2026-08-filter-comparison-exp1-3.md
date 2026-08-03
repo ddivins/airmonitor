@@ -6,6 +6,11 @@ known, unsealed leak point on this printer, not the chamber's own exhaust port.
 **Dashboard:** [AirMonitor Compare Prints](../../grafana/dashboards/airmonitor-compare-prints.json),
 which overlays VOC (SGX sensor) and PM2.5 (SPS30 sensor) time series for two prints, aligned to
 minutes-since-print-start.
+**Room filter:** Levoit Core 400S, rated for 400 sq ft, used in a 255 sq ft room — meaningfully
+oversized (~1.6x rated capacity) for this space.
+**"No filter" (EXP1-baseline):** means *no filtration at all* — not just Bento/Levoit disabled.
+The X1-Carbon's own built-in chamber filter cartridge was physically removed for this run, so
+EXP1 represents the printer's raw, completely unfiltered emissions, not "stock filter only."
 
 | Run | Condition | VOC avg | VOC max | PM2.5 max | Duration |
 |---|---|---|---|---|---|
@@ -47,6 +52,11 @@ enclosure. It was switched on manually about 18 minutes before EXP3 started (ver
 completing right around print start, then holding flat at the sensor's resolution floor for the
 entire 2h48m print. PM2.5 also improves over baseline, though less dramatically than Bento (a
 standalone room unit further from the source has less throughput at the print itself).
+
+Worth noting: this unit is rated for 400 sq ft and the room is only 255 sq ft, so it's delivering
+meaningfully more air changes per hour here than its rating implies for a room this size. That
+headroom is likely a real contributor to how completely it suppressed VOC — a 400S running at the
+edge of its rated capacity in a larger room would plausibly show a smaller effect.
 
 *Footnote on EXP3's VOC average: because the reading is genuinely pinned at the sensor's ~0.1 ppm
 resolution floor for the whole print, "average" isn't a meaningful number the way it is for the

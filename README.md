@@ -39,6 +39,17 @@ supported sensor modules, enclosure plans, device configuration, and advanced UA
 > **DIY project notice:** AirMonitor is not a certified air-quality instrument and should
 > not be relied upon for regulatory, medical, occupational-exposure, or life-safety decisions.
 
+## The Setup
+
+<p align="center">
+  <img src="docs/images/setup-overview.jpg" alt="Bambu X1-Carbon with AMS, Bento filter, and Levoit room purifier" width="380">
+  <img src="docs/images/sensor-mounted.jpg" alt="AirMonitor sensor mounted between the AMS and printer top" width="380">
+</p>
+<p align="center">
+  <img src="docs/images/sgx-voc-sensor.jpg" alt="SGX PS1-VOC-1000-MOD sensor element close-up" width="380">
+  <img src="docs/images/sensor-case-internals.jpg" alt="Sensor enclosure internals with wiring" width="380">
+</p>
+
 ## Project Overview
 
 AirMonitor currently provides:
