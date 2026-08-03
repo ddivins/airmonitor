@@ -60,7 +60,9 @@ class PrintTracker:
             )
             return self.active_print_id
 
-        if self.active_print_id is not None and (state in TERMINAL_STATES or not active):
+        disconnected = printer_available != "online" or not printer_state.get("connected")
+
+        if self.active_print_id is not None and (state in TERMINAL_STATES or disconnected):
             closed_id = self.active_print_id
             finish_print(
                 self.conn,
@@ -79,6 +81,13 @@ class PrintTracker:
                 self.post_print_context_seconds,
             )
             return closed_id
+
+        if self.active_print_id is not None:
+            # Ambiguous, non-terminal reading (e.g. gcode_state momentarily
+            # null during bed-leveling/calibration) while the printer is
+            # still connected: keep the current print open rather than
+            # fragmenting it into a spurious extra row.
+            return self.active_print_id
 
         return self._recent_or_none()
 
