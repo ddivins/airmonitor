@@ -31,6 +31,16 @@ these are consumer products, purchased and tested independently.
 
 ## EXP1: Baseline
 
+![EXP1 baseline](images/exp1-baseline-standalone.png)
+
+No filtration at all — the X1-Carbon's own built-in chamber filter cartridge was physically removed
+for this run, so this is the printer's raw, completely unfiltered emissions during a 155-minute ABS
+print. VOC climbs steadily over the first hour to a peak of 2.0 ppm and stays elevated for most of
+the print. PM2.5 shows a sharp ~55 µg/m³ spike in the first few minutes (consistent with initial
+nozzle/bed heating and purge), then a noisy but persistent pattern of smaller peaks throughout,
+rather than settling back down to near-zero the way the filtered runs below do. This run is the
+reference point every other section compares against.
+
 ## EXP2: Bento Box Only
 
 ![EXP1 vs EXP2](images/exp1-vs-exp2-full.png)
