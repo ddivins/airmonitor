@@ -10,6 +10,8 @@ INSTALLER = ROOT / "tools" / "install.sh"
 UPDATER = ROOT / "tools" / "update.sh"
 ROLLBACK = ROOT / "tools" / "rollback.sh"
 CONFIG_EXAMPLE = ROOT / "config" / "install.conf.example"
+INSTALL_GRAFANA = ROOT / "tools" / "install-grafana.sh"
+INSTALL_GRAFANA_RENDERER = ROOT / "tools" / "install-grafana-renderer.sh"
 
 
 def test_installer_is_executable_and_valid_bash() -> None:
@@ -224,3 +226,30 @@ def test_install_conf_example_documents_all_recognized_keys() -> None:
     # something this repo should ever hardcode.
     domain_line = next(line for line in example_text.splitlines() if line.startswith("DOMAIN="))
     assert domain_line == "DOMAIN="
+
+
+def test_grafana_renderer_installer_is_valid_bash() -> None:
+    subprocess.run(["bash", "-n", str(INSTALL_GRAFANA_RENDERER)], check=True)
+
+
+def test_grafana_renderer_installer_uses_docker_not_the_unsupported_plugin() -> None:
+    text = INSTALL_GRAFANA_RENDERER.read_text(encoding="utf-8")
+    # The official grafana-image-renderer *plugin* has no arm64 build, so a
+    # Raspberry Pi install must use the standalone Docker service instead --
+    # regression-guard against reintroducing `grafana cli plugins install
+    # grafana-image-renderer`, which fails outright on this hardware.
+    assert "plugins install grafana-image-renderer" not in text
+    assert "docker run" in text
+    assert "--network host" in text
+
+
+def test_grafana_renderer_installer_generates_token_once_and_keeps_it_secret() -> None:
+    text = INSTALL_GRAFANA_RENDERER.read_text(encoding="utf-8")
+    assert 'if [[ ! -f "$RENDERER_TOKEN_FILE" ]]; then' in text
+    assert "chmod 0640" in text
+
+
+def test_install_grafana_wires_in_the_renderer_installer() -> None:
+    text = INSTALL_GRAFANA.read_text(encoding="utf-8")
+    assert "install-grafana-renderer.sh" in text
+    assert "INSTALL_GRAFANA_RENDERER" in text

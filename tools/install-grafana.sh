@@ -247,6 +247,12 @@ sudo systemctl restart "$GRAFANA_SERVICE"
 sleep 3
 systemctl --no-pager --full status "$GRAFANA_SERVICE"
 
+INSTALL_GRAFANA_RENDERER="${INSTALL_GRAFANA_RENDERER:-1}"
+if [[ "$INSTALL_GRAFANA_RENDERER" == "1" ]]; then
+  log "Setting up Grafana image rendering (Docker-based remote renderer)"
+  bash "$REPO_DIR/tools/install-grafana-renderer.sh"
+fi
+
 log "Provisioned dashboard"
 echo "${GRAFANA_ROOT_URL%/}/d/airmonitor-live/airmonitor-live"
 
