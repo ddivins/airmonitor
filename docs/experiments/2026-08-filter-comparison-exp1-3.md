@@ -1,4 +1,4 @@
-# Filter comparison: baseline vs. chamber filter vs. room filter (EXP1–EXP3)
+# Filter comparison: baseline vs. chamber filters vs. room filter (EXP1–EXP4)
 
 **Printer:** Bambu X1-Carbon, same `.3mf` file and ABS spool (GFB99, `#76D9F4`) for every run.
 **Sensor:** fixed position at the top of the enclosure, near the AMS filament feed-through — a
@@ -14,9 +14,10 @@ EXP1 represents the printer's raw, completely unfiltered emissions, not "stock f
 
 | Run | Condition | VOC avg | VOC max | PM2.5 max | Duration |
 |---|---|---|---|---|---|
-| EXP1-baseline | No filtration | 0.81 ppm | 2.0 ppm | 55.1 µg/m³ | 155 min |
+| EXP1-baseline | No filtration (built-in chamber filter removed) | 0.81 ppm | 2.0 ppm | 55.1 µg/m³ | 155 min |
 | EXP2-bento-only | Chamber-adjacent HEPA+carbon (Bento), fan on | 1.58 ppm | 3.70 ppm | 33.9 µg/m³ | 159 min |
 | EXP3-levoit-only | Standalone room HEPA+carbon (Levoit), fan speed 4 | ~0 ppm* | 2.30 ppm* | 9.51 µg/m³ | 168 min |
+| EXP4-xfilter-only | Third-party chamber filter (Voxel PLA FilterX, HEPA+carbon) in the chamber-filter slot | 0.17 ppm | 1.0 ppm | 29.3 µg/m³ | 167 min |
 
 *EXP3's VOC number needs a footnote — see below.
 
@@ -65,17 +66,46 @@ sensor's temperature/humidity channels varied normally throughout on the same fr
 PM sensor kept reporting real data too) — it's the Levoit legitimately holding VOC below what this
 setup can detect.
 
+## EXP1 vs. EXP4: a properly-sealed chamber filter helps both, until it saturates
+
+![EXP1 vs EXP4](images/exp1-vs-exp4-full.png)
+
+EXP4 uses a Voxel PLA FilterX (HEPA+carbon) sitting in the printer's own chamber-filter slot — not
+a genuine Bambu OEM filter (none was available to test), but occupying the same position and,
+unlike Bento, not an aftermarket clip-on fighting the enclosure's own leak. The result looks
+different from both EXP2 and EXP3: VOC sat at a flat `0.0` for the first **101 minutes** of the
+print (14:56:55 to roughly 16:38), then began a clean, sustained rise at 16:43, climbing to the
+0.3–0.4 ppm range within five minutes and continuing upward for the rest of the print (peak 1.0
+ppm by the end). That shape — full capture, then a real threshold, then a rising climb — is a
+textbook activated-carbon breakthrough curve: the media adsorbs essentially everything while it has
+spare capacity, then the front of the adsorption zone reaches the outlet and effluent concentration
+starts climbing as the bed saturates.
+
+Two things distinguish this from EXP2 (Bento): first, EXP4 gets an actual protected window before
+breakthrough — Bento's VOC curve climbed steadily from minute one with no flat period at all, since
+its fan pulls some air past the enclosure's leak (bypassing the carbon entirely) from the start.
+EXP4 sitting properly in the sealed chamber-filter slot doesn't have that bypass path, so all the
+chamber air genuinely passes through the media until it saturates. Second, even after breakthrough
+begins, EXP4 stays below EXP1-baseline for essentially the entire print (not just the first 101
+minutes) — breakthrough is a gradual saturation curve, not an on/off switch, so a saturating filter
+still adsorbs a shrinking-but-real fraction rather than suddenly contributing nothing. Net result:
+EXP4 roughly halves both peak VOC (2.0 → 1.0 ppm) and peak PM2.5 (55.1 → 29.3 µg/m³) versus true
+baseline — a properly-sealed chamber filter that isn't fighting a leak helps both metrics, for as
+long as (and even somewhat after) it has capacity left.
+
 ## Practical takeaway
 
-For VOC specifically, filter *position relative to the enclosure's leak* matters more than
-filtration technology. A chamber-adjacent filter that isn't airtight-ducted to the chamber is
-fighting a battle it can't win on gas-phase emissions — adding fan-driven airflow can actively make
-VOC escape worse even while it improves particulate capture. A room-level filter sidesteps that
-problem entirely, at some cost to peak PM performance right at the source.
+For VOC specifically, *how well a chamber filter is sealed/ducted to the enclosure* matters as much
+as filtration technology. Bento (fan-driven, imperfectly sealed) fights a battle it can't win on
+gas-phase emissions from minute one — adding fan-driven airflow can actively make VOC escape worse
+even while it improves particulate capture. EXP4 (sealed properly into the chamber-filter slot, no
+fan-driven bypass) avoids that problem and gets a genuine protected window before saturating, after
+which it still helps, just less. A room-level filter (Levoit) sidesteps the enclosure-sealing
+question entirely, at some cost to peak PM performance right at the source.
 
-This is two single runs per condition, not replicates — worth treating the ~2x VOC gap (EXP1 vs
-EXP2) and the near-total VOC suppression (EXP3) as strong first observations, not final claims,
-until EXP4–EXP6 either reproduce or complicate the pattern.
+This is single runs per condition, not replicates — worth treating the ~2x VOC gap (EXP1 vs EXP2),
+the near-total VOC suppression (EXP3), and the breakthrough curve (EXP4) as strong first
+observations, not final claims, until EXP5–EXP6 either reproduce or complicate the pattern.
 
 ## Data provenance note
 
