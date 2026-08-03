@@ -63,7 +63,7 @@ function renderHistory(alerts, now) {
           <div class="state-meta">${escapeHtml(item.message)}</div>
           <div class="state-meta telemetry">Fired ${escapeHtml(ago(item.fired_at, now))} · Resolved ${escapeHtml(ago(item.resolved_at, now))}</div>
         </div>
-        ${pill(escapeHtml(item.level), levelPillClass("resolved"))}
+        ${pill(escapeHtml(item.level), levelPillClass(item.level))}
       </div>
     </div>
   `).join("");

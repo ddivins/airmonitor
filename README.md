@@ -50,6 +50,17 @@ supported sensor modules, enclosure plans, device configuration, and advanced UA
   <img src="docs/images/sensor-case-internals.jpg" alt="Sensor enclosure internals with wiring" width="380">
 </p>
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/images/screenshots/status-page.jpg" alt="AirMonitor status page showing live environment, printer state, and air handling" width="380">
+  <img src="docs/images/screenshots/alerts-page.jpg" alt="AirMonitor alerts page with active alerts and resolved history" width="380">
+</p>
+<p align="center">
+  <img src="docs/images/screenshots/print-window.jpg" alt="Grafana Print Window dashboard for a single print" width="380">
+  <img src="docs/images/screenshots/compare-prints.jpg" alt="Grafana Compare Prints dashboard overlaying two runs" width="380">
+</p>
+
 ## Project Overview
 
 AirMonitor currently provides:
