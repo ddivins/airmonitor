@@ -1,0 +1,10 @@
+[Unit]
+Description=Refresh AirMonitor filament color swatch mapping every 6 hours
+
+[Timer]
+OnCalendar=*-*-* 0/6:00:00
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

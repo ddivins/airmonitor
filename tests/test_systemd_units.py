@@ -94,6 +94,16 @@ def test_backup_timer_runs_daily_and_is_independent_of_target():
     assert "[Install]" in timer
 
 
+def test_filament_colors_sync_timer_runs_every_6_hours_and_is_independent_of_target():
+    service = unit("airmonitor-filament-colors-sync.service")
+    timer = unit("airmonitor-filament-colors-sync.timer")
+    assert "Type=oneshot" in service
+    assert "PartOf=airmonitor.target" not in service
+    assert "ExecStart=/opt/airmonitor/venv/bin/airmonitor sync-filament-colors" in service
+    assert "OnCalendar=*-*-* 0/6:00:00" in timer
+    assert "[Install]" in timer
+
+
 def test_rollback_tolerates_services_absent_from_older_commit():
     rollback = (UNIT_DIR.parent / "tools" / "rollback.sh").read_text(encoding="utf-8")
     assert 'if [[ -f "$WORKTREE/systemd/$service" ]]' in rollback

@@ -34,6 +34,7 @@ from airmonitor.database import (
 )
 from airmonitor.database.repositories import FilterControlRepository
 from airmonitor.filters.control import FilterState, resolve_filter_state
+from airmonitor.filament_color_sync import DEFAULT_DASHBOARD_PATH, sync as sync_filament_colors_impl
 from airmonitor.filament_policy import FilamentPolicy
 from airmonitor.health import _package_version
 from airmonitor.print_tracker import PrintTracker
@@ -306,6 +307,12 @@ def restore_database(args: argparse.Namespace) -> int:
         "database": args.database,
         "pre_restore_copy": str(pre_restore_copy) if pre_restore_copy else None,
     }, indent=2, sort_keys=True))
+    return 0
+
+
+def sync_filament_colors(args: argparse.Namespace) -> int:
+    result = sync_filament_colors_impl(database=args.database, dashboard_path=args.dashboard_path)
+    print(json.dumps(result, indent=2, sort_keys=True))
     return 0
 
 
@@ -598,6 +605,13 @@ def build_parser() -> argparse.ArgumentParser:
     restore_parser = subparsers.add_parser("restore", help="restore the database from a backup file")
     restore_parser.add_argument("backup_file", help="path to a .sqlite3 or .sqlite3.gz backup file")
     restore_parser.add_argument("--database", default="/var/lib/airmonitor/airmonitor.sqlite3")
+
+    sync_colors_parser = subparsers.add_parser(
+        "sync-filament-colors",
+        help="refresh the print-window dashboard's filament color swatch mapping from the database",
+    )
+    sync_colors_parser.add_argument("--database", default="/var/lib/airmonitor/airmonitor.sqlite3")
+    sync_colors_parser.add_argument("--dashboard-path", default=DEFAULT_DASHBOARD_PATH)
     restore_parser.add_argument("--yes", action="store_true", help="confirm overwriting the live database")
 
     install_parser = subparsers.add_parser("install", help="run or preview tools/install.sh from the located checkout")
@@ -687,6 +701,8 @@ def main(argv: list[str] | None = None) -> int:
         return backup_database(args)
     if args.command == "restore":
         return restore_database(args)
+    if args.command == "sync-filament-colors":
+        return sync_filament_colors(args)
     if args.command == "install":
         return install(args)
     if args.command == "update":

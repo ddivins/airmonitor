@@ -201,6 +201,13 @@ if [[ "$INSTALL_GRAFANA" == "1" ]] || {
   else
     GRAFANA_DOMAIN="$DOMAIN" GRAFANA_ROOT_URL="${DOMAIN:+https://$DOMAIN/grafana/}" bash tools/install-grafana.sh
   fi
+
+  log "Installing AirMonitor filament color sync timer"
+  sudo install -o root -g root -m 0644 "$UNIT_DIR/airmonitor-filament-colors-sync.service" "/etc/systemd/system/airmonitor-filament-colors-sync.service"
+  sudo install -o root -g root -m 0644 "$UNIT_DIR/airmonitor-filament-colors-sync.timer" "/etc/systemd/system/airmonitor-filament-colors-sync.timer"
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now airmonitor-filament-colors-sync.timer >/dev/null
+  /opt/airmonitor/venv/bin/airmonitor sync-filament-colors >/dev/null || true
 fi
 
 log "Restarting services"

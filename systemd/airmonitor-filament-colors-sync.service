@@ -1,0 +1,12 @@
+[Unit]
+Description=Refresh AirMonitor print-window dashboard filament color swatch mapping
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/airmonitor/venv/bin/airmonitor sync-filament-colors
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadOnlyPaths=/var/lib/airmonitor
+ReadWritePaths=/var/lib/grafana/dashboards/airmonitor
