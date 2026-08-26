@@ -127,6 +127,27 @@ Levoit detects changes during its normal device poll. Bento polls its local Kasa
 outlet every `OUTLET_POLL_SECONDS` (15 seconds by default). The resulting manual
 mode and reason are persisted and shown on the status page.
 
+## Troubleshooting: Bento's Kasa outlet becomes unreachable
+
+If `airmonitor-bento.service` starts crash-looping with an error like:
+
+```text
+kasa.exceptions.UnsupportedDeviceError: Unsupported device <ip> of type SMART.KASAPLUG
+with encrypt_scheme EncryptionScheme(..., encrypt_type='TPAP', ...)
+```
+
+this means the Kasa/Tapo plug received an automatic firmware update that switched
+it to a newer encryption scheme (`TPAP`) the `python-kasa` library doesn't support
+yet ([tracked upstream](https://github.com/python-kasa/python-kasa/issues/1590),
+unresolved as of writing -- no dependency version bump currently fixes it).
+
+**Fix:** in the Kasa or Tapo app, go to **Me → Allow Third Party Access** and
+enable it. This has reliably restored local/LAN connectivity for affected plugs
+(reported for Kasa/Tapo P100-series and confirmed working on a KP125M in this
+project) without needing a library update. If the option isn't present in your
+app version yet, there's currently no other workaround -- it needs either that
+setting to become available or the upstream issue to land a fix.
+
 ## Levoit's manual override wake signal
 
 Bento reacts to its own manual overrides essentially immediately -- it's fully
