@@ -2,9 +2,9 @@
 
 ## Connector and cable
 
-The SGX `PS1-VOC-1000-MOD` uses a 4-pin sensor connector. Based on physical measurement of the four positions spanning approximately 4 mm and successful fit of the supplied mating cable, the connector on the unit used for this repo's own build appears to be JST-SH, 1.0 mm pitch, rather than JST-ZH.
+The SGX `PS1-VOC-1000-MOD` uses a 4-pin, 1.25 mm pitch Molex PicoBlade sensor connector.
 
-**Reported variation:** a unit that shipped without a cable was found to instead take a 4-pin Molex PicoBlade connector, 1.25 mm pitch ([issue #1](https://github.com/ddivins/airmonitor/issues/1)). The vendor documents used so far don't name the connector series at all, so this may simply vary by production batch. Verify fit against your own unit rather than assuming either identification -- both are measured/observed, not vendor-confirmed part numbers.
+**Correction:** earlier versions of this doc identified the connector as JST-SH, 1.0 mm pitch, based on physical measurement of this repo's own unit. That identification was wrong -- reinspection of the same unit, corroborated by a second unit reported independently ([issue #1](https://github.com/ddivins/airmonitor/issues/1)), confirms Molex PicoBlade, 1.25 mm pitch, on both. See photos below. The vendor documents used so far still don't name the connector series explicitly, so this remains a measured/observed identification rather than a vendor-confirmed part number -- but it's now been checked twice.
 
 Air Monitor uses the factory wire-ended harness directly; no sensor-side crimping is required.
 
@@ -16,7 +16,14 @@ Spare cable:
 | Manufacturer part | `MOD-4PIN-Cable` |
 | Description | Module 4-pin wire-ended cable |
 
-The spare `MOD-4PIN-Cable` appears to be the same style of 4-pin, 1.0 mm pitch JST-SH-to-wire-end harness supplied with the module and is useful as a replacement or for additional builds.
+The spare `MOD-4PIN-Cable` appears to be the same style of 4-pin, 1.25 mm pitch Molex PicoBlade-to-wire-end harness supplied with the module and is useful as a replacement or for additional builds.
+
+Photos of the connector (red=VCC, black=GND, yellow=RX, green=TX):
+
+<p align="center">
+  <img src="images/connector-1.jpg" alt="PS1-VOC-1000-MOD 4-pin Molex PicoBlade connector, angled view" width="380">
+  <img src="images/connector-2.jpg" alt="PS1-VOC-1000-MOD 4-pin Molex PicoBlade connector, pin-side view" width="380">
+</p>
 
 ## Connector orientation
 
@@ -95,7 +102,7 @@ Verified:
 - Default power-up mode is question-and-answer
 - No upload-mode configuration required for normal reads
 - Read-only probe command successfully returned VOC, temperature, and humidity
-- Connector on this repo's own unit appears to be 4-pin JST-SH, 1.0 mm pitch, based on physical measurement and supplied cable fit -- but this isn't universal; see "Reported variation" above
+- Connector is 4-pin Molex PicoBlade, 1.25 mm pitch, based on physical measurement -- corrects an earlier JST-SH identification; see "Connector and cable" above
 
 Example successful probe output:
 
