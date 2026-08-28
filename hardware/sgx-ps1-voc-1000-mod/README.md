@@ -2,9 +2,9 @@
 
 ## Connector and cable
 
-The SGX `PS1-VOC-1000-MOD` uses a 4-pin, 1.0 mm pitch sensor connector. Based on physical measurement of the four positions spanning approximately 4 mm and successful fit of the supplied mating cable, the connector appears to be JST-SH rather than JST-ZH.
+The SGX `PS1-VOC-1000-MOD` uses a 4-pin sensor connector. Based on physical measurement of the four positions spanning approximately 4 mm and successful fit of the supplied mating cable, the connector on the unit used for this repo's own build appears to be JST-SH, 1.0 mm pitch, rather than JST-ZH.
 
-The vendor documents used so far do not explicitly name the connector series, so this should be treated as a measured/observed identification rather than a vendor-confirmed part number.
+**Reported variation:** a unit that shipped without a cable was found to instead take a 4-pin Molex PicoBlade connector, 1.25 mm pitch ([issue #1](https://github.com/ddivins/airmonitor/issues/1)). The vendor documents used so far don't name the connector series at all, so this may simply vary by production batch. Verify fit against your own unit rather than assuming either identification -- both are measured/observed, not vendor-confirmed part numbers.
 
 Air Monitor uses the factory wire-ended harness directly; no sensor-side crimping is required.
 
@@ -95,7 +95,7 @@ Verified:
 - Default power-up mode is question-and-answer
 - No upload-mode configuration required for normal reads
 - Read-only probe command successfully returned VOC, temperature, and humidity
-- Connector appears to be 4-pin JST-SH, 1.0 mm pitch, based on physical measurement and supplied cable fit
+- Connector on this repo's own unit appears to be 4-pin JST-SH, 1.0 mm pitch, based on physical measurement and supplied cable fit -- but this isn't universal; see "Reported variation" above
 
 Example successful probe output:
 
