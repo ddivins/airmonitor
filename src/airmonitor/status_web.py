@@ -8,7 +8,7 @@ from importlib.resources import files
 import json
 import mimetypes
 import os
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 import signal
 import sqlite3
 import subprocess
@@ -24,7 +24,7 @@ from airmonitor.database import connect, init_db
 from airmonitor.database.repositories import FilterControlRepository
 from airmonitor.filters.control import resolve_filter_state
 from airmonitor.status import DEFAULT_DATABASE, collect_alerts, collect_status
-from airmonitor.update_check import check_for_update
+from airmonitor.update_check import DEFAULT_STATE_DIR, check_for_update
 
 
 STATIC = files("airmonitor").joinpath("status_static")
@@ -32,6 +32,8 @@ GRAFANA_API = os.environ.get("AIRMONITOR_GRAFANA_API", "http://127.0.0.1:3000")
 PUBLIC_ORIGIN = os.environ.get("AIRMONITOR_PUBLIC_ORIGIN", "http://localhost:8080")
 CONTROL_HELPER = os.environ.get("AIRMONITOR_CONTROL_HELPER", "/usr/local/sbin/airmonitor-service-control")
 BUNDLE_HELPER = os.environ.get("AIRMONITOR_BUNDLE_HELPER", "/usr/local/sbin/airmonitor-backup-bundle")
+UPDATE_HELPER = os.environ.get("AIRMONITOR_UPDATE_HELPER", "/usr/local/sbin/airmonitor-update-run")
+UPDATE_UNIT = "airmonitor-update.service"
 BACKUP_DIR = os.environ.get("AIRMONITOR_BACKUP_DIR", "/var/lib/airmonitor/backups")
 CONTROLLED_SERVICES = (
     "airmonitor.target",
@@ -174,6 +176,74 @@ def service_status(service: str) -> str:
     return (result.stdout or result.stderr).strip()
 
 
+def _read_update_state_file(name: str, state_dir: str = DEFAULT_STATE_DIR) -> str | None:
+    try:
+        value = (Path(state_dir) / name).read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    return value or None
+
+
+def update_run_status(state_dir: str = DEFAULT_STATE_DIR) -> dict[str, object]:
+    """Combine airmonitor-update.service's live systemd state with the
+    state files tools/update.sh itself writes on every run (installed/
+    previous commit, start/finish timestamps). Both are read directly,
+    without the sudo helper: querying a unit's own properties needs no
+    privilege, and update.sh writes those state files world-readable --
+    only *starting* the unit (airmonitor-update-run) needs root.
+    """
+    try:
+        result = subprocess.run(
+            [
+                "systemctl", "show", UPDATE_UNIT,
+                "-p", "ActiveState,SubState,Result,ExecMainStatus,ExecMainStartTimestamp,ExecMainExitTimestamp",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        fields = dict(
+            line.split("=", 1) for line in result.stdout.splitlines() if "=" in line
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        fields = {}
+
+    active_state = fields.get("ActiveState", "unknown")
+    if active_state in ("activating", "active", "reload"):
+        status = "running"
+    elif active_state == "unknown" or not fields:
+        status = "unknown"
+    elif fields.get("Result") == "success":
+        status = "done"
+    else:
+        status = "error"
+
+    try:
+        log = subprocess.run(
+            ["journalctl", "-u", UPDATE_UNIT, "-n", "80", "--no-pager", "-o", "cat"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        ).stdout
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        log = ""
+
+    return {
+        "status": status,
+        "active_state": active_state,
+        "sub_state": fields.get("SubState"),
+        "result": fields.get("Result"),
+        "exec_main_status": fields.get("ExecMainStatus"),
+        "started_at": fields.get("ExecMainStartTimestamp") or None,
+        "finished_at": fields.get("ExecMainExitTimestamp") or None,
+        "previous_commit": _read_update_state_file("previous-commit", state_dir),
+        "installed_commit": _read_update_state_file("installed-commit", state_dir),
+        "log_tail": log,
+    }
+
+
 UPDATE_CHECK_TTL_SECONDS = int(os.environ.get("AIRMONITOR_UPDATE_CHECK_TTL_SECONDS", "3600"))
 _update_check_cache: dict[str, object] = {"result": None, "checked_at": 0.0}
 
@@ -274,6 +344,13 @@ class StatusHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/update":
             self._json(200, cached_update_check())
+            return
+        if path == "/api/update/run-status":
+            user = self._current_user()
+            if not user or not bool(user.get("isGrafanaAdmin")):
+                self._json(403, {"error": "Grafana administrator access required"})
+                return
+            self._json(200, update_run_status())
             return
         if path == "/api/session":
             user = self._current_user()
@@ -389,12 +466,13 @@ class StatusHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = self.path.split("?", 1)[0]
-        if path not in {"/api/services/control", "/api/filters/control", "/api/backup/run"}:
+        if path not in {"/api/services/control", "/api/filters/control", "/api/backup/run", "/api/update/run"}:
             self._json(404, {"error": "Not found"})
             return
         expected_action = {
             "/api/filters/control": "filter-control",
             "/api/backup/run": "backup-run",
+            "/api/update/run": "update-run",
         }.get(path, "service-control")
         if self.headers.get("Origin") != self.server.public_origin or self.headers.get("X-AirMonitor-Action") != expected_action:
             self._json(403, {"error": "Request origin rejected"})
@@ -425,6 +503,25 @@ class StatusHandler(BaseHTTPRequestHandler):
                     daemon=True,
                 )
                 thread.start()
+            self._json(202, {"ok": True, "status": "running"})
+            return
+        if path == "/api/update/run":
+            current = update_run_status()
+            if current["status"] != "running":
+                try:
+                    result = subprocess.run(
+                        ["sudo", self.server.update_helper],
+                        check=False,
+                        capture_output=True,
+                        text=True,
+                        timeout=10,
+                    )
+                except (FileNotFoundError, subprocess.TimeoutExpired):
+                    self._json(503, {"error": "Update helper unavailable"})
+                    return
+                if result.returncode:
+                    self._json(500, {"error": (result.stderr or result.stdout).strip() or "Failed to start update"})
+                    return
             self._json(202, {"ok": True, "status": "running"})
             return
         if path == "/api/filters/control":
@@ -481,6 +578,7 @@ class StatusServer(ThreadingHTTPServer):
         public_origin: str = PUBLIC_ORIGIN,
         control_helper: str = CONTROL_HELPER,
         bundle_helper: str = BUNDLE_HELPER,
+        update_helper: str = UPDATE_HELPER,
         backup_dir: str = BACKUP_DIR,
     ):
         super().__init__(address, StatusHandler)
@@ -489,6 +587,7 @@ class StatusServer(ThreadingHTTPServer):
         self.public_origin = public_origin
         self.control_helper = control_helper
         self.bundle_helper = bundle_helper
+        self.update_helper = update_helper
         self.backup_dir = backup_dir
 
 

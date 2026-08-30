@@ -22,6 +22,7 @@ from airmonitor.status_web import (
     service_enabled,
     service_status,
     set_filter_mode,
+    update_run_status,
     wake_levoit_service,
 )
 
@@ -209,6 +210,58 @@ class StatusWebTests(unittest.TestCase):
             result = cached_update_check()
         self.assertEqual(result, {"update_available": True})
         mocked.assert_called_once()
+
+    def _mock_update_run(self, show_stdout: str, journal_stdout: str = "line one\nline two\n"):
+        def _run(command, **_kwargs):
+            if command[0] == "systemctl":
+                return subprocess.CompletedProcess(command, 0, stdout=show_stdout, stderr="")
+            if command[0] == "journalctl":
+                return subprocess.CompletedProcess(command, 0, stdout=journal_stdout, stderr="")
+            raise AssertionError(f"unexpected command: {command}")
+
+        return _run
+
+    @patch("airmonitor.status_web.subprocess.run")
+    def test_update_run_status_reports_running_while_active(self, mocked_run):
+        mocked_run.side_effect = self._mock_update_run(
+            "ActiveState=activating\nSubState=start\nResult=success\nExecMainStatus=0\n"
+            "ExecMainStartTimestamp=Sun 2026-08-30 12:00:00 EDT\nExecMainExitTimestamp=\n"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            status = update_run_status(state_dir=directory)
+        self.assertEqual(status["status"], "running")
+        self.assertEqual(status["active_state"], "activating")
+        self.assertIn("line one", status["log_tail"])
+
+    @patch("airmonitor.status_web.subprocess.run")
+    def test_update_run_status_reports_done_after_success(self, mocked_run):
+        mocked_run.side_effect = self._mock_update_run(
+            "ActiveState=inactive\nSubState=dead\nResult=success\nExecMainStatus=0\n"
+            "ExecMainStartTimestamp=Sun 2026-08-30 12:00:00 EDT\nExecMainExitTimestamp=Sun 2026-08-30 12:02:00 EDT\n"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            Path(directory, "installed-commit").write_text("abc123\n", encoding="utf-8")
+            Path(directory, "previous-commit").write_text("def456\n", encoding="utf-8")
+            status = update_run_status(state_dir=directory)
+        self.assertEqual(status["status"], "done")
+        self.assertEqual(status["installed_commit"], "abc123")
+        self.assertEqual(status["previous_commit"], "def456")
+
+    @patch("airmonitor.status_web.subprocess.run")
+    def test_update_run_status_reports_error_on_failed_result(self, mocked_run):
+        mocked_run.side_effect = self._mock_update_run(
+            "ActiveState=failed\nSubState=failed\nResult=exit-code\nExecMainStatus=1\n"
+            "ExecMainStartTimestamp=Sun 2026-08-30 12:00:00 EDT\nExecMainExitTimestamp=Sun 2026-08-30 12:01:00 EDT\n"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            status = update_run_status(state_dir=directory)
+        self.assertEqual(status["status"], "error")
+
+    @patch("airmonitor.status_web.subprocess.run", side_effect=FileNotFoundError)
+    def test_update_run_status_degrades_to_unknown_when_systemctl_unavailable(self, _mocked_run):
+        with tempfile.TemporaryDirectory() as directory:
+            status = update_run_status(state_dir=directory)
+        self.assertEqual(status["status"], "unknown")
 
 
 class BackupBundleEndpointTests(unittest.TestCase):
@@ -421,6 +474,129 @@ class BackupBundleEndpointTests(unittest.TestCase):
 
         self.assertEqual(response.status, 500)
         self.assertIn("permission denied", json.loads(data)["error"])
+
+
+class UpdateRunEndpointTests(unittest.TestCase):
+    """The Update Now button triggers a real deploy pipeline (git pull,
+    reinstall, service restarts) as the checkout owner, so these exercise
+    the HTTP routing/auth/CSRF logic end to end like BackupBundleEndpointTests
+    does, rather than just the pure update_run_status() helper."""
+
+    ADMIN_USER = {"login": "admin", "isGrafanaAdmin": True}
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmpdir.cleanup)
+        self.database = str(Path(self.tmpdir.name) / "airmonitor.sqlite3")
+        conn = sqlite3.connect(self.database)
+        conn.execute("CREATE TABLE placeholder (id INTEGER)")
+        conn.commit()
+        conn.close()
+
+        self.server = StatusServer(
+            ("127.0.0.1", 0),
+            self.database,
+            public_origin="http://testorigin",
+            update_helper="/fake/airmonitor-update-run",
+        )
+        self.addCleanup(self.server.server_close)
+        self.port = self.server.server_address[1]
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+        self.addCleanup(lambda: (self.server.shutdown(), self.thread.join(timeout=2)))
+
+    def _request(self, method: str, path: str, *, headers: dict | None = None, body: bytes | None = None):
+        conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+        try:
+            conn.request(method, path, body=body, headers=headers or {})
+            response = conn.getresponse()
+            return response, response.read()
+        finally:
+            conn.close()
+
+    @patch("airmonitor.status_web.grafana_user", return_value=None)
+    def test_update_run_rejects_unauthenticated_requests(self, _mocked_user):
+        response, _data = self._request(
+            "POST", "/api/update/run",
+            headers={"Origin": "http://testorigin", "X-AirMonitor-Action": "update-run"},
+            body=b"{}",
+        )
+        self.assertEqual(response.status, 403)
+
+    @patch("airmonitor.status_web.grafana_user", return_value=ADMIN_USER)
+    def test_update_run_rejects_missing_csrf_header(self, _mocked_user):
+        response, _data = self._request("POST", "/api/update/run", body=b"{}")
+        self.assertEqual(response.status, 403)
+
+    @patch("airmonitor.status_web.subprocess.run")
+    @patch("airmonitor.status_web.update_run_status")
+    @patch("airmonitor.status_web.grafana_user", return_value=ADMIN_USER)
+    def test_update_run_invokes_the_sudo_helper(self, _mocked_user, mocked_status, mocked_run):
+        mocked_status.return_value = {"status": "unknown"}
+        mocked_run.return_value = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+
+        response, data = self._request(
+            "POST", "/api/update/run",
+            headers={"Origin": "http://testorigin", "X-AirMonitor-Action": "update-run"},
+            body=b"{}",
+        )
+
+        self.assertEqual(response.status, 202)
+        self.assertEqual(json.loads(data), {"ok": True, "status": "running"})
+        mocked_run.assert_called_once()
+        self.assertEqual(mocked_run.call_args.args[0], ["sudo", "/fake/airmonitor-update-run"])
+
+    @patch("airmonitor.status_web.subprocess.run")
+    @patch("airmonitor.status_web.update_run_status")
+    @patch("airmonitor.status_web.grafana_user", return_value=ADMIN_USER)
+    def test_update_run_does_not_restart_an_already_running_update(self, _mocked_user, mocked_status, mocked_run):
+        """A oneshot systemd unit tolerates a duplicate `systemctl start`
+        harmlessly, but skip the sudo round-trip entirely when a run is
+        already in progress -- there's nothing useful for a second click to
+        do beyond what the poll loop already shows."""
+
+        mocked_status.return_value = {"status": "running"}
+
+        response, data = self._request(
+            "POST", "/api/update/run",
+            headers={"Origin": "http://testorigin", "X-AirMonitor-Action": "update-run"},
+            body=b"{}",
+        )
+
+        self.assertEqual(response.status, 202)
+        self.assertEqual(json.loads(data), {"ok": True, "status": "running"})
+        mocked_run.assert_not_called()
+
+    @patch("airmonitor.status_web.subprocess.run")
+    @patch("airmonitor.status_web.update_run_status")
+    @patch("airmonitor.status_web.grafana_user", return_value=ADMIN_USER)
+    def test_update_run_reports_helper_failure(self, _mocked_user, mocked_status, mocked_run):
+        mocked_status.return_value = {"status": "unknown"}
+        mocked_run.return_value = subprocess.CompletedProcess([], 1, stdout="", stderr="not authorized")
+
+        response, data = self._request(
+            "POST", "/api/update/run",
+            headers={"Origin": "http://testorigin", "X-AirMonitor-Action": "update-run"},
+            body=b"{}",
+        )
+
+        self.assertEqual(response.status, 500)
+        self.assertIn("not authorized", json.loads(data)["error"])
+
+    @patch("airmonitor.status_web.grafana_user", return_value=None)
+    def test_update_run_status_rejects_unauthenticated_requests(self, _mocked_user):
+        response, _data = self._request("GET", "/api/update/run-status")
+        self.assertEqual(response.status, 403)
+
+    @patch("airmonitor.status_web.update_run_status")
+    @patch("airmonitor.status_web.grafana_user", return_value=ADMIN_USER)
+    def test_update_run_status_returns_current_state(self, _mocked_user, mocked_status):
+        mocked_status.return_value = {"status": "done", "installed_commit": "abc123"}
+
+        response, data = self._request("GET", "/api/update/run-status")
+
+        self.assertEqual(response.status, 200)
+        self.assertEqual(json.loads(data), {"status": "done", "installed_commit": "abc123"})
 
 
 class FilterControlWakeSignalTests(unittest.TestCase):

@@ -1,0 +1,18 @@
+[Unit]
+Description=AirMonitor on-demand update run
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# Runs as the checkout owner, not root: `airmonitor update` does a real
+# `git pull` against the tracked remote (see cli.py's `update()`), which
+# needs whichever user's SSH/Git credentials the checkout was cloned with.
+# tools/install-status-page.sh substitutes the User= value below from the
+# checkout's actual filesystem owner at install time. The internal `sudo`
+# calls tools/update.sh makes for the privileged steps (installing the
+# package, systemd units, restarting services) rely on that user's own
+# passwordless sudo rights -- the same ones they'd use running
+# `airmonitor update` interactively.
+User=__REPO_OWNER__
+ExecStart=/opt/airmonitor/venv/bin/airmonitor update --no-dry-run
+TimeoutStartSec=900

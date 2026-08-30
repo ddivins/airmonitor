@@ -18,6 +18,12 @@ BUNDLE_HELPER_SRC="${BUNDLE_HELPER_SRC:-tools/airmonitor-backup-bundle}"
 BUNDLE_HELPER_DST="${BUNDLE_HELPER_DST:-/usr/local/sbin/airmonitor-backup-bundle}"
 BUNDLE_SUDOERS_SRC="${BUNDLE_SUDOERS_SRC:-config/sudoers/airmonitor-backup-bundle}"
 BUNDLE_SUDOERS_DST="${BUNDLE_SUDOERS_DST:-/etc/sudoers.d/airmonitor-backup-bundle}"
+UPDATE_HELPER_SRC="${UPDATE_HELPER_SRC:-tools/airmonitor-update-run}"
+UPDATE_HELPER_DST="${UPDATE_HELPER_DST:-/usr/local/sbin/airmonitor-update-run}"
+UPDATE_SUDOERS_SRC="${UPDATE_SUDOERS_SRC:-config/sudoers/airmonitor-update-run}"
+UPDATE_SUDOERS_DST="${UPDATE_SUDOERS_DST:-/etc/sudoers.d/airmonitor-update-run}"
+UPDATE_UNIT_SRC="${UPDATE_UNIT_SRC:-systemd/airmonitor-update.service.template}"
+UPDATE_UNIT_DST="${UPDATE_UNIT_DST:-/etc/systemd/system/airmonitor-update.service}"
 
 if command -v nginx >/dev/null; then
   NGINX_BIN="$(command -v nginx)"
@@ -33,6 +39,9 @@ fi
 [[ -f "$REPO_DIR/$SUDOERS_SRC" ]] || { echo "ERROR: missing $SUDOERS_SRC" >&2; exit 1; }
 [[ -f "$REPO_DIR/$BUNDLE_HELPER_SRC" ]] || { echo "ERROR: missing $BUNDLE_HELPER_SRC" >&2; exit 1; }
 [[ -f "$REPO_DIR/$BUNDLE_SUDOERS_SRC" ]] || { echo "ERROR: missing $BUNDLE_SUDOERS_SRC" >&2; exit 1; }
+[[ -f "$REPO_DIR/$UPDATE_HELPER_SRC" ]] || { echo "ERROR: missing $UPDATE_HELPER_SRC" >&2; exit 1; }
+[[ -f "$REPO_DIR/$UPDATE_SUDOERS_SRC" ]] || { echo "ERROR: missing $UPDATE_SUDOERS_SRC" >&2; exit 1; }
+[[ -f "$REPO_DIR/$UPDATE_UNIT_SRC" ]] || { echo "ERROR: missing $UPDATE_UNIT_SRC" >&2; exit 1; }
 command -v zip >/dev/null || { echo "ERROR: zip is required (should be installed by tools/install.sh)" >&2; exit 1; }
 
 sudo visudo -cf "$REPO_DIR/$SUDOERS_SRC"
@@ -42,6 +51,20 @@ sudo install -o root -g root -m 0440 "$REPO_DIR/$SUDOERS_SRC" "$SUDOERS_DST"
 sudo visudo -cf "$REPO_DIR/$BUNDLE_SUDOERS_SRC"
 sudo install -o root -g root -m 0755 "$REPO_DIR/$BUNDLE_HELPER_SRC" "$BUNDLE_HELPER_DST"
 sudo install -o root -g root -m 0440 "$REPO_DIR/$BUNDLE_SUDOERS_SRC" "$BUNDLE_SUDOERS_DST"
+
+sudo visudo -cf "$REPO_DIR/$UPDATE_SUDOERS_SRC"
+sudo install -o root -g root -m 0755 "$REPO_DIR/$UPDATE_HELPER_SRC" "$UPDATE_HELPER_DST"
+sudo install -o root -g root -m 0440 "$REPO_DIR/$UPDATE_SUDOERS_SRC" "$UPDATE_SUDOERS_DST"
+
+# airmonitor-update.service must run as the checkout's actual owner (the user
+# whose Git/SSH credentials `git pull` and whose sudo rights the internal
+# steps of tools/update.sh depend on) -- see the unit template's own comment.
+REPO_OWNER="$(stat -c '%U' "$REPO_DIR")"
+rendered_unit="$(mktemp)"
+sed "s/__REPO_OWNER__/$REPO_OWNER/g" "$REPO_DIR/$UPDATE_UNIT_SRC" > "$rendered_unit"
+sudo install -o root -g root -m 0644 "$rendered_unit" "$UPDATE_UNIT_DST"
+rm -f "$rendered_unit"
+sudo systemctl daemon-reload
 
 sudo install -d -o root -g root -m 0755 "$(dirname "$NGINX_DST")" "$OFFLINE_DIR"
 

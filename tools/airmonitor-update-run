@@ -1,0 +1,13 @@
+#!/bin/sh
+# Triggers an on-demand AirMonitor update run. Installed root-owned at
+# /usr/local/sbin/airmonitor-update-run and invoked by the unprivileged
+# status-service user only via its dedicated sudoers rule
+# (config/sudoers/airmonitor-update-run); the caller is responsible for
+# authenticating the request as a Grafana administrator first.
+#
+# --no-block queues the start and returns immediately instead of waiting for
+# the oneshot unit to finish: airmonitor-update.service restarts
+# airmonitor-status.service partway through, which would otherwise kill this
+# very request before `systemctl start` ever returned.
+set -eu
+exec systemctl start --no-block airmonitor-update.service

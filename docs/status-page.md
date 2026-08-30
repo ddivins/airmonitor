@@ -66,12 +66,47 @@ override with `AIRMONITOR_BACKUP_DIR` / `AIRMONITOR_UPDATE_STATE_DIR` in
 `/etc/airmonitor/airmonitor.env` if needed. Neither is required for day-to-day operation — both
 degrade to an informational "unknown" state rather than breaking the rest of the page.
 
-**Known current limitation:** the `github.com/ddivins/airmonitor` repo is private as of this
-writing, and anonymous `git ls-remote` genuinely cannot read a private repo — so until the repo
-is made public, the "Update" indicator will always show `could not reach upstream repository`.
-This isn't a bug in the check; it's expected until the repo's visibility changes. Confirmed by
-testing `git ls-remote` with credential helpers disabled, and by GitHub's API returning `404`
-(not `403`) for an unauthenticated request to the repo, both of which are private-repo behavior.
+The `github.com/ddivins/airmonitor` repo is public, so the anonymous `git ls-remote` this check
+relies on works without credentials. (It was briefly private early on, during which this
+indicator always showed `could not reach upstream repository` -- that's no longer the case.)
+
+## Update Now
+
+Administrators get an **Update now** button next to the Update indicator. It triggers the
+same pipeline as running `airmonitor update --no-dry-run` (or `bash tools/update.sh`) by hand:
+`git pull --ff-only`, reinstall the package, refresh systemd units/config, restart every
+AirMonitor service, and run `airmonitor-doctor` -- with `tools/update.sh`'s existing automatic
+rollback if any step fails.
+
+The click only queues the work; a dedicated oneshot unit, `airmonitor-update.service`, actually
+runs it. This is deliberate, not incidental: `tools/update.sh` restarts
+`airmonitor-status.service` as part of the normal service-restart loop, which would kill the
+request handling it if the update ran inline inside `airmonitor-status`'s own process. Handing
+it to a separate systemd unit means the update keeps running even though the very process that
+started it gets restarted partway through. The unprivileged status process can only *start*
+that unit, via the same allowlisted-helper-plus-dedicated-sudoers pattern used for service
+control and backup bundling (`/usr/local/sbin/airmonitor-update-run`,
+`config/sudoers/airmonitor-update-run`) -- `POST /api/update/run` invokes it and returns
+immediately (202) without waiting for the run to finish; the page polls `GET
+/api/update/run-status`, which reads the unit's live systemd state plus the same
+`/var/lib/airmonitor/update-state` files the "Update" indicator uses, and tolerates the brief
+gap in connectivity while `airmonitor-status.service` itself restarts mid-run rather than
+reporting that as a failure.
+
+`airmonitor-update.service` runs as the checkout's actual owner, not root: `git pull` needs
+that user's own Git/SSH credentials, and `tools/update.sh`'s internal `sudo` calls need that
+user's own (interactive-equivalent, passwordless) sudo rights. `tools/install-status-page.sh`
+renders `systemd/airmonitor-update.service.template`'s `User=` from the checkout directory's
+filesystem owner at install/update time, so it stays correct without a separate config value
+to keep in sync.
+
+This is a materially bigger privilege boundary than the rest of this API: the other admin
+controls restart or reconfigure already-vetted services, while this pulls and executes
+whatever is currently on the tracked branch's HEAD as that user. Anyone who can authenticate
+as a Grafana administrator can trigger it. That's the same trust the human running
+`airmonitor update` by hand already extends to the upstream repo and this box's own sudo
+configuration -- this button doesn't create a new one, only a new way to trigger the existing
+one -- but it's worth keeping in mind before granting Grafana admin access.
 
 ## Authentication and administration
 

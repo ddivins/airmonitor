@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#f4f8fb">
   <title>AirMonitor Status</title>
   <link rel="icon" href="/status-assets/favicon.ico">
-  <link rel="stylesheet" href="/status-assets/style.css?v=21">
+  <link rel="stylesheet" href="/status-assets/style.css?v=22">
 </head>
 <body>
   <main class="shell">
@@ -101,6 +101,11 @@
             <p class="backup-actions-hint">Download bundles the backup shown above as "Last backup" — click Backup now first if you want the bundle to include the latest data.</p>
             <p id="backup-actions-status" class="backup-actions-status" aria-live="polite"></p>
           </div>
+          <div id="update-actions" class="backup-actions" hidden>
+            <button id="update-now-button" type="button">Update now</button>
+            <p class="backup-actions-hint">Pulls the latest commit and reinstalls the AirMonitor services. Takes a few minutes; a failed update automatically rolls back. The page may briefly go offline while services restart.</p>
+            <p id="update-actions-status" class="backup-actions-status" aria-live="polite"></p>
+          </div>
         </article>
       </div>
 
@@ -115,6 +120,6 @@
       </section>
     </details>
   </main>
-  <script src="/status-assets/app.js?v=28" defer></script>
+  <script src="/status-assets/app.js?v=29" defer></script>
 </body>
 </html>

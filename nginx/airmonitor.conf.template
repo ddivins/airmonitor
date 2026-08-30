@@ -56,6 +56,27 @@ server {
         add_header Cache-Control "no-store" always;
     }
 
+    location = /update-run-api {
+        # Only queues the run (see status_web.py's /api/update/run and
+        # tools/airmonitor-update-run --no-block) -- returns almost
+        # instantly regardless of how long the update itself takes. The
+        # browser polls /update-run-status-api for progress instead of
+        # blocking here.
+        proxy_pass http://127.0.0.1:8080/api/update/run;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Real-IP $remote_addr;
+        add_header Cache-Control "no-store" always;
+    }
+
+    location = /update-run-status-api {
+        proxy_pass http://127.0.0.1:8080/api/update/run-status;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Real-IP $remote_addr;
+        add_header Cache-Control "no-store" always;
+    }
+
     location = /sign-in {
         proxy_pass http://127.0.0.1:8080/login.html;
         proxy_set_header Host $host;

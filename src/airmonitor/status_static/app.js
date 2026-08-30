@@ -71,6 +71,7 @@ function renderSession() {
   panel.innerHTML = `<div class="signed-in"><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(user.role)} · ${escapeHtml(user.email || user.login)}</small><a class="dashboard-browser-link" href="/grafana/dashboards">Browse dashboards <span aria-hidden="true">→</span></a><div class="account-links"><a href="/grafana/profile">Account</a><a href="/grafana/logout">Sign out</a></div></div>`;
   $("admin-notice").hidden = !user.admin;
   $("backup-actions").hidden = !user.admin;
+  $("update-actions").hidden = !user.admin;
   $("services-caption").textContent = user.admin ? "Administrator controls" : "Systemd state";
   const details = $("system-details");
   if (user.admin && !details.dataset.adminOpened) {
@@ -376,6 +377,107 @@ async function downloadBackupBundle(button) {
 $("backup-now-button").addEventListener("click", (event) => backupNow(event.currentTarget));
 $("backup-download-button").addEventListener("click", (event) => downloadBackupBundle(event.currentTarget));
 
+function setUpdateStatus(text, klass = null) {
+  const status = $("update-actions-status");
+  status.textContent = text;
+  status.classList.remove("value-warning", "value-good");
+  if (klass) status.classList.add(klass);
+}
+
+let updatePolling = false;
+
+async function readUpdateRunStatus() {
+  const response = await fetch("/update-run-status-api", {cache: "no-store", credentials: "same-origin"});
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.json();
+}
+
+// airmonitor-update.service restarts airmonitor-status.service partway
+// through a run (see systemd/airmonitor-update.service.template), which
+// briefly drops this very request. A fetch failure here means "the
+// appliance is mid-restart," not "the update failed" -- keep polling
+// through it rather than surfacing an error, and only give up after enough
+// consecutive failures that something else is genuinely wrong.
+async function watchUpdateJob(button, startedAtMs) {
+  if (updatePolling) return;
+  updatePolling = true;
+  if (button) button.disabled = true;
+  let consecutiveErrors = 0;
+  try {
+    while (true) {
+      let status;
+      try {
+        status = await readUpdateRunStatus();
+        consecutiveErrors = 0;
+      } catch (error) {
+        consecutiveErrors += 1;
+        if (consecutiveErrors > 40) {
+          setUpdateStatus(`Lost contact with the appliance: ${error.message}`, "value-warning");
+          return;
+        }
+        setUpdateStatus("Reconnecting to appliance (services are restarting)…");
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        continue;
+      }
+      const elapsed = Math.max(0, Math.round((Date.now() - startedAtMs) / 1000));
+      if (status.status === "running" || status.status === "unknown") {
+        setUpdateStatus(`Update running… ${elapsed}s elapsed.`);
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        continue;
+      }
+      if (status.status === "done") {
+        setUpdateStatus(`Update complete (${elapsed}s). Reloading…`, "value-good");
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        window.location.reload();
+      } else {
+        setUpdateStatus(`Update failed after ${elapsed}s — automatically rolled back to the previous version. Check the service log for details.`, "value-warning");
+      }
+      return;
+    }
+  } finally {
+    updatePolling = false;
+    if (button) button.disabled = false;
+  }
+}
+
+async function checkForRunningUpdateOnLoad() {
+  if (!session.user?.admin || updatePolling) return;
+  try {
+    const status = await readUpdateRunStatus();
+    if (status.status === "running") {
+      const startedAtMs = status.started_at ? Date.parse(status.started_at) || Date.now() : Date.now();
+      watchUpdateJob($("update-now-button"), startedAtMs);
+    }
+  } catch (_) {
+    // Not critical -- the next manual click will surface any real problem.
+  }
+}
+
+async function updateNow(button) {
+  if (!session.user?.admin || updatePolling) return;
+  if (!window.confirm("Update AirMonitor to the latest version? Services will restart and the page may briefly go offline.")) return;
+  button.disabled = true;
+  setUpdateStatus("Starting update…");
+  try {
+    const response = await fetch("/update-run-api", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {"Content-Type": "application/json", "X-AirMonitor-Action": "update-run"},
+      body: "{}",
+    });
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+      throw new Error(result.error || `HTTP ${response.status}`);
+    }
+    await watchUpdateJob(button, Date.now());
+  } catch (error) {
+    setUpdateStatus(`Update failed to start: ${error.message}`, "value-warning");
+    button.disabled = false;
+  }
+}
+
+$("update-now-button").addEventListener("click", (event) => updateNow(event.currentTarget));
+
 document.addEventListener("click", (event) => {
   const filterButton = event.target.closest("[data-filter-mode]");
   if (filterButton) {
@@ -452,6 +554,7 @@ async function initialize() {
   await refreshUpdateStatus();
   await refreshAlertsBadge();
   await checkForRunningBackupOnLoad();
+  await checkForRunningUpdateOnLoad();
 }
 
 initialize();
