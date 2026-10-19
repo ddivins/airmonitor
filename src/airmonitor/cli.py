@@ -391,10 +391,31 @@ def update(args: argparse.Namespace) -> int:
     # Deliberately not run as root: tools/update.sh escalates internally only
     # where needed, and `git pull` must run as whichever user actually has
     # the checkout's Git/SSH credentials, not root.
+    #
+    # The pull happens here, before update.sh, so update.sh itself is the new
+    # version (bash reads a running script lazily, so letting it pull its own
+    # file mid-run is unsafe). That means update.sh would see the already-new
+    # HEAD as its "previous" commit and roll back to the very commit that
+    # just failed -- so capture the real pre-pull HEAD and hand it over.
+    previous_commit = _git_head(repo_dir)
     pull = subprocess.run(["git", "-C", repo_dir, "pull", "--ff-only"])
     if pull.returncode != 0:
         return pull.returncode
-    return subprocess.run(["bash", str(script)]).returncode
+    env = dict(os.environ)
+    if previous_commit:
+        env["AIRMONITOR_PREVIOUS_COMMIT"] = previous_commit
+    return subprocess.run(["bash", str(script)], env=env).returncode
+
+
+def _git_head(repo_dir: str) -> str | None:
+    try:
+        result = subprocess.run(
+            ["git", "-C", repo_dir, "rev-parse", "HEAD"], capture_output=True, text=True, check=False
+        )
+    except OSError:
+        return None
+    output = result.stdout if isinstance(result.stdout, str) else ""
+    return output.strip() if result.returncode == 0 and output.strip() else None
 
 
 def run_printer_mqtt_service() -> int:

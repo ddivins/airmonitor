@@ -107,6 +107,13 @@ done
 cd "$REPO_DIR"
 
 PREVIOUS_COMMIT="$(git rev-parse HEAD)"
+# `airmonitor update` pulls before invoking this script (so the new copy of
+# this script is what runs), which makes HEAD already the new commit here.
+# It passes the pre-pull commit in so a rollback goes back to what was
+# actually running, not to the commit that just failed.
+if [[ -n "${AIRMONITOR_PREVIOUS_COMMIT:-}" ]] && git cat-file -e "${AIRMONITOR_PREVIOUS_COMMIT}^{commit}" 2>/dev/null; then
+  PREVIOUS_COMMIT="$AIRMONITOR_PREVIOUS_COMMIT"
+fi
 PREVIOUS_VERSION="$($APP_DIR/venv/bin/python -c 'import importlib.metadata; print(importlib.metadata.version("airmonitor"))' 2>/dev/null || echo unknown)"
 UPDATE_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
