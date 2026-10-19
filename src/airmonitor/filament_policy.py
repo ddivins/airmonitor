@@ -74,6 +74,15 @@ class FilamentPolicy:
         )
 
 
+def enrich_printer_state(printer_state: dict[str, Any] | None, policy: FilamentPolicy | None) -> dict[str, Any] | None:
+    """Return a copy of printer_state with the policy's classification fields added."""
+    if printer_state is None or policy is None:
+        return printer_state
+    enriched = dict(printer_state)
+    enriched.update(policy.classify(enriched.get("filament_type")).as_printer_state_fields())
+    return enriched
+
+
 def normalize_material_name(value: Any) -> str:
     if value is None:
         return ""

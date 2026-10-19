@@ -35,7 +35,7 @@ from airmonitor.database import (
 from airmonitor.database.repositories import FilterControlRepository
 from airmonitor.filters.control import FilterState, resolve_filter_state
 from airmonitor.filament_color_sync import DEFAULT_DASHBOARD_PATH, sync as sync_filament_colors_impl
-from airmonitor.filament_policy import FilamentPolicy
+from airmonitor.filament_policy import FilamentPolicy, enrich_printer_state
 from airmonitor.health import _package_version
 from airmonitor.print_tracker import PrintTracker
 from airmonitor.printer_mqtt import PrinterStateCache
@@ -539,12 +539,7 @@ def log_samples(args: argparse.Namespace) -> int:
 
 
 def enrich_printer_state_with_policy(printer_state: dict[str, Any] | None, policy: FilamentPolicy | None) -> dict[str, Any] | None:
-    if printer_state is None or policy is None:
-        return printer_state
-    enriched = dict(printer_state)
-    decision = policy.classify(enriched.get("filament_type"))
-    enriched.update(decision.as_printer_state_fields())
-    return enriched
+    return enrich_printer_state(printer_state, policy)
 
 
 def _dict_get(value: dict[str, Any] | None, key: str) -> Any:

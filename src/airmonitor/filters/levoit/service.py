@@ -21,11 +21,12 @@ from pyvesync import VeSync
 
 from airmonitor.database import connect, init_db
 from airmonitor.database.repositories import FilterControlRepository
+from airmonitor.filament_policy import FilamentPolicy, enrich_printer_state
 from airmonitor.filters.control import FilterState, resolve_filter_state
 
 
 APP_NAME = "airmonitor-levoit"
-APP_VERSION = "0.1.5"
+APP_VERSION = "0.1.6"
 FILTER_ID = "levoit"
 DEFAULT_ENV_FILE = "/etc/airmonitor/levoit.env"
 LOG = logging.getLogger(APP_NAME)
@@ -34,6 +35,7 @@ running = True
 last_printer_state: Optional[dict[str, Any]] = None
 last_printer_state_at: Optional[float] = None
 last_action_signature: Optional[tuple[Any, ...]] = None
+filament_policy: Optional[FilamentPolicy] = None
 
 # Set by SIGUSR1 (sent by the status page after a manual on/auto/off change)
 # to wake the poll loop immediately instead of waiting out the full
@@ -127,6 +129,7 @@ PRINTER_STATE_STALE_SECONDS = getenv_int("PRINTER_STATE_STALE_SECONDS", 300, min
 TURN_OFF_WHEN_NOT_RECOMMENDED = getenv_bool("LEVOIT_TURN_OFF_WHEN_NOT_RECOMMENDED", False)
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
 DATABASE_PATH = os.environ.get("AIRMONITOR_DATABASE", "/var/lib/airmonitor/airmonitor.sqlite3")
+FILAMENT_POLICY_PATH = os.environ.get("AIRMONITOR_FILAMENT_POLICY", "/etc/airmonitor/filament-policy.yaml")
 
 
 @dataclass(frozen=True)
@@ -483,6 +486,30 @@ def apply_desired_state(device: Any, desired: DesiredState, current: bool | None
     return current
 
 
+def load_filament_policy(path: str = FILAMENT_POLICY_PATH) -> Optional[FilamentPolicy]:
+    """Load the filament policy used to decide whether a print needs the room filter.
+
+    airmonitor-printer-mqtt publishes raw printer state with no policy fields,
+    so this service classifies the filament itself. Without a policy the
+    room filter can never be recommended, so a load failure is logged loudly
+    rather than silently leaving the purifier off for every print.
+    """
+    try:
+        policy = FilamentPolicy.load(path)
+    except (OSError, ValueError) as exc:
+        LOG.error("Could not load filament policy %s; room filter will never be recommended: %s", path, exc)
+        return None
+    LOG.info("Loaded filament policy: path=%s version=%s", path, policy.version)
+    return policy
+
+
+def apply_filament_policy(state: dict[str, Any], policy: Optional[FilamentPolicy]) -> dict[str, Any]:
+    """Classify state's filament, unless an upstream publisher already did."""
+    if "room_filter_recommended" in state:
+        return state
+    return enrich_printer_state(state, policy) or state
+
+
 def on_mqtt_connect(client, userdata, flags, reason_code, properties=None):
     LOG.info("Connected to MQTT at %s:%s result=%s", LOCAL_MQTT_HOST, LOCAL_MQTT_PORT, reason_code)
     client.subscribe(LOCAL_MQTT_TOPIC)
@@ -498,7 +525,7 @@ def on_mqtt_message(client, userdata, msg):
         return
     if not isinstance(data, dict):
         return
-    last_printer_state = data
+    last_printer_state = apply_filament_policy(data, filament_policy)
     last_printer_state_at = time.time()
 
 
@@ -534,6 +561,7 @@ def sleep_until_next_poll(seconds: int) -> None:
 
 
 def run_service() -> int:
+    global filament_policy
     setup_logging()
     signal.signal(signal.SIGTERM, stop_service)
     signal.signal(signal.SIGINT, stop_service)
@@ -543,6 +571,7 @@ def run_service() -> int:
     LOG.info("MQTT: %s:%s topic=%s", LOCAL_MQTT_HOST, LOCAL_MQTT_PORT, LOCAL_MQTT_TOPIC)
     LOG.info("Auto off delay: %ss", AUTO_OFF_DELAY_SECONDS)
     LOG.info("VeSync poll interval: %ss", LEVOIT_POLL_INTERVAL_SECONDS)
+    filament_policy = load_filament_policy()
 
     manager = login_manager()
     device = find_purifier(manager, LEVOIT_DEVICE_NAME)

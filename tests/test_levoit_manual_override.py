@@ -198,3 +198,78 @@ def test_stop_service_also_wakes_the_sleep_immediately() -> None:
         assert service.running is False
     finally:
         service.running = True
+
+
+class TestFilamentPolicyEnrichment:
+    """airmonitor-printer-mqtt publishes raw printer state with no policy
+    fields, so the Levoit service has to classify the filament itself.
+    Regression: it read room_filter_recommended straight off that payload,
+    got None, and so never turned on for any print -- including ASA."""
+
+    POLICY = {
+        "policy_version": "test",
+        "defaults": {"room_filter_recommended": False},
+        "materials": {
+            "ASA": {"room_filter_recommended": True, "emission_class": "high"},
+            "PLA": {"room_filter_recommended": False, "emission_class": "low"},
+        },
+    }
+
+    def policy(self):
+        from airmonitor.filament_policy import FilamentPolicy
+
+        return FilamentPolicy(self.POLICY)
+
+    def test_raw_asa_print_requires_room_filter(self):
+        raw = {"gcode_state": "RUNNING", "active": True, "filament_type": "ASA"}
+
+        state = service.apply_filament_policy(raw, self.policy())
+        desired = service.desired_from_printer_state(state, None)
+
+        assert desired.should_run is True
+
+    def test_raw_pla_print_does_not_require_room_filter(self):
+        raw = {"gcode_state": "RUNNING", "active": True, "filament_type": "PLA"}
+
+        state = service.apply_filament_policy(raw, self.policy())
+
+        assert service.desired_from_printer_state(state, None).should_run is False
+
+    def test_unclassified_state_never_recommends_the_filter(self):
+        raw = {"gcode_state": "RUNNING", "active": True, "filament_type": "ASA"}
+
+        assert service.desired_from_printer_state(raw, None).should_run is False
+
+    def test_missing_policy_leaves_state_untouched(self):
+        raw = {"active": True, "filament_type": "ASA"}
+
+        assert service.apply_filament_policy(raw, None) == raw
+
+    def test_upstream_classification_is_respected(self):
+        upstream = {"active": True, "filament_type": "ASA", "room_filter_recommended": False}
+
+        assert service.apply_filament_policy(upstream, self.policy()) is upstream
+
+    def test_mqtt_message_is_classified_before_it_is_stored(self):
+        import json
+
+        message = mock.Mock(topic="printer/state", payload=json.dumps(
+            {"gcode_state": "RUNNING", "active": True, "filament_type": "ASA"}
+        ).encode())
+        with mock.patch.object(service, "filament_policy", self.policy()):
+            service.on_mqtt_message(None, None, message)
+
+        assert service.last_printer_state["room_filter_recommended"] is True
+
+    def test_load_filament_policy_returns_none_when_file_missing(self):
+        assert service.load_filament_policy("/nonexistent/filament-policy.yaml") is None
+
+    def test_deployed_policy_recommends_room_filter_for_asa_and_abs_only_of_these(self):
+        from pathlib import Path
+
+        from airmonitor.filament_policy import FilamentPolicy
+
+        policy = FilamentPolicy.load(Path(__file__).parents[1] / "config" / "filament-policy.yaml")
+        for material, expected in (("ASA", True), ("ABS", True), ("PLA", False), ("PETG", False)):
+            state = service.apply_filament_policy({"filament_type": material}, policy)
+            assert state["room_filter_recommended"] is expected, material
