@@ -273,3 +273,51 @@ class TestFilamentPolicyEnrichment:
         for material, expected in (("ASA", True), ("ABS", True), ("PLA", False), ("PETG", False)):
             state = service.apply_filament_policy({"filament_type": material}, policy)
             assert state["room_filter_recommended"] is expected, material
+
+
+class TestOwnCommandIsNotAnExternalChange:
+    """Regression: VeSync applied the service's own ON command but kept
+    reporting "off" for a while. The loop recorded that stale "off" as the
+    expected state, so the next poll's "on" looked like someone switching the
+    purifier on by hand, latching a manual override that never released --
+    the purifier then stayed on after the print finished."""
+
+    def test_unconfirmed_command_is_reported_when_readback_disagrees(self):
+        assert service.unconfirmed_command(True, before=False, after=False) is True
+        assert service.unconfirmed_command(False, before=True, after=True) is False
+
+    def test_confirmed_or_unsent_commands_are_not_pending(self):
+        assert service.unconfirmed_command(True, before=False, after=True) is None  # confirmed
+        assert service.unconfirmed_command(True, before=True, after=True) is None  # nothing sent
+        assert service.unconfirmed_command(False, before=False, after=False) is None  # nothing sent
+
+    def test_unknown_prior_state_counts_as_a_sent_command(self):
+        assert service.unconfirmed_command(True, before=None, after=False) is True
+
+    def test_late_applied_on_is_not_an_external_override(self):
+        # Cycle 1: desired ON, device reads off before the command lands, and
+        # still reads off right after it, so the loop records expected=off.
+        commanded = service.unconfirmed_command(True, before=False, after=False)
+        expected = False
+        # Cycle 2: the command has now taken effect.
+        expected = service.settle_expected_state(expected, commanded, actual=True)
+
+        assert service.external_override_mode(expected, True) is None
+
+    def test_without_settling_the_late_on_would_have_latched_an_override(self):
+        assert service.external_override_mode(False, True) == "on"
+
+    def test_command_that_never_took_effect_is_not_an_external_off(self):
+        commanded = service.unconfirmed_command(True, before=False, after=False)
+        expected = service.settle_expected_state(False, commanded, actual=False)
+
+        assert service.external_override_mode(expected, False) is None
+
+    def test_a_real_external_change_is_still_detected_afterward(self):
+        # Once the command is settled, a later manual switch-on is still caught.
+        expected = service.settle_expected_state(False, None, actual=False)
+
+        assert service.external_override_mode(expected, True) == "on"
+
+    def test_settling_without_a_pending_command_keeps_the_expected_state(self):
+        assert service.settle_expected_state(True, None, actual=False) is True

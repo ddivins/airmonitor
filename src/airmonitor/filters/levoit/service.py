@@ -26,7 +26,7 @@ from airmonitor.filters.control import FilterState, resolve_filter_state
 
 
 APP_NAME = "airmonitor-levoit"
-APP_VERSION = "0.1.6"
+APP_VERSION = "0.1.7"
 FILTER_ID = "levoit"
 DEFAULT_ENV_FILE = "/etc/airmonitor/levoit.env"
 LOG = logging.getLogger(APP_NAME)
@@ -240,6 +240,30 @@ def external_override_mode(expected: bool | None, actual: bool | None) -> str | 
     if expected is None or actual is None or actual == expected:
         return None
     return FilterState.ON.value if actual else "auto"
+
+
+def unconfirmed_command(should_run: bool, before: bool | None, after: bool | None) -> bool | None:
+    """The state this service just commanded, if the read-back didn't confirm it.
+
+    VeSync's cloud often applies a command but keeps reporting the old state
+    for a while. Returns the commanded state when a command was sent this
+    cycle and the immediate read-back disagreed with it, else None.
+    """
+    sent = (should_run and before is not True) or (not should_run and before is not False)
+    return should_run if sent and after != should_run else None
+
+
+def settle_expected_state(expected: bool | None, commanded: bool | None, actual: bool | None) -> bool | None:
+    """Expected device state at the start of a cycle, accounting for our own commands.
+
+    If last cycle's command wasn't confirmed by its read-back, the device
+    state we see now is that command's outcome (applied late, or not applied
+    at all), not an external change. Adopt it, so only a difference from a
+    state we ourselves observed or settled on counts as someone else acting.
+    Without this, a late-applied ON was read as a manual switch-on, which
+    latched a manual override that never released.
+    """
+    return actual if commanded is not None else expected
 
 
 def record_external_manual_override(actual: bool) -> bool:
@@ -584,6 +608,7 @@ def run_service() -> int:
     off_deadline: float | None = None
     was_required = False
     expected_device_state: bool | None = None
+    commanded_state: bool | None = None
 
     try:
         while running:
@@ -608,6 +633,8 @@ def run_service() -> int:
             # database writes, and possible commands reuse this state.
             refresh_device(device)
             current = is_on(device)
+            expected_device_state = settle_expected_state(expected_device_state, commanded_state, current)
+            commanded_state = None
             override_mode = external_override_mode(expected_device_state, current)
             if override_mode is not None:
                 record_external_manual_override(bool(current))
@@ -637,7 +664,9 @@ def run_service() -> int:
                 reason=reason,
                 delay_off_until=desired.delay_off_until,
             )
+            before_command = current
             current = apply_desired_state(device, desired, current)
+            commanded_state = unconfirmed_command(desired.should_run, before_command, current)
             expected_device_state = current
             record_levoit_telemetry(device, current)
             record_filter_state(
